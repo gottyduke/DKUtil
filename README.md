@@ -18,9 +18,9 @@ template <std::uint64_t BASE_ID, std::uintptr_t OFFSET_START, std::uintptr_t OFF
 bool BranchToFunction(
     std::uintptr_t a_hookFunc, // address of our own function to hook to
     const void* a_prePatch = nullptr, // patch codes that execute before calling our hook function
-	const std::uint64_t a_preSize = 0, // size of pre patch code
-	const void* a_postPatch = nullptr, // patch codes that execute after returning from out hook function
-	const std::uint64_t a_postSize = 0 // size of post patch code
+    const std::uint64_t a_preSize = 0, // size of pre patch code
+    const void* a_postPatch = nullptr, // patch codes that execute after returning from out hook function
+    const std::uint64_t a_postSize = 0 // size of post patch code
 ); // return bool indicating success
 
 
@@ -36,9 +36,9 @@ template <std::uintptr_t ADDRESS_START, std::uintptr_t ADDRESS_END>
 bool BranchToFunction(
     std::uintptr_t a_hookFunc, // address of our own function to hook to
     const void* a_prePatch = nullptr, // patch codes that execute before calling our hook function
-	const std::uint64_t a_preSize = 0, // size of pre patch code
-	const void* a_postPatch = nullptr, // patch codes that execute after returning from out hook function
-	const std::uint64_t a_postSize = 0 // size of post patch code
+    const std::uint64_t a_preSize = 0, // size of pre patch code
+    const void* a_postPatch = nullptr, // patch codes that execute after returning from out hook function
+    const std::uint64_t a_postSize = 0 // size of post patch code
 ); // return bool indicating success
 
 
