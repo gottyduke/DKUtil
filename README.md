@@ -1,4 +1,5 @@
 # DKUtil
+Some utility headers and powershell scripts.
 
 ### Current Developed Implementations :
 + Hash
@@ -42,7 +43,7 @@ bool BranchToFunction(
 ); // return bool indicating success
 
 
-// uses base address
+// uses base address, packed parameters
 template <std::uintptr_t ADDRESS_START, std::uintptr_t ADDRESS_END>
 bool BranchToFunction(
     BranchInstruction a_instruction     // packed parameter to reduce parameter list length
@@ -62,9 +63,11 @@ struct BranchInstruction
 	PatchCode PrePatch;
 	PatchCode PostPatch;
 };
+
+typedef BranchInstruction DKUtil::Hook::BranchInstruction;
 ```
 
-SKSE64 w/ Address ID example :
+##### SKSE64 w/ Address ID example :
 ```C++
 #define SKSE64 // define this macro to use SKSE64 implementation explicitly
 #include "DKUtil/Hook.h"
@@ -92,7 +95,7 @@ bool InstallHooks()
 ```
 In this example we simply wrote a detour from address that corresponds to id `12345` with offset `OFFSET_START`, to our own `Hook_MyAwesomeFunc` function.
 
-SKSE64 w/ Address ID w/ Patch code exmaple :
+##### SKSE64 w/ Address ID w/ Patch code exmaple :
 ```C++
 #define SKSE64 // define this macro to use SKSE64 implementation explicitly
 #include "DKUtil/Hook.h"
@@ -127,7 +130,7 @@ Code patching is extremely useful to safely restore the stole bytes from origina
 
 > You can use [Hex2Asm](https://defuse.ca/online-x86-assembler.htm) to generate fixed assembly code.
 
-SKSE64 w/o Address ID w/ Patch code example :
+##### SKSE64 w/o Address ID w/ Patch code example :
 ```C++
 #define SKSE64 // define this macro to use SKSE64 implementation explicitly
 #include "DKUtil/Hook.h"
@@ -157,9 +160,9 @@ bool InstallHooks()
 ```
 This is mostly the same with address library example, but we have to resolve our addresses before calling BranchToFunction.
 
-Beacuse CommonLib internally utilizes address library, so CommonLib examples will be the same as SKSE64 w/ Address ID w/ Patch code example, except that we don't `#define SKSE64` before `#include "DKUtil/Hook.h"`.
+Beacuse CommonLib internally utilizes address library, so CommonLib examples will be the same as SKSE64 w/ Address ID w/ Patch code examples, except that we don't `#define SKSE64` before `#include "DKUtil/Hook.h"`.
 
-Packed parameter example :
+##### Packed parameter example :
 ```C++
 #include "DKUtil/Hook.h"
 
@@ -196,10 +199,8 @@ bool InstallHooks()
 ```
 Use packed parameter to reduce the length of parameter list.
 
-
 > Patch code can be any data type, since it's `const void*`.
-> SKSE64 or CommonLib implementation is done via conditional compilation, so a defined `SKSE64` must appear before `#include` to use SKSE64 explicitly. Othersie it will use CommonLib by default.
-
+> SKSE64 or CommonLib implementation is done via conditional compilation, so `#define SKSE64` must appear before `#include` to use SKSE64 explicitly. Othersie it will use CommonLib by default.
 
 ### Template
 Some(currently 1) random template class(es) I made for myself to save time from duplicating codes.

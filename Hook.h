@@ -22,13 +22,16 @@
 /* VERSION DEFINE START */
 #define DKUTIL_HOOK_VERSION_MAJOR	1
 #define DKUTIL_HOOK_VERSION_MINOR	8
-#define DKUTIL_HOOK_VERSION_PATCH	0
+#define DKUTIL_HOOK_VERSION_PATCH	1
 #define DKUTIL_HOOK_VERSION_BEAT	0
 /* VERSION DEFINE END */
 
 
 /* PATCH NOTE START */
 /**
+ * 1.8.1
+ * Removed success checks during the writing procedure, due to SKSE64 implementation has no returning value;
+ *
  * 1.8.0
  * Restructured two separate implementations into conditional compilation;
  * Resolve address differently based on which implementation is used;
@@ -72,7 +75,6 @@
  *
 /* PATCH NOTE END */
 
-
 #ifdef SKSE64
 
 
@@ -81,6 +83,10 @@
 #include "skse64_common/BranchTrampoline.h"
 
 #include "common/IDebugLog.h"
+
+#ifndef XBYAK_NO_OP_NAMES
+#define XBYAK_NO_OP_NAMES
+#endif
 
 #include "xbyak/xbyak.h"
 
@@ -92,10 +98,10 @@
 #ifdef DKUTIL_HOOK_VERBOSE
 #define FM(FMT, ...)				gLog.FormattedMessage(FMT, __VA_ARGS__);
 #else
-#define FM(FMT, ...)
+#define FM(...)
 #endif
 
-#define WRITE(ADDR, DATA, LENGTH)	SafeWriteBuf(ADDR, DATA, LENGTH)
+#define WRITE(ADDR, DATA, LENGTH)	SafeWriteBuf(ADDR, const_cast<void*>(DATA), LENGTH)
 #define WRITE_8(ADDR, DATA_8)		SafeWrite8(ADDR, DATA_8)
 #define WRITE_16(ADDR, DATA_16)		SafeWrite16(ADDR, DATA_16)
 #define WRITE_32(ADDR, DATA_32)		SafeWrite32(ADDR, DATA_32)
@@ -118,9 +124,9 @@
 
 /* COMMONLIB DEFINE START */
 #ifdef DKUTIL_HOOK_VERBOSE
-#define FM(FMT, ...)				SKSE::Impl::MacroLogger::VPrint(__FILE__, __LINE__, SKSE::Logger::Level::kDebugMessage, FMT, __VA_ARGS__);
+#define FM(FMT, ...)				SKSE::Impl::MacroLogger::VPrint(__FILE__, __LINE__, SKSE::Logger::Level::kMessage, FMT, __VA_ARGS__);
 #else
-#define FM(FMT, ...) 
+#define FM(...) 
 #endif
 
 #define WRITE(ADDR, DATA, LENGTH)	SKSE::SafeWriteBuf(ADDR, DATA, LENGTH)
@@ -138,17 +144,19 @@
 #endif
 
 
-/* GENERAL DEFINE START */
-#define NOP 0x90
-#define JMP 0xE9
-#define BRANCH_SIZE 12
-/* GENERAL DEFINE END */
-
-
 namespace DKUtil::Hook
 {
 	/* GLOBAL DECLARATION START */
+	namespace Impl
+	{
+		constexpr std::uint8_t NOP = 0x90;
+		constexpr std::uint8_t JMP = 0xE9;
+		constexpr std::uint64_t BRANCH_SIZE = 12;
+		constexpr std::uint8_t BRANCH_PREFIX[] = { 0x48, 0xB8 };
+		constexpr std::uint8_t BRANCH_SUFFIX[] = { 0xFF, 0xD0 };
+	}
 
+	
 	/// <summary>
 	/// Wrapped type to invocate with ease.
 	/// Should initialize as constexpr
@@ -206,9 +214,7 @@ namespace DKUtil::Hook
 #else
 		FM("===CommonLib Impl Start===");
 #endif
-		
-		auto success = true;
-		
+				
 		constexpr auto CaveSize = OFFSET_END - OFFSET_START;
 		const auto continueAddr = a_resolvedAddr + CaveSize;
 
@@ -219,7 +225,7 @@ namespace DKUtil::Hook
 		FM("<START: %p>", a_resolvedAddr + OFFSET_START);
 		FM("<END: %p>", a_resolvedAddr + OFFSET_END);
 
-		const auto allocationSize = (a_hookFunc ? BRANCH_SIZE : 0) + a_preSize + a_postSize + 5;
+		const auto allocationSize = (a_hookFunc ? Impl::BRANCH_SIZE : 0) + a_preSize + a_postSize + 5;
 
 		FM("Will allocate %lluB", allocationSize);
 		
@@ -228,20 +234,20 @@ namespace DKUtil::Hook
 		FM("Writing %llu NOP into code cave", CaveSize);
 		
 		for (auto i = 0; i < CaveSize; ++i) {
-			success &= WRITE_8(a_resolvedAddr + i, NOP);
+			WRITE_8(a_resolvedAddr + i, Impl::NOP);
 		}
 
 		FM("Writing first jmp from code to trampoline");
 		
 		// rel jmp to trampoline
-		success &= WRITE_8(a_resolvedAddr, JMP);
-		success &= WRITE_32(a_resolvedAddr + 1, CurrentPtr - a_resolvedAddr - 5);
+		WRITE_8(a_resolvedAddr, Impl::JMP);
+		WRITE_32(a_resolvedAddr + 1, CurrentPtr - a_resolvedAddr - 5);
 		
 		// write pre patch
 		if (a_prePatch) {
 			FM("Applying pre patch code")
 			
-			success &= WRITE(CurrentPtr, a_prePatch, a_preSize);
+			WRITE(CurrentPtr, a_prePatch, a_preSize);
 			FORWARD_PTR(a_preSize);
 		}
 
@@ -250,19 +256,19 @@ namespace DKUtil::Hook
 			FM("Writing branch code from trampoline to function");
 
 #ifdef SKSE64
-			CODEGEN codeGen(BRANCH_SIZE, reinterpret_cast<void*>(CurrentPtr));
+			CODEGEN codeGen(Impl::BRANCH_SIZE, reinterpret_cast<void*>(CurrentPtr));
 #else
-			CODEGEN codeGen(BRANCH_SIZE);
+			CODEGEN codeGen(Impl::BRANCH_SIZE);
 #endif
 			codeGen.mov(codeGen.rax, a_hookFunc);
 			codeGen.call(codeGen.rax);
 			codeGen.ready();
 
 #ifndef SKSE64
-			success &= WRITE(CurrentPtr, codeGen.getCode(), BRANCH_SIZE);
+			WRITE(CurrentPtr, codeGen.getCode(), Impl::BRANCH_SIZE);
 #endif
 			
-			FORWARD_PTR(BRANCH_SIZE);
+			FORWARD_PTR(Impl::BRANCH_SIZE);
 		} else {
 			FM("Does not branch to any function");
 		}
@@ -271,15 +277,15 @@ namespace DKUtil::Hook
 		if (a_postPatch) {
 			FM("Appending post patch code");
 			
-			SKSE::SafeWriteBuf(CurrentPtr, a_postPatch, a_postSize);
+			WRITE(CurrentPtr, a_postPatch, a_postSize);
 			FORWARD_PTR(a_postSize);
 		}
 
 		// rel jmp to orginal
 		FM("Writing second jmp from trampoline to code");
 		
-		success &= WRITE_8(CurrentPtr, JMP);
-		success &= WRITE_32(CurrentPtr + 1, continueAddr - CurrentPtr - 5);
+		WRITE_8(CurrentPtr, Impl::JMP);
+		WRITE_32(CurrentPtr + 1, continueAddr - CurrentPtr - 5);
 		FORWARD_PTR(5);
 
 #ifdef SKSE64
@@ -287,7 +293,7 @@ namespace DKUtil::Hook
 #else
 		FM("===CommonLib Impl End===");
 #endif		
-		return success;
+		return true;
 	}
 	/* CONDITIONAL IMPLEMENTATION END */
 
@@ -321,7 +327,7 @@ namespace DKUtil::Hook
 			return false;
 		}
 
-		const auto resolvedAddr = reintepret_cast<std::uintptr_t>(db.FindAddressByID(BASE_ID));
+		const auto resolvedAddr = reinterpret_cast<std::uintptr_t>(db.FindAddressById(BASE_ID)) + OFFSET_START;
 		if (!resolvedAddr) {
 			FM("Failed to resolve address by id %llu", BASE_ID);
 			return false;
@@ -425,9 +431,6 @@ typedef DKUtil::Hook::BranchInstruction BranchInstruction;
 #undef ALLOCATE
 #undef FORWARD_PTR
 #undef CODEGEN
-#undef NOP
-#undef JMP
-#undef BRANCH_SIZE
 /* UNDEFINE END */
 
 
