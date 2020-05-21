@@ -18,6 +18,7 @@
 #ifndef DKUTIL_HOOK
 #define DKUTIL_HOOK
 
+#pragma warning ( disable : 4244 )
 
 /* VERSION DEFINE START */
 #define DKUTIL_HOOK_VERSION_MAJOR	1
@@ -152,8 +153,6 @@ namespace DKUtil::Hook
 		constexpr std::uint8_t NOP = 0x90;
 		constexpr std::uint8_t JMP = 0xE9;
 		constexpr std::uint64_t BRANCH_SIZE = 12;
-		constexpr std::uint8_t BRANCH_PREFIX[] = { 0x48, 0xB8 };
-		constexpr std::uint8_t BRANCH_SUFFIX[] = { 0xFF, 0xD0 };
 	}
 
 	
@@ -169,11 +168,11 @@ namespace DKUtil::Hook
 			std::uint64_t Size = 0;
 		};
 
-		std::uintptr_t BranchTarget = 0x0;
 		PatchCode PrePatch;
 		PatchCode PostPatch;
+		bool PreserveRax = false;
 	};
-	
+
 	
 	/// <summary>
 	/// Managed pointer of current utilizing trampoline
@@ -206,7 +205,8 @@ namespace DKUtil::Hook
 		const void* a_prePatch = nullptr,
 		const std::uint64_t a_preSize = 0,
 		const void* a_postPatch = nullptr,
-		const std::uint64_t a_postSize = 0
+		const std::uint64_t a_postSize = 0,
+		const bool a_preserve = false
 	)
 	{
 #ifdef SKSE64
@@ -225,7 +225,8 @@ namespace DKUtil::Hook
 		FM("<START: %p>", a_resolvedAddr + OFFSET_START);
 		FM("<END: %p>", a_resolvedAddr + OFFSET_END);
 
-		const auto allocationSize = (a_hookFunc ? Impl::BRANCH_SIZE : 0) + a_preSize + a_postSize + 5;
+		const auto codeGenSize = Impl::BRANCH_SIZE + (a_preserve ? 2 : 0);
+		const auto allocationSize = (a_hookFunc ? codeGenSize : 0) + a_preSize + a_postSize + 5;
 
 		FM("Will allocate %lluB", allocationSize);
 		
@@ -251,24 +252,35 @@ namespace DKUtil::Hook
 			FORWARD_PTR(a_preSize);
 		}
 
-		// branch to function
+		// prepare branch code
+		// https://www.ragestorm.net/blogs/?p=107
 		if (a_hookFunc) {
 			FM("Writing branch code from trampoline to function");
 
 #ifdef SKSE64
-			CODEGEN codeGen(Impl::BRANCH_SIZE, reinterpret_cast<void*>(CurrentPtr));
+			CODEGEN codeGen(codeGenSize, reinterpret_cast<void*>(CurrentPtr));
 #else
-			CODEGEN codeGen(Impl::BRANCH_SIZE);
-#endif
-			codeGen.mov(codeGen.rax, a_hookFunc);
-			codeGen.call(codeGen.rax);
-			codeGen.ready();
-
-#ifndef SKSE64
-			WRITE(CurrentPtr, codeGen.getCode(), Impl::BRANCH_SIZE);
+			CODEGEN codeGen(codeGenSize);
 #endif
 			
-			FORWARD_PTR(Impl::BRANCH_SIZE);
+			if (a_preserve) {
+				codeGen.push(codeGen.rax);
+			}
+			
+			codeGen.mov(codeGen.rax, a_hookFunc);
+			codeGen.call(codeGen.rax);
+			
+			if (a_preserve) {
+				codeGen.pop(codeGen.rax);
+			}
+			
+			codeGen.ready();
+
+#ifndef SKSE64 // CommonLib needs manual writing
+			WRITE(CurrentPtr, codeGen.getCode(), codeGenSize);
+#endif
+			
+			FORWARD_PTR(codeGenSize);
 		} else {
 			FM("Does not branch to any function");
 		}
@@ -306,6 +318,7 @@ namespace DKUtil::Hook
 	/// <param name="a_preSize">Size of pre patch code</param>
 	/// <param name="a_postPatch">Patch code to execute after returning from branched function</param>
 	/// <param name="a_postSize">Size of post patch code</param>
+	/// <param name="a_preserve">Preserving rax by using 2 extra bytes</param>
 	/// <typeparam name="BASE_ID">Base ID of address to apply branch on. Get from current address library bin</typeparam>
 	/// <typeparam name="OFFSET_START">Offset of code cave starts from base address</typeparam>
 	/// <typeparam name="OFFSET_END">Offset of code cave ends from base address</typeparam>
@@ -317,7 +330,8 @@ namespace DKUtil::Hook
 		const void* a_prePatch = nullptr,
 		const std::uint64_t a_preSize = 0,
 		const void* a_postPatch = nullptr,
-		const std::uint64_t a_postSize = 0
+		const std::uint64_t a_postSize = 0,
+		const bool a_preserve = false
 	)
 	{
 #ifdef SKSE64
@@ -337,32 +351,37 @@ namespace DKUtil::Hook
 #endif
 
 		return BranchToFunction_Impl
-			<OFFSET_START, OFFSET_END>
-			(resolvedAddr, 
-			 a_hookFunc, 
-			 a_prePatch, 
-			 a_preSize, 
-			 a_postPatch, 
-			 a_postSize);
+			<OFFSET_START, OFFSET_END>(
+				resolvedAddr,
+				a_hookFunc,
+				a_prePatch,
+				a_preSize,
+				a_postPatch,
+				a_postSize,
+				a_preserve
+			);
 	}
 
 
 	/// <summary>
 	/// Packaged invocation to reduce parameter list's length
 	/// </summary>
+	/// <param name="a_hookdFunc">Hook intercept function address</param>
 	/// <param name="a_instruction">Refer to BranchInstruction</param>
 	/// <returns>Success indicator</returns>
 	/// <remarks>Uses address library ( or REL )</remarks>
 	template <std::uint64_t BASE_ID, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
-	bool BranchToFunction(const BranchInstruction a_instruction)
+	bool BranchToFunction(const void* a_hookdFunc, const BranchInstruction a_instruction)
 	{
 		return BranchToFunction
-			<BASE_ID, OFFSET_START, OFFSET_END>
-			(a_instruction.BranchTarget,
-			 a_instruction.PrePatch.Data,
-			 a_instruction.PrePatch.Size,
-			 a_instruction.PostPatch.Data,
-			 a_instruction.PostPatch.Size);
+			<BASE_ID, OFFSET_START, OFFSET_END>(
+				reinterpret_cast<std::uintptr_t>(a_hookdFunc),
+				a_instruction.PrePatch.Data,
+				a_instruction.PrePatch.Size,
+				a_instruction.PostPatch.Data,
+				a_instruction.PostPatch.Size,
+				a_instruction.PreserveRax
+			);
 	}
 
 
@@ -374,48 +393,54 @@ namespace DKUtil::Hook
 	/// <param name="a_preSize">Size of pre patch code</param>
 	/// <param name="a_postPatch">Patch code to execute after returning from branched function</param>
 	/// <param name="a_postSize">Size of post patch code</param>
+	/// <param name="a_preserve">Preserve rax by using 2 extra bytes</param>
 	/// <typeparam name="ADDRESS_START">Base address to apply branch on</typeparam>
 	/// <typeparam name="ADDRESS_END">Offset of code cave ends from base address</typeparam>
 	/// <returns>Success indicator</returns>
 	/// <remarks>Does not use address library ( or REL )</remarks>
 	template <std::uintptr_t ADDRESS_START, std::uintptr_t ADDRESS_END>
 	bool BranchToFunction(
-		const std::uintptr_t a_hookFunc,
+		const void* a_hookFunc,
 		const void* a_prePatch = nullptr,
 		const std::uint64_t a_preSize = 0,
 		const void* a_postPatch = nullptr,
-		const std::uint64_t a_postSize = 0
+		const std::uint64_t a_postSize = 0,
+		const bool a_preserve = false
 	)
 	{
 		return BranchToFunction_Impl
-			<0, ADDRESS_END - ADDRESS_START>
-			(ADDRESS_START, 
-			 a_hookFunc,
-			 a_prePatch,
-			 a_preSize,
-			 a_postPatch,
-			 a_postSize);
+			<0, ADDRESS_END - ADDRESS_START>(
+				ADDRESS_START,
+				reinterpret_cast<std::uintptr_t>(a_hookFunc),
+				a_prePatch,
+				a_preSize,
+				a_postPatch,
+				a_postSize,
+				a_preserve
+			);
 	}
 
 	
 	/// <summary>
 	/// Packaged invocation to reduce parameter list's length
 	/// </summary>
+	/// <param name="a_hookFunc">Hook intercept function</param>
 	/// <param name="a_instruction">Refer to BranchInstruction</param>
 	/// <returns>Success indicator</returns>
 	/// <remarks>Does not use address library ( or REL )</remarks>
 	template <std::uintptr_t ADDRESS_START, std::uintptr_t ADDRESS_END>
-	bool BranchToFunction(const BranchInstruction a_instruction)
+	bool BranchToFunction(const void* a_hookFunc, const BranchInstruction a_instruction)
 	{
 		return BranchToFunction_Impl
-			<0, ADDRESS_END - ADDRESS_START>
-			(ADDRESS_START,
-			 a_instruction.BranchTarget,
-			 a_instruction.PrePatch.Data,
-			 a_instruction.PrePatch.Size,
-			 a_instruction.PostPatch.Data,
-			 a_instruction.PostPatch.Size);
-
+			<0, ADDRESS_END - ADDRESS_START>(
+				ADDRESS_START,
+				reinterpret_cast<std::uintptr_t>(a_hookFunc),
+				a_instruction.PrePatch.Data,
+				a_instruction.PrePatch.Size,
+				a_instruction.PostPatch.Data,
+				a_instruction.PostPatch.Size,
+				a_instruction.PreserveRax
+			);
 	}
 	
 	/* GENERAL IMPLEMENTATION END */
@@ -433,5 +458,6 @@ typedef DKUtil::Hook::BranchInstruction BranchInstruction;
 #undef CODEGEN
 /* UNDEFINE END */
 
+#pragma warning ( default : 4244 )
 
 #endif
