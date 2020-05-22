@@ -19,10 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GUI.h" />
-    <ClInclude Include="Hash.h" />
-    <ClInclude Include="Hook.h" />
-    <ClInclude Include="Template.h" />
+    <ClInclude Include="GUI.hpp" />
+    <ClInclude Include="Hash.hpp" />
+    <ClInclude Include="Hook.hpp" />
+    <ClInclude Include="Template.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
