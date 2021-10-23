@@ -1,6 +1,0 @@
-#define ACTION_IF_FLAG_DA(FLAG, ACTION) if (hook_flag##FLAG) {ACTION} DISABLE_FLAG(FLAG);
-#define ACTION_IF_FLAG_BOTH(FLAG_1, FLAG_2, ACTION) if (hook_flag##FLAG_1 && hook_flag##FLAG_2) {ACTION}
-#define ACTION_IF_FLAG(FLAG, ACTION) if (hook_flag##FLAG) {ACTION}
-#define FM(__VA_ARGS__)
-#define FM(FMT, __VA_ARGS__) SKSE::Impl::MacroLogger::VPrint("DKUTIL_HOOK", 0, SKSE::Logger::Level::kDebugMessage, FMT, __VA_ARGS__);
-#define FM(FMT, __VA_ARGS__) gLog.FormattedMessage(FMT, __VA_ARGS__);

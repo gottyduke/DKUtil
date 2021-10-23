@@ -1,18 +1,31 @@
 # DKUtil
-Some utility headers and powershell scripts.
+An utility header-only library for SKSE plugin development.
+---
+---
+## Consumption
+Clone a copy of `DKUtil` onto your local environment, in your plugin project's `CMakeLists.txt`, add
+```CMake
+add_subdirectory("Path/To/Local/Copy/Of/DKUtil" DKUtil)
 
-### Current Developed Implementations :
+target_link_libraries(
+	"YOUR PROJECT NAME"
+	INTERFACE
+		DKUtil::DKUtil
+)
+```
+---
+## Implementations:
 + Hash
-+ Hook
++ DKHook
 + Template
 
-#### Hash
+### Hash
 Based on FNV-1 and FNV-1A constexpr string hashing implementation.
 
-#### Hook
+### Hook
 Implements both SKSE64 and CommonLibSSE method to write hooks in x64 with ease. (With / Without address library)
 
-##### What's the offer :
+#### Demonstrations:
 ```c++
 // uses address library
 template <std::uint64_t BASE_ID, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
@@ -67,7 +80,7 @@ struct BranchInstruction
 typedef BranchInstruction DKUtil::Hook::BranchInstruction;
 ```
 
-##### SKSE64 w/ Address ID example :
+#### SKSE64 with address ID example:
 ```C++
 #define SKSE64 // define this macro to use SKSE64 implementation explicitly
 #include "DKUtil/Hook.h"
@@ -95,10 +108,10 @@ bool InstallHooks()
 ```
 In this example we simply wrote a detour from address that corresponds to id `12345` with offset `OFFSET_START`, to our own `Hook_MyAwesomeFunc` function.
 
-##### SKSE64 w/ Address ID w/ Patch code exmaple :
+#### SKSE64 with address ID + patch code exmaple:
 ```C++
 #define SKSE64 // define this macro to use SKSE64 implementation explicitly
-#include "DKUtil/Hook.h"
+#include "DKHook.h"
 
 
 int __fastcall Hook_MyAwesomeFunc(int); // our hook function, takes 1 parameter
@@ -124,16 +137,13 @@ bool InstallHooks()
     return success;
 }
 ```
-In this example, at address of `FUNC_ID` with offset `OFFSET_START`, game will first execute the pre patch code, which setup our first parameter in `rcx` register, then call our hook function `Hook_MyAwesomeFunc`. After returning from our hook function, game will then execute post patch code, which moves our returning value in `rax` register into `rcx` register for later use.
-
-Code patching is extremely useful to safely restore the stole bytes from original address, and add our own functionalities above it.
-
 > You can use [Hex2Asm](https://defuse.ca/online-x86-assembler.htm) to generate fixed assembly code.
+> Or use xbyak for runtime compiled assembly.
 
-##### SKSE64 w/o Address ID w/ Patch code example :
+#### SKSE64 implementation without address ID + patch code example:
 ```C++
 #define SKSE64 // define this macro to use SKSE64 implementation explicitly
-#include "DKUtil/Hook.h"
+#include "DKHook.h"
 
 
 int __fastcall Hook_MyAwesomeFunc(int); // our hook function, takes 1 parameter
@@ -162,18 +172,15 @@ This is mostly the same with address library example, but we have to resolve our
 
 Beacuse CommonLib internally utilizes address library, so CommonLib examples will be the same as SKSE64 w/ Address ID w/ Patch code examples, except that we don't `#define SKSE64` before `#include "DKUtil/Hook.h"`.
 
-##### Packed parameter example :
+#### Packed parameter example:
 ```C++
-#include "DKUtil/Hook.h"
-
+#include "DKHook.h"
 
 int __fastcall Hook_MyAwesomeFunc(int); // our hook function, takes 1 parameter
-
 
 constexpr std::uint64_t FUNC_ID = 12345;
 constexpr std::uintptr_t OFFSET_START = 0x120;
 constexpr std::uintptr_t OFFSET_END = 0x130;
-
 
 constexpr BranchInstruction FUNC_INSTRUCTION = 
 {
@@ -199,32 +206,4 @@ bool InstallHooks()
 ```
 Use packed parameter to reduce the length of parameter list.
 
-> Patch code can be any data type, since it's `const void*`.
-> SKSE64 or CommonLib implementation is done via conditional compilation, so `#define SKSE64` must appear before `#include` to use SKSE64 explicitly. Othersie it will use CommonLib by default.
-
-### Template
-Some(currently 1) random template class(es) I made for myself to save time from duplicating codes.
-
-Singleton Data Model :
-```C++
-template <class DERIVED>
-class SDM
-{
-public:
-	static DERIVED* GetSingleton()
-	{
-		static DERIVED singleton;
-		return std::addressof(singleton);
-	}
-
-
-	SDM(const SDM&) = delete;
-	SDM(SDM&&) = delete;
-	SDM& operator=(const SDM&) = delete;
-	SDM& operator=(SDM&&) = delete;
-
-protected:
-	SDM() = default;
-	virtual ~SDM() = default;
-};
-```
+> SKSE64 and CommonLibSSE implementation are via conditional compilation, so `DKHOOK_SKSE64` must be defined before `#include "DKHook.h"` to use SKSE64 implementation explicitly. Othersie it will use CommonLibSSE implementation by default.

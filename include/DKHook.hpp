@@ -1,8 +1,7 @@
-#ifndef DKUTIL_HOOK
-#define DKUTIL_HOOK
+#pragma once
 
 /*!
- * Copyright 2020 DK
+ * Copyright 2021 DK
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
@@ -15,20 +14,15 @@
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#define DKUTIL_HOOK_VERSION_MAJOR	1
-#define DKUTIL_HOOK_VERSION_MINOR	9
-#define DKUTIL_HOOK_VERSION_PATCH	1
-#define DKUTIL_HOOK_VERSION_BETA	0
-
 /*!
  * 1.9.1
- * Fixed an misrelocation where trampoline ptr may not be pointed to correct address within cave;
+ * Fixed a misrelocation where trampoline ptr may not be pointed to correct address within cave;
  * Fixed an error where branch may not be correctly initiated;
  * Fixed an misorder where flags may be disabled inappropriately;
  * Reordered the cave code layout
  * 
  * 1.9.0
- * Added SMART_ALLOC and CAVE related conditional macro, if enable:
+ * Added SMART_ALLOC and CAVE related conditional macro, if enabled:
  * - Attempt to write patches into code cave to reduce trampoline load if cave size satisfies;
  * - Attempt to skip trampoline allocation if hook function is null and cave size satisfies;
  * - Attempt to write rax-clean instructions into code cave if a_preserve and cave size satisfies;
@@ -80,6 +74,8 @@
 
 #pragma warning ( disable : 4244 )
 
+#include <cstdint>
+
 #ifdef SKSE64
 
 #include "skse64_common/SafeWrite.h"
@@ -90,11 +86,9 @@
 #ifndef XBYAK_NO_OP_NAMES
 #define XBYAK_NO_OP_NAMES
 #endif
+#include <xbyak/xbyak.h>
 
-#include "xbyak/xbyak.h"
-
-#include "../External/versiondb.h"
-
+#include "versiondb.h"
 
 #ifdef DKUTIL_HOOK_VERBOSE
 #define FM(FMT, ...)		gLog.FormattedMessage(FMT, __VA_ARGS__)
@@ -112,9 +106,7 @@
 #else
 
 
-#include "SKSE/CodeGenerator.h"
 #include "SKSE/API.h"
-
 
 #ifdef DKUTIL_HOOK_VERBOSE
 #define FM(FMT, ...)			SKSE::Impl::MacroLogger::VPrint("DKUTIL_HOOK", 0, SKSE::Logger::Level::kDebugMessage, (FMT), __VA_ARGS__)
@@ -122,10 +114,10 @@
 #define FM(...) 
 #endif
 
-#define WRITE(ADDR, DATA, SIZE)	SKSE::SafeWriteBuf(ADDR, DATA, (SIZE))
-#define WRITE_8(ADDR, DATA_8)	SKSE::SafeWrite8(ADDR, DATA_8)
-#define WRITE_16(ADDR, DATA_16)	SKSE::SafeWrite16(ADDR, DATA_16)
-#define WRITE_32(ADDR, DATA_32)	SKSE::SafeWrite32(ADDR, DATA_32)
+#define WRITE(ADDR, DATA, SIZE)	REL::safe_write(ADDR, DATA, (SIZE))
+#define WRITE_8(ADDR, DATA_8)	REL::safe_write(ADDR, DATA_8, 8)
+#define WRITE_16(ADDR, DATA_16)	REL::safe_write(ADDR, DATA_16, 16)
+#define WRITE_32(ADDR, DATA_32)	REL::safe_write(ADDR, DATA_32, 32)
 #define TRAMPOLINE				SKSE::GetTrampoline()
 
 #endif
@@ -141,70 +133,70 @@
 
 #define CURRENT_PTR				Impl::CurrentPtr
 #define CURRENT_PTR_VOID		reinterpret_cast<void*>(CURRENT_PTR)
-#define CURRENT_PTR_MOVE(SIZE)	(CURRENT_PTR) += (SIZE)
+#define PTR_MOVE(SIZE)	(CURRENT_PTR) += (SIZE)
 
 #define VAR_(NAME)		hook_local ## NAME
 #define SIZE_(NAME)		VAR_(NAME ## Size)
 
-#define ALLOCATE(SIZE)\
-	FM("Will allocate %lluB", (SIZE));\
+#define ALLOCATE(SIZE)																\
+	FM("Will allocate %lluB", (SIZE));												\
 	(CURRENT_PTR) = reinterpret_cast<std::uintptr_t>((TRAMPOLINE)->Allocate(SIZE));
 
 #define CODEGEN					Xbyak::CodeGenerator
 #define CODEGEN_INIT(SIZE)		CODEGEN VAR_(CodeGen)((SIZE), (CURRENT_PTR_VOID))
-#define CODEGEN_READY()\
-	ALLOCATE(VAR_(CodeGen).getSize());\
-	VAR_(CodeGen).ready();\
-	CURRENT_PTR_MOVE(VAR_(CodeGen).getSize());\
-	FM("Applied branch from trampoline to function");\
+#define CODEGEN_READY()																\
+	ALLOCATE(VAR_(CodeGen).getSize());												\
+	VAR_(CodeGen).ready();															\
+	PTR_MOVE(VAR_(CodeGen).getSize());												\
+	FM("Applied branch from trampoline to function");								\
 	DISABLE_FLAG(Branch);
 
 #define CAVE_VAR_(NAME)		VAR_(Cave ## NAME)
 #define CAVE_SIZE_(NAME)	CAVE_VAR_(NAME ## Size)
 
-#define CAVE_INIT()\
-	std::uintptr_t	CAVE_VAR_(Ptr) = a_resolvedAddr;\
-	std::uintptr_t	CAVE_VAR_(Last) = a_resolvedAddr;\
-	std::uint64_t	CAVE_SIZE_(Remain) = CaveSize;\
+#define CAVE_INIT()																	\
+	std::uintptr_t	CAVE_VAR_(Ptr) = a_resolvedAddr;								\
+	std::uintptr_t	CAVE_VAR_(Last) = a_resolvedAddr;								\
+	std::uint64_t	CAVE_SIZE_(Remain) = CaveSize;									\
 	(CURRENT_PTR) = reinterpret_cast<std::uintptr_t>((TRAMPOLINE)->Allocate(0));
 #define CAVE_PTR_MOVE(SIZE)		CAVE_VAR_(Ptr) += (SIZE);
 #define CAVE_SIZE_MOVE(SIZE)	CAVE_SIZE_(Remain) += (SIZE);
-#define CAVE_RESIZE(SIZE)\
-	CAVE_PTR_MOVE((SIZE));\
-	CAVE_SIZE_MOVE(-static_cast<int>((SIZE)));\
+#define CAVE_RESIZE(SIZE)															\
+	CAVE_PTR_MOVE((SIZE));															\
+	CAVE_SIZE_MOVE(-static_cast<int>((SIZE)));										\
 	FM("[SMART_ALLOC] Remain %lluB / %lluB | Ptr -> 0x%04x", CAVE_SIZE_(Remain), CaveSize, CAVE_VAR_(Ptr) - a_resolvedAddr);
 
-#define CAVE_DETOUR()\
-	WRITE_8(CAVE_VAR_(Ptr), Impl::JMP);\
-	WRITE_32(CAVE_VAR_(Ptr) + 1, (CURRENT_PTR)-CAVE_VAR_(Ptr) - 5);\
-	CAVE_PTR_MOVE(5);\
-	CAVE_VAR_(Last) = CAVE_VAR_(Ptr);\
-	FM("Applied detour from code to trampoline");\
+#define CAVE_DETOUR()																\
+	WRITE_8(CAVE_VAR_(Ptr), Impl::JMP);												\
+	WRITE_32(CAVE_VAR_(Ptr) + 1, (CURRENT_PTR)-CAVE_VAR_(Ptr) - 5);					\
+	CAVE_PTR_MOVE(5);																\
+	CAVE_VAR_(Last) = CAVE_VAR_(Ptr);												\
+	FM("Applied detour from code to trampoline");									\
 	DISABLE_FLAG(Detour);
 
 #ifdef DKUTIL_HOOK_SMART_ALLOC
 
 #pragma region SMART_ALLOC DEFINE
 
-#define CAVE_PREPATCH()\
-	WRITE(CAVE_VAR_(Ptr), a_prePatch, a_preSize);\
-	CAVE_RESIZE(a_preSize);\
-	FM("[SMART_ALLOC] Applied prepatch in cave");\
+#define CAVE_PREPATCH()																\
+	WRITE(CAVE_VAR_(Ptr), a_prePatch, a_preSize);									\
+	CAVE_RESIZE(a_preSize);															\
+	FM("[SMART_ALLOC] Applied prepatch in cave");									\
 	DISABLE_FLAG(PrePatch);
-#define CAVE_POSTPATCH()\
-	WRITE(CAVE_VAR_(Ptr), a_postPatch, a_postSize);\
-	CAVE_RESIZE(a_postSize);\
-	FM("[SMART_ALLOC] Applied postpatch in cave");\
+#define CAVE_POSTPATCH()															\
+	WRITE(CAVE_VAR_(Ptr), a_postPatch, a_postSize);									\
+	CAVE_RESIZE(a_postSize);														\
+	FM("[SMART_ALLOC] Applied postpatch in cave");									\
 	DISABLE_FLAG(PostPatch);
-#define CAVE_PUSH()\
-	WRITE_8(CAVE_VAR_(Ptr), Impl::PUSH_RAX);\
-	CAVE_RESIZE(1);\
-	FM("[SMART_ALLOC] Applied preserve prefix in cave");\
+#define CAVE_PUSH()																	\
+	WRITE_8(CAVE_VAR_(Ptr), Impl::PUSH_RAX);										\
+	CAVE_RESIZE(1);																	\
+	FM("[SMART_ALLOC] Applied preserve prefix in cave");							\
 	DISABLE_FLAG(Push);
-#define CAVE_POP()\
-	WRITE_8(CAVE_VAR_(Ptr), Impl::POP_RAX);\
-	CAVE_RESIZE(1);\
-	FM("[SMART_ALLOC] Applied preserve suffix in cave");\
+#define CAVE_POP()																	\
+	WRITE_8(CAVE_VAR_(Ptr), Impl::POP_RAX);											\
+	CAVE_RESIZE(1);																	\
+	FM("[SMART_ALLOC] Applied preserve suffix in cave");							\
 	DISABLE_FLAG(Pop);
 
 #pragma endregion SMART_ALLOC DEFINE
@@ -447,46 +439,46 @@ namespace DKUtil::Hook
 			}
 		}
 
-		// write preserve prefix if not done yet
+		// apply preserve prefix
 		if (FLAG(Push) && (CAVE_SIZE_(Remain) > a_preSize || CAVE_SIZE_(Remain) > a_postSize)) {
 			CAVE_PUSH();
 		}
 		
-		// pre patch exists
+		// apply pre patch
 		if (FLAG(PrePatch) && CAVE_SIZE_(Remain) >= a_preSize) {
 			CAVE_PREPATCH();
 		}
 
-		// write detour code if not done yet
+		// apply detour code
 		if (FLAG(Detour)) {
 			CAVE_DETOUR();
 		}
 
-		// post patch exists
+		// apply post patch
 		if (FLAG(PostPatch) && CAVE_SIZE_(Remain) >= a_postSize) {
 			CAVE_POSTPATCH();
 		}
 
-		// write preserve suffix if not done yet
+		// apply preserve suffix
 		if (FLAG(Pop) && CAVE_SIZE_(Remain) >= 1) {
 			CAVE_POP();
 		}
 		
 #endif
 
-		// write detour code if not using SMART_ALLOC
+		// apply detour code
 		if (FLAG(Detour)) {
 			CAVE_DETOUR();
 		}
 		
 		// * allocation code
 
-		// prepare allocation
+		// pre allocation
 		if (FLAG(Allocate)) {
 			if (FLAG(Push)) {
 				ALLOCATE(1);
 				WRITE_8(CURRENT_PTR, Impl::PUSH_RAX);
-				CURRENT_PTR_MOVE(1);
+				PTR_MOVE(1);
 				FM("Applied preserve prefix");
 				DISABLE_FLAG(Push);
 			}
@@ -494,7 +486,7 @@ namespace DKUtil::Hook
 			if (FLAG(PrePatch)) {
 				ALLOCATE(a_preSize);
 				WRITE(CURRENT_PTR, a_prePatch,a_preSize);
-				CURRENT_PTR_MOVE(a_preSize);
+				PTR_MOVE(a_preSize);
 				FM("Applied pre patch");
 				DISABLE_FLAG(PrePatch);
 			}
@@ -511,7 +503,7 @@ namespace DKUtil::Hook
 			if (FLAG(PostPatch)) {
 				ALLOCATE(a_postSize);
 				WRITE(Impl::CurrentPtr, a_postPatch, a_postSize);
-				CURRENT_PTR_MOVE(a_postSize);
+				PTR_MOVE(a_postSize);
 				FM("Applied post patch");
 				DISABLE_FLAG(PostPatch);
 			}
@@ -519,7 +511,7 @@ namespace DKUtil::Hook
 			if (FLAG(Pop)) {
 				ALLOCATE(1);
 				WRITE_8(CURRENT_PTR, Impl::POP_RAX);
-				CURRENT_PTR_MOVE(1);
+				PTR_MOVE(1);
 				FM("Applied preserve suffix");
 				DISABLE_FLAG(Pop);
 			}
@@ -528,7 +520,7 @@ namespace DKUtil::Hook
 				ALLOCATE(5);
 				WRITE_8(CURRENT_PTR, Impl::JMP);
 				WRITE_32(CURRENT_PTR + 1, CAVE_VAR_(Last) - CURRENT_PTR - 5);
-				CURRENT_PTR_MOVE(5);
+				PTR_MOVE(5);
 				FM("Applied return from trampoline to code");
 				DISABLE_FLAG(Return);
 			}
@@ -544,37 +536,37 @@ namespace DKUtil::Hook
 #endif
 
 		return true;
-		}
+	}
 
 #pragma endregion CONDITIONAL IMPLEMENTATION
 
 
 #pragma region GENERAL IMPLEMENTATION
 
-		/// <summary>
-/// Inject at address, apply patches, branch to trampoline and back
-/// </summary>
-/// <param name="a_hookFunc">Function address to branch to, use 0 to not branch any function ( only append patches )</param>
-/// <param name="a_prePatch"> to execute before calling branched function</param>
-/// <param name="a_preSize">Size of pre </param>
-/// <param name="a_postPatch"> to execute after returning from branched function</param>
-/// <param name="a_postSize">Size of post </param>
-/// <param name="a_preserve">Preserving rax by using 2 extra bytes</param>
-/// <typeparam name="BASE_ID">Base ID of address to apply branch on. Get from current address library bin</typeparam>
-/// <typeparam name="OFFSET_START">Offset of code cave starts from base address</typeparam>
-/// <typeparam name="OFFSET_END">Offset of code cave ends from base address</typeparam>
-/// <returns>Success indicator</returns>
-/// <remarks>Uses address library ( or REL )</remarks>
-		template <std::uint64_t BASE_ID, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
-		bool BranchToFunction(
-			const std::uintptr_t a_hookFunc,
-			const void* a_prePatch = nullptr,
-			const std::uint64_t a_preSize = 0,
-			const void* a_postPatch = nullptr,
-			const std::uint64_t a_postSize = 0,
-			const bool a_preserve = false
-		)
-		{
+	/// <summary>
+	/// Inject at address, apply patches, branch to trampoline and back
+	/// </summary>
+	/// <param name="a_hookFunc">Function address to branch to, use 0 to not branch any function ( only append patches )</param>
+	/// <param name="a_prePatch"> to execute before calling branched function</param>
+	/// <param name="a_preSize">Size of pre </param>
+	/// <param name="a_postPatch"> to execute after returning from branched function</param>
+	/// <param name="a_postSize">Size of post </param>
+	/// <param name="a_preserve">Preserving rax by using 2 extra bytes</param>
+	/// <typeparam name="BASE_ID">Base ID of address to apply branch on. Get from current address library bin</typeparam>
+	/// <typeparam name="OFFSET_START">Offset of code cave starts from base address</typeparam>
+	/// <typeparam name="OFFSET_END">Offset of code cave ends from base address</typeparam>
+	/// <returns>Success indicator</returns>
+	/// <remarks>Uses address library ( or REL )</remarks>
+	template <std::uint64_t BASE_ID, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
+	bool BranchToFunction(
+		const std::uintptr_t a_hookFunc,
+		const void* a_prePatch = nullptr,
+		const std::uint64_t a_preSize = 0,
+		const void* a_postPatch = nullptr,
+		const std::uint64_t a_postSize = 0,
+		const bool a_preserve = false
+	)
+	{
 #ifdef SKSE64
 		VersionDb db;
 		if (!db.Load()) {
@@ -588,115 +580,115 @@ namespace DKUtil::Hook
 			return false;
 		}
 #else
-			const auto resolvedAddr = REL::ID(BASE_ID).GetAddress() + OFFSET_START;
+		const auto resolvedAddr = REL::ID(BASE_ID).GetAddress() + OFFSET_START;
 #endif
 
-			return BranchToFunction_Impl<OFFSET_START, OFFSET_END>(
-				resolvedAddr,
-				a_hookFunc,
-				a_prePatch,
-				a_preSize,
-				a_postPatch,
-				a_postSize,
-				a_preserve
-			);
-		}
+		return BranchToFunction_Impl<OFFSET_START, OFFSET_END>(
+			resolvedAddr,
+			a_hookFunc,
+			a_prePatch,
+			a_preSize,
+			a_postPatch,
+			a_postSize,
+			a_preserve
+		);
+	}
 
 
-		/// <summary>
-/// Packaged invocation to reduce parameter list's length
-/// </summary>
-/// <param name="a_hookdFunc">Hook intercept function address</param>
-/// <param name="a_instruction">Refer to BranchInstruction</param>
-/// <returns>Success indicator</returns>
-/// <remarks>Uses address library ( or REL )</remarks>
-		template <std::uint64_t BASE_ID, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
-		bool BranchToFunction(const std::uintptr_t a_hookdFunc, const BranchInstruction a_instruction)
-		{
-			return BranchToFunction<BASE_ID, OFFSET_START, OFFSET_END>(
-				a_hookdFunc,
-				a_instruction.PrePatch.Data,
-				a_instruction.PrePatch.Size,
-				a_instruction.PostPatch.Data,
-				a_instruction.PostPatch.Size,
-				a_instruction.PreserveRax
-			);
-		}
+	/// <summary>
+	/// Packaged invocation to reduce parameter list's length
+	/// </summary>
+	/// <param name="a_hookdFunc">Hook intercept function address</param>
+	/// <param name="a_instruction">Refer to BranchInstruction</param>
+	/// <returns>Success indicator</returns>
+	/// <remarks>Uses address library ( or REL )</remarks>
+	template <std::uint64_t BASE_ID, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
+	bool BranchToFunction(const std::uintptr_t a_hookdFunc, const BranchInstruction a_instruction)
+	{
+		return BranchToFunction<BASE_ID, OFFSET_START, OFFSET_END>(
+			a_hookdFunc,
+			a_instruction.PrePatch.Data,
+			a_instruction.PrePatch.Size,
+			a_instruction.PostPatch.Data,
+			a_instruction.PostPatch.Size,
+			a_instruction.PreserveRax
+		);
+	}
 
 
-		/// <summary>
-/// Inject at address, apply patches, branch to trampoline and back
-/// </summary>
-/// <param name="a_hookFunc">Function address to branch to, use 0 to not branch any function ( only append patches )</param>
-/// <param name="a_prePatch"> to execute before calling branched function</param>
-/// <param name="a_preSize">Size of pre </param>
-/// <param name="a_postPatch"> to execute after returning from branched function</param>
-/// <param name="a_postSize">Size of post </param>
-/// <param name="a_preserve">Preserve rax by using 2 extra bytes</param>
-/// <typeparam name="ADDRESS_START">Base address to apply branch on</typeparam>
-/// <typeparam name="ADDRESS_END">Offset of code cave ends from base address</typeparam>
-/// <returns>Success indicator</returns>
-/// <remarks>Does not use address library ( or REL )</remarks>
-		template <std::uintptr_t ADDRESS_START, std::uintptr_t ADDRESS_END>
-		bool BranchToFunction(
-			const std::uintptr_t a_hookFunc,
-			const void* a_prePatch = nullptr,
-			const std::uint64_t a_preSize = 0,
-			const void* a_postPatch = nullptr,
-			const std::uint64_t a_postSize = 0,
-			const bool a_preserve = false
-		)
-		{
-			return BranchToFunction_Impl<0, ADDRESS_END - ADDRESS_START>(
-				ADDRESS_START,
-				a_hookFunc,
-				a_prePatch,
-				a_preSize,
-				a_postPatch,
-				a_postSize,
-				a_preserve
-			);
-		}
+	/// <summary>
+	/// Inject at address, apply patches, branch to trampoline and back
+	/// </summary>
+	/// <param name="a_hookFunc">Function address to branch to, use 0 to not branch any function ( only append patches )</param>
+	/// <param name="a_prePatch"> to execute before calling branched function</param>
+	/// <param name="a_preSize">Size of pre </param>
+	/// <param name="a_postPatch"> to execute after returning from branched function</param>
+	/// <param name="a_postSize">Size of post </param>
+	/// <param name="a_preserve">Preserve rax by using 2 extra bytes</param>
+	/// <typeparam name="ADDRESS_START">Base address to apply branch on</typeparam>
+	/// <typeparam name="ADDRESS_END">Offset of code cave ends from base address</typeparam>
+	/// <returns>Success indicator</returns>
+	/// <remarks>Does not use address library ( or REL )</remarks>
+	template <std::uintptr_t ADDRESS_START, std::uintptr_t ADDRESS_END>
+	bool BranchToFunction(
+		const std::uintptr_t a_hookFunc,
+		const void* a_prePatch = nullptr,
+		const std::uint64_t a_preSize = 0,
+		const void* a_postPatch = nullptr,
+		const std::uint64_t a_postSize = 0,
+		const bool a_preserve = false
+	)
+	{
+		return BranchToFunction_Impl<0, ADDRESS_END - ADDRESS_START>(
+			ADDRESS_START,
+			a_hookFunc,
+			a_prePatch,
+			a_preSize,
+			a_postPatch,
+			a_postSize,
+			a_preserve
+		);
+	}
 
 
-		/// <summary>
-/// Packaged invocation to reduce parameter list's length
-/// </summary>
-/// <param name="a_hookFunc">Hook intercept function</param>
-/// <param name="a_instruction">Refer to BranchInstruction</param>
-/// <returns>Success indicator</returns>
-/// <remarks>Does not use address library ( or REL )</remarks>
-		template <std::uintptr_t ADDRESS_START, std::uintptr_t ADDRESS_END>
-		bool BranchToFunction(const std::uintptr_t a_hookFunc, const BranchInstruction a_instruction)
-		{
-			return BranchToFunction_Impl<0, ADDRESS_END - ADDRESS_START>(
-				ADDRESS_START,
-				a_hookFunc,
-				a_instruction.PrePatch.Data,
-				a_instruction.PrePatch.Size,
-				a_instruction.PostPatch.Data,
-				a_instruction.PostPatch.Size,
-				a_instruction.PreserveRax
-			);
-		}
+	/// <summary>
+	/// Packaged invocation to reduce parameter list's length
+	/// </summary>
+	/// <param name="a_hookFunc">Hook intercept function</param>
+	/// <param name="a_instruction">Refer to BranchInstruction</param>
+	/// <returns>Success indicator</returns>
+	/// <remarks>Does not use address library ( or REL )</remarks>
+	template <std::uintptr_t ADDRESS_START, std::uintptr_t ADDRESS_END>
+	bool BranchToFunction(const std::uintptr_t a_hookFunc, const BranchInstruction a_instruction)
+	{
+		return BranchToFunction_Impl<0, ADDRESS_END - ADDRESS_START>(
+			ADDRESS_START,
+			a_hookFunc,
+			a_instruction.PrePatch.Data,
+			a_instruction.PrePatch.Size,
+			a_instruction.PostPatch.Data,
+			a_instruction.PostPatch.Size,
+			a_instruction.PreserveRax
+		);
+	}
 
 #pragma endregion GENERAL IMPLEMENTATION
-		}
+}
 
 
 #pragma region UNDEFINE & ALIAS
 
 #undef FM
-		//#undef WRITE
-		//#undef WRITE_8
-		//#undef WRITE_16
-		//#undef WRITE_32
+//#undef WRITE
+//#undef WRITE_8
+//#undef WRITE_16
+//#undef WRITE_32
 #undef TRAMPOLINE
 
 #undef DEFINE_FLAG
 #undef TOGGLE_FLAG
 #undef ACTIVE_FLAG
-#undef CURRENT_PTR_MOVE
+#undef PTR_MOVE
 
 #undef VAR_
 #undef SIZE_
@@ -722,10 +714,6 @@ namespace DKUtil::Hook
 #undef CAVE_PUSH
 #undef CAVE_POP
 
-		typedef DKUtil::Hook::BranchInstruction BranchInstruction;
-
 #pragma endregion UNDEFINE
 
 #pragma warning ( default : 4244 )
-
-#endif
