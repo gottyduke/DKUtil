@@ -1,5 +1,5 @@
-#ifndef DKUTIL_HASH
-#define DKUTIL_HASH
+#pragma once
+
 
 #include <string>
 
@@ -39,6 +39,3 @@ namespace DKUtil::Hash
 		return sig;
 	}
 }
-
-
-#endif
