@@ -13,8 +13,7 @@ if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
 	)
 endif()
 
-# ide integration for debugging
-if(NOT DKUTIL_BUILD_IDE)
+if(NOT DKUTIL_DEBUG_BUILD)
 # info
 project(
 	DKUtil
@@ -27,6 +26,7 @@ add_library(
 	${PROJECT_NAME}
 	INTERFACE
 )
+
 add_library(
 	${PROJECT_NAME}::${PROJECT_NAME} 
 	ALIAS 
@@ -36,13 +36,7 @@ add_library(
 target_include_directories(
 	${PROJECT_NAME}
 	INTERFACE
-	$<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}/include>
-)
-
-target_compile_features(
-	${PROJECT_NAME}
-	INTERFACE
-		cxx_std_20
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 # install
@@ -83,7 +77,8 @@ install(
 )
 
 else()
-set(DKUTIL_BUILD_IDE OFF)
+# ide integration for debugging
+set(DKUTIL_DEBUG_BUILD OFF)
 # info
 project(
 	DKUtilDebugger
@@ -143,7 +138,6 @@ add_library(
 	${SOURCES}
 	${CMAKE_CURRENT_BINARY_DIR}/include/Version.h
 	${CMAKE_CURRENT_BINARY_DIR}/version.rc
-	.editorconfig
 )
 
 target_compile_features(
@@ -157,7 +151,7 @@ target_include_directories(
 	PRIVATE
 		${CMAKE_CURRENT_BINARY_DIR}/include
 		${CMAKE_CURRENT_SOURCE_DIR}/include
-		${CMAKE_CURRENT_SOURCE_DIR}/src
+		${CMAKE_CURRENT_SOURCE_DIR}/test
 )
 
 target_link_libraries(
@@ -229,7 +223,7 @@ endif ()
 target_precompile_headers(
 	${PROJECT_NAME}
 	PRIVATE
-		src/PCH.h
+		test/PCH.h
 )
 
 # post build event

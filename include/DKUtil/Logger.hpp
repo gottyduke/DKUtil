@@ -1,8 +1,8 @@
 #pragma once
 
 
-#include <map>
 #include <filesystem>
+#include <map>
 #include <ShlObj.h>
 
 
@@ -27,12 +27,10 @@ namespace DKUtil::Logger
 	// From CommonLibSSE https://github.com/Ryan-rsm-McKenzie/CommonLibSSE
 	inline std::optional<std::filesystem::path> log_directory()
 	{
-		wchar_t* buffer{ nullptr };
-		const auto                                             result = ::SHGetKnownFolderPath(::FOLDERID_Documents, ::KNOWN_FOLDER_FLAG::KF_FLAG_DEFAULT, nullptr, std::addressof(buffer));
-		std::unique_ptr<wchar_t[], decltype(&::CoTaskMemFree)> knownPath(buffer, ::CoTaskMemFree);
-		if (!knownPath || result != S_OK) {
-			return std::nullopt;
-		}
+		wchar_t* buffer{nullptr};
+		const auto result = SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, nullptr, std::addressof(buffer));
+		std::unique_ptr<wchar_t[], decltype(&CoTaskMemFree)> knownPath(buffer, CoTaskMemFree);
+		if (!knownPath || result != S_OK) { return std::nullopt; }
 
 		std::filesystem::path path = knownPath.get();
 		path /= "My Games/Skyrim Special Edition/SKSE"sv;
@@ -48,10 +46,13 @@ namespace DKUtil::Logger
 		*path += ".log"sv;
 
 		auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
-		sink->set_pattern("(%s): %v"s);
+#ifndef NDEBUG
+		sink->set_pattern("[%i](%s) %v"s);
+#else
+		sink->set_pattern("[%T](%s): %v"s);
+#endif
 
 		auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
-
 #ifndef NDEBUG
 		log->set_level(spdlog::level::debug);
 #else
@@ -59,7 +60,7 @@ namespace DKUtil::Logger
 #endif
 		log->flush_on(spdlog::level::debug);
 
-		spdlog::set_default_logger(std::move(log));
+		set_default_logger(std::move(log));
 
 		DEBUG("Debug mode"sv);
 	}
@@ -70,11 +71,13 @@ namespace DKUtil::Logger
 	public:
 		using QueueOrder = int;
 
+
 		struct SinkInfo
 		{
 			const std::string_view Name;
 			const std::string_view Version;
 		};
+
 
 	private:
 		std::map<SinkInfo, QueueOrder> sinks;

@@ -104,8 +104,6 @@ public:
 		GetModuleFileName(NULL, szVersionFile, MAX_PATH);
 
 		DWORD verHandle = 0;
-		UINT size = 0;
-		LPBYTE lpBuffer = NULL;
 		DWORD verSize = GetFileVersionInfoSize(szVersionFile, &verHandle);
 
 		if (verSize != NULL)

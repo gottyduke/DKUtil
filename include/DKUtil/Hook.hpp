@@ -66,44 +66,12 @@
 
 
 #include <cstdint>
-
 #include <xbyak/xbyak.h>
 
 
-#ifdef SKSE64 
- // SKSE64 Implementation
-#define DKUTIL_HOOK_CURRENT_IMPL	"SKSE64"sv
-
-#include "skse64_common/SafeWrite.h"
-#include "skse64_common/BranchTrampoline.h"
-
-#include "common/IDebugLog.h"
-
-#ifndef XBYAK_NO_OP_NAMES
-#define XBYAK_NO_OP_NAMES
-#endif
-
-#include "external/versiondb.h"
-
-#ifndef NDEBUG
-#define DEBUG(...)
-#else
-#define DEBUG(...)					gLog.FormattedMessage(__VA_ARGS__)
-#endif
-
-#define WRITE(ADDR, DATA)			SafeWriteBuf(ADDR, DATA, sizeof(DATA))
-#define WRITE_BUF(ADDR, DATA, SIZE)	SafeWriteBuf(ADDR, DATA, (SIZE))
-#define TRAMPOLINE					&g_localTrampoline
-
-
-#else 
- // CommonLibSSE Implementation
-#define DKUTIL_HOOK_CURRENT_IMPL	"CommonLibSSE"sv
-
-
-#include "SKSE/API.h"
 #include "Logger.hpp"
-
+#include "external/versiondb.h"
+#include "SKSE/API.h"
 
 #define TRAMPOLINE					SKSE::GetTrampoline()
 #define TRAMPOLINE_CAPACITY			(TRAMPOLINE).allocated_size()
@@ -113,13 +81,11 @@
 #define WRITE(ADDR, DATA)			REL::safe_write(ADDR, DATA)
 #define WRITE_BUF(ADDR, DATA, SIZE)	REL::safe_write(ADDR, DATA, (SIZE))
 
-#endif
-
 
 #pragma region GENERAL DEFINE
 
-#define DKUTIL_HOOK_NO_FUNCTION 0
-#define BRANCH_INSTRUCTION		DKUtil::Hook::Impl::BranchInstruction
+
+#define DKUTIL_HOOK_NO_FUNCTION nullptr
 #define CURRENT_PTR				DKUtil::Hook::Impl::CurrentTrampolinePtr
 
 // flag
@@ -159,14 +125,18 @@
 	DISABLE_FLAG(Branch)
 
 // cave
-#define CAVE_INIT(SRC, SIZE)										\
-	std::uintptr_t				CAVE_VAR_(Ptr) = SRC;				\
-	std::int32_t				CAVE_VAR_(Detour) = CAVE_VAR_(Ptr);	\
-	std::size_t					CAVE_VAR_(Remain) = (SIZE) - 5;		\
-	ALLOCATE(0);													\
-	DEBUG("Cave: Placeholding {}B", (SIZE));						\
-	for (auto i = 0; i < (SIZE); ++i)								\
-		WRITE(CAVE_VAR_(Ptr) + i, Impl::NOP)
+#define CAVE_INIT(SRC, SIZE)												\
+	std::uintptr_t				CAVE_VAR_(Ptr) = SRC;						\
+	std::int32_t				CAVE_VAR_(Detour) = SRC;					\
+	std::size_t					CAVE_VAR_(Remain) = (SIZE) - 5;				\
+	ALLOCATE(0);															\
+	DEBUG("Cave: Placeholding {}B", (SIZE));								\
+	std::uint32_t old{ 0 };													\
+	VirtualProtect(reinterpret_cast<void*>(SRC), (SIZE),					\
+		PAGE_EXECUTE_READWRITE, (PDWORD)std::addressof(old));				\
+	std::fill_n(reinterpret_cast<std::uint8_t*>(SRC), (SIZE), Impl::NOP);	\
+	VirtualProtect(reinterpret_cast<void*>(SRC), (SIZE),					\
+		old, (PDWORD)std::addressof(old))
 
 #define CAVE_DETOUR()														\
 	WRITE_MOVE(CAVE_VAR_(Ptr), Impl::JMP);									\
@@ -215,7 +185,7 @@ namespace DKUtil::Hook
 		constexpr std::uint8_t PUSH_RAX = 0x50;
 		constexpr std::uint8_t POP_RAX = 0x58;
 
-#pragma pack(push, 1)
+
 		struct BranchInstruction
 		{
 			const void* PrePatch;
@@ -224,11 +194,11 @@ namespace DKUtil::Hook
 			const std::size_t PostPatchSize;
 			const bool PreserveRax = false;
 		};
-#pragma pack(pop)
+
 
 		// managed pointer of current trampoline
 		static std::uintptr_t CurrentTrampolinePtr = 0x0;
-		inline std::uintptr_t GetCurrentPtr() noexcept { return Impl::CurrentTrampolinePtr; }
+		inline std::uintptr_t GetCurrentPtr() noexcept { return CurrentTrampolinePtr; }
 
 #pragma endregion GLOBAL
 
@@ -237,23 +207,12 @@ namespace DKUtil::Hook
 
 		// internal impl
 		template <std::uint64_t CAVE_SIZE>
-		void Branch_Internal(
-			const std::uintptr_t a_resolvedAddr,
-			const std::uintptr_t a_hookFunc = DKUTIL_HOOK_NO_FUNCTION,
-			const void* a_prePatch = nullptr,
-			const std::size_t a_prePatchSize = 0,
-			const void* a_postPatch = nullptr,
-			const std::size_t a_postPatchSize = 0,
-			const bool a_preserve = false
-		)
+		void Branch_Internal(const std::uintptr_t a_resolvedAddr, const void* a_hookFunc = DKUTIL_HOOK_NO_FUNCTION,
+							 const void* a_prePatch = nullptr, const std::size_t a_prePatchSize = 0,
+							 const void* a_postPatch = nullptr, const std::size_t a_postPatchSize = 0,
+							 const bool a_preserve = false)
 		{
-			DEBUG("DKUtil::Hook powered by {}", DKUTIL_HOOK_CURRENT_IMPL);
-
-			if (!a_resolvedAddr) {
-				ERROR("Address resolve failed, aborting"sv);
-				std::abort();
-			}
-			DEBUG("Address: Resolved {:x}", a_resolvedAddr);
+			DEBUG("DKUtil::Hook ready to work"sv);
 
 			// flags
 			DEFINE_FLAG(Detour);
@@ -267,25 +226,25 @@ namespace DKUtil::Hook
 			DEFINE_FLAG(Allocate);
 
 			// pre patch exists
-			if (a_prePatchSize) {
+			if (a_prePatchSize)
+			{
 				ENABLE_FLAG(PrePatch);
 				DEBUG("PrePatch: {}B", a_prePatchSize);
 			}
 
 			// post patch exists
-			if (a_postPatchSize) {
+			if (a_postPatchSize)
+			{
 				ENABLE_FLAG(PostPatch);
 				DEBUG("PostPatch: {}B", a_postPatchSize);
 			}
 
 			// both patches exist, determine larger one
-			if (FLAG(PrePatch) && FLAG(PostPatch)
-				&& a_prePatchSize >= a_postPatchSize) {
-				ENABLE_FLAG(LargerPrePatch);
-			}
+			if (FLAG(PrePatch) && FLAG(PostPatch) && a_prePatchSize >= a_postPatchSize) { ENABLE_FLAG(LargerPrePatch); }
 
 			// hook function exists
-			if (a_hookFunc) {
+			if (a_hookFunc)
+			{
 				ENABLE_FLAG(Detour);
 				ENABLE_FLAG(Return);
 				ENABLE_FLAG(Allocate);
@@ -294,7 +253,8 @@ namespace DKUtil::Hook
 			}
 
 			// hook function DNE but patch(es) are too large
-			if (!a_hookFunc && CAVE_SIZE < (a_prePatchSize + a_postPatchSize)) {
+			if (!a_hookFunc && CAVE_SIZE < (a_prePatchSize + a_postPatchSize))
+			{
 				ENABLE_FLAG(Detour);
 				ENABLE_FLAG(Return);
 				ENABLE_FLAG(Allocate);
@@ -302,7 +262,8 @@ namespace DKUtil::Hook
 			}
 
 			// .PreserveRax = true
-			if (FLAG(Detour) && a_preserve) {
+			if (FLAG(Detour) && a_preserve)
+			{
 				ENABLE_FLAG(Push);
 				ENABLE_FLAG(Pop);
 				DEBUG("Rax: Preserve register"sv);
@@ -315,118 +276,107 @@ namespace DKUtil::Hook
 			 * post patch - a_postPatchSize
 			 * pop rax - 1
 			 */
-			 // recalculate cave size and define cave variables
+			// recalculate cave size and define cave variables
 			CAVE_INIT(a_resolvedAddr, CAVE_SIZE);
 
 			// * SMART_ALLOC code
 			// both patches exist, size sufficient, write both
-			if (FLAG(PrePatch) && FLAG(PostPatch) &&
-				CAVE_VAR_(Remain) >= (a_prePatchSize + a_postPatchSize)) {
+			if (FLAG(PrePatch) && FLAG(PostPatch) && CAVE_VAR_(Remain) >= (a_prePatchSize + a_postPatchSize))
+			{
 				DEBUG("Cave: Full mode"sv);
 
-				if (FLAG(Push) && CAVE_VAR_(Remain) >= (a_prePatchSize + a_postPatchSize + sizeof(Impl::PUSH_RAX))) {
+				if (FLAG(Push) && CAVE_VAR_(Remain) >= (a_prePatchSize + a_postPatchSize + sizeof(PUSH_RAX)))
+				{
 					CAVE_PUSH();
 				}
 
-				if (FLAG(PrePatch)) {
-					CAVE_PREPATCH();
-				}
+				if (FLAG(PrePatch)) { CAVE_PREPATCH(); }
 
-				if (FLAG(Detour)) {
-					CAVE_DETOUR();
-				}
+				if (FLAG(Detour)) { CAVE_DETOUR(); }
 
-				if (FLAG(PostPatch)) {
-					CAVE_POSTPATCH();
-				}
+				if (FLAG(PostPatch)) { CAVE_POSTPATCH(); }
 
-				if (FLAG(Pop) && CAVE_VAR_(Remain) >= sizeof(Impl::POP_RAX)) {
-					CAVE_POP();
-				}
+				if (FLAG(Pop) && CAVE_VAR_(Remain) >= sizeof(POP_RAX)) { CAVE_POP(); }
 			}
 
 			// both patches exist, size insufficient, pick larger one
-			if (FLAG(PrePatch) && FLAG(PostPatch) &&
-				(CAVE_VAR_(Remain) >= a_prePatchSize &&
-					CAVE_VAR_(Remain) >= a_postPatchSize &&
-					CAVE_VAR_(Remain) < (a_prePatchSize + a_postPatchSize))) {
+			if (FLAG(PrePatch) && FLAG(PostPatch) && (CAVE_VAR_(Remain) >= a_prePatchSize && CAVE_VAR_(Remain) >=
+				a_postPatchSize && CAVE_VAR_(Remain) < (a_prePatchSize + a_postPatchSize)))
+			{
 				DEBUG("Cave: Priority mode"sv);
 
-				if (FLAG(LargerPrePatch)) {
-					if (FLAG(Push) && CAVE_VAR_(Remain) >= (a_prePatchSize + sizeof(Impl::PUSH_RAX))) {
-						CAVE_PUSH();
-					}
+				if (FLAG(LargerPrePatch))
+				{
+					if (FLAG(Push) && CAVE_VAR_(Remain) >= (a_prePatchSize + sizeof(PUSH_RAX))) { CAVE_PUSH(); }
 
 					CAVE_PREPATCH();
 				}
 
-				if (FLAG(Detour)) {
-					CAVE_DETOUR();
-				}
+				if (FLAG(Detour)) { CAVE_DETOUR(); }
 
-				if (!FLAG(LargerPrePatch)) {
+				if (!FLAG(LargerPrePatch))
+				{
 					CAVE_POSTPATCH();
 
-					if (FLAG(Pop) && CAVE_VAR_(Remain) >= sizeof(Impl::POP_RAX)) {
-						CAVE_POP();
-					}
+					if (FLAG(Pop) && CAVE_VAR_(Remain) >= sizeof(POP_RAX)) { CAVE_POP(); }
 				}
 			}
 
 			// both patches exist, size insufficient, sequential write
 			DEBUG("Cave: Sequence mode"sv);
 			// push rax onto stack
-			if (FLAG(Push) && CAVE_VAR_(Remain) >= sizeof(Impl::PUSH_RAX)) {
-				CAVE_PUSH();
-			}
+			if (FLAG(Push) && CAVE_VAR_(Remain) >= sizeof(PUSH_RAX)) { CAVE_PUSH(); }
 
 			// apply detour code
-			if (FLAG(Detour)) {
-				CAVE_DETOUR();
-			}
+			if (FLAG(Detour)) { CAVE_DETOUR(); }
 
 			// pop rax cuz it's poppin
-			if (FLAG(Pop) && CAVE_VAR_(Remain) >= sizeof(Impl::POP_RAX)) {
-				CAVE_POP();
-			}
+			if (FLAG(Pop) && CAVE_VAR_(Remain) >= sizeof(POP_RAX)) { CAVE_POP(); }
 
 			// trampoline
-			if (FLAG(Allocate)) {
-				if (FLAG(Push)) {
+			if (FLAG(Allocate))
+			{
+				if (FLAG(Push))
+				{
 					WRITE_MOVE(CURRENT_PTR, Impl::PUSH_RAX);
 					DEBUG("Rax: Push"sv);
 					DISABLE_FLAG(Push);
 				}
 
-				if (FLAG(PrePatch)) {
+				if (FLAG(PrePatch))
+				{
 					ALLOC_WRITE_BUF_MOVE(CURRENT_PTR, a_prePatch, a_prePatchSize);
 					DEBUG("PrePatch: Applied"sv);
 					DISABLE_FLAG(PrePatch);
 				}
 
-				if (FLAG(Branch)) {
+				if (FLAG(Branch))
+				{
 					CODEGEN_INIT(12);
-					VAR_(CodeGen).mov(VAR_(CodeGen).rax, a_hookFunc);
+					VAR_(CodeGen).mov(VAR_(CodeGen).rax, reinterpret_cast<std::uintptr_t>(a_hookFunc));
 					VAR_(CodeGen).call(VAR_(CodeGen).rax);
 					CODEGEN_READY();
 				}
 
-				if (FLAG(PostPatch)) {
+				if (FLAG(PostPatch))
+				{
 					ALLOC_WRITE_BUF_MOVE(CURRENT_PTR, a_postPatch, a_postPatchSize);
 					DEBUG("PostPatch: Applied"sv);
 					DISABLE_FLAG(PostPatch);
 				}
 
-				if (FLAG(Pop)) {
+				if (FLAG(Pop))
+				{
 					WRITE_MOVE(CURRENT_PTR, Impl::POP_RAX);
 					DEBUG("Rax: Pop"sv);
 					DISABLE_FLAG(Pop);
 				}
 
-				if (FLAG(Return)) {
-					WRITE_MOVE(CURRENT_PTR, Impl::JMP);
+				if (FLAG(Return))
+				{
+					ALLOC_WRITE_MOVE(CURRENT_PTR, Impl::JMP);
 					CAVE_VAR_(Detour) = CAVE_VAR_(Ptr) - CURRENT_PTR - sizeof(std::int32_t);
-					WRITE_MOVE(CURRENT_PTR, CAVE_VAR_(Detour));
+					ALLOC_WRITE_MOVE(CURRENT_PTR, CAVE_VAR_(Detour));
 					DEBUG("Trampoline: Detour -> Cave"sv);
 					DISABLE_FLAG(Return);
 				}
@@ -446,58 +396,35 @@ namespace DKUtil::Hook
 
 	// ID + Offset
 	template <std::uint64_t BASE_ID, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
-	void BranchToID(
-		const std::uintptr_t a_hookFunc,
-		const void* a_prePatch = nullptr,
-		const std::size_t a_prePatchSize = 0,
-		const void* a_postPatch = nullptr,
-		const std::size_t a_postPatchSize = 0,
-		const bool a_preserve = false
-	)
+	constexpr void BranchToID(const void* a_hookFunc, const void* a_prePatch = nullptr,
+							  const std::size_t a_prePatchSize = 0, const void* a_postPatch = nullptr,
+							  const std::size_t a_postPatchSize = 0, const bool a_preserve = false)
 	{
-#ifdef SKSE64
+		static_assert(OFFSET_END > OFFSET_START, "OFFSET wrong order");
+		static_assert((OFFSET_END - OFFSET_START) >= 5, "Insufficient cave size");
+
 		VersionDb db;
-		if (!db.Load()) {
-			ERROR("Failed to load version database!"sv);
-		}
+		if (!db.Load()) { ERROR("Failed to load version database!"sv); }
 
 		const auto resolvedAddr = reinterpret_cast<std::uintptr_t>(db.FindAddressById(BASE_ID)) + OFFSET_START;
-		if (!resolvedAddr) {
-			ERROR("Failed to resolve address by id {:x}", BASE_ID);
-		}
-#else
-		const auto resolvedAddr = REL::ID(BASE_ID).address() + OFFSET_START;
-#endif
-		static_assert(OFFSET_END > OFFSET_START);
+		if (!resolvedAddr) { ERROR("Failed to resolve address by id {:x}", BASE_ID); }
+		DEBUG("Address: Resolved {:x}", resolvedAddr);
 
-		Impl::Branch_Internal<OFFSET_END - OFFSET_START>(
-			resolvedAddr,
-			a_hookFunc,
-			a_prePatch,
-			a_prePatchSize,
-			a_postPatch,
-			a_postPatchSize,
-			a_preserve
-			);
+		return Impl::Branch_Internal<OFFSET_END - OFFSET_START>(resolvedAddr, a_hookFunc, a_prePatch, a_prePatchSize,
+																a_postPatch, a_postPatchSize, a_preserve);
 	}
 
 
 	template <std::uint64_t BASE_ID, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
-	void BranchToID(
-		const std::uintptr_t a_hookFunc,
-		const BRANCH_INSTRUCTION a_instruction
-	)
+	constexpr void BranchToID(const void* a_hookFunc, const Impl::BranchInstruction a_instruction)
 	{
-		BranchToID<BASE_ID, OFFSET_START, OFFSET_END>(
-			a_hookFunc,
-			a_instruction.PrePatch,
-			a_instruction.PrePatchSize,
-			a_instruction.PostPatch,
-			a_instruction.PostPatchSize,
-			a_instruction.PreserveRax
-			);
+		return BranchToID<BASE_ID, OFFSET_START, OFFSET_END>(a_hookFunc, a_instruction.PrePatch,
+															 a_instruction.PrePatchSize, a_instruction.PostPatch,
+															 a_instruction.PostPatchSize, a_instruction.PreserveRax);
 	}
 
+
+	using BranchInstruction = Impl::BranchInstruction;
 
 #pragma endregion GENERAL IMPLEMENTATION
 }

@@ -6,7 +6,7 @@ function Walk-Files {
         [string]$a_parent = $PSScriptRoot,
 
         [Parameter()]
-        [string[]]$a_directory = @('include', 'src'),
+        [string[]]$a_directory = @('include', 'src', 'test'),
 
         [Parameter()]
         [string[]]$a_extension = '*.c,*.cpp,*.cxx,*.h,*.hpp,*.hxx'
@@ -54,10 +54,20 @@ if ($mode -eq "COPY") { # post build copy event
     Copy-Item "$path/$project.dll" "$ModPath/SKSE/Plugins/$project.dll" -Force
     Write-Host "`tDone!"
 
-    # settings
+    # configs
     if (Test-Path "$PSScriptRoot/$project.ini" -PathType Leaf) {
         Write-Host "`tCopying ini configuration..."
         Copy-Item "$PSScriptRoot/$project.ini" "$ModPath/SKSE/Plugins/$project.ini" -Force
+        Write-Host "`tDone!"
+    }
+    if (Test-Path "$PSScriptRoot/$project.json" -PathType Leaf) {
+        Write-Host "`tCopying json configuration..."
+        Copy-Item "$PSScriptRoot/$project.json" "$ModPath/SKSE/Plugins/$project.json" -Force
+        Write-Host "`tDone!"
+    }    
+    if (Test-Path "$PSScriptRoot/$project.toml" -PathType Leaf) {
+        Write-Host "`tCopying toml configuration..."
+        Copy-Item "$PSScriptRoot/$project.toml" "$ModPath/SKSE/Plugins/$project.toml" -Force
         Write-Host "`tDone!"
     }
 
