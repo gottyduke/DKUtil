@@ -1,5 +1,5 @@
 # DKUtil
-Backend library for my personal SKSE plugin development.
+Header library for my personal SKSE plugin development.
 ---
 ---
 ## Consumption
