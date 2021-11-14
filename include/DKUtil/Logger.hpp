@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <map>
 #include <ShlObj.h>
-
+#include <WinUser.h>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -19,7 +19,13 @@ using namespace std::literals;
 #else
 #define DEBUG(...)
 #endif
-#define ERROR(...)	SPDLOG_CRITICAL(__VA_ARGS__)
+#define ERROR(...)									\
+	const auto errormsg = std::string("ERROR\n") +	\
+	fmt::format(__VA_ARGS__);						\
+	SPDLOG_CRITICAL(errormsg);						\
+	MessageBoxA(nullptr, errormsg.c_str(),			\
+		Version::PROJECT.data(), MB_OK);			\
+	ExitProcess(114514);
 
 
 namespace DKUtil::Logger

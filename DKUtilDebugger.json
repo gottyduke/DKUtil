@@ -1,0 +1,10 @@
+{
+    "iAwesome" : 14,
+    "bAwesome" : true,
+    "dAwesome" : 3.1415926535897,
+    "sAwesome" : [
+        "This is json", 
+        "You are gruesome", 
+        "We are awesome"
+    ]
+}
