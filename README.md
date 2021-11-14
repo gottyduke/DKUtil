@@ -66,12 +66,12 @@ The data can be declared with/without `static` keyword and initialized with the 
 Given file `MyConfigFile.toml`:
 ```TOML
 [RandomSectionNameButNeedsToPresent]
-myIntDataKey = 10086
-myInt64ArrayData = [99, 96, 92, 87, 71]
-myDoubleData = 114.514
-myBoolData = true
-myStringData = "Hello toml"
-myStringArrayData = [
+MyIntDataKey = 10086
+MyIntArrayKey = [99, 96, 92, 87, 71]
+MyDoubleKey = 114.514
+MyBoolKey = true
+MyStringKey = "Hello toml"
+MyStringArrayKey = [
     "Frust",
     "Sedoncst",
     "LastButNotLeast"
