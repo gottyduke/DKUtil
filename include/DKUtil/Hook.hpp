@@ -70,7 +70,12 @@
 
 
 #include "Logger.hpp"
+
+#if ANNIVERSARY_EDITION
+#include "external/versionlibdb.h"
+#else
 #include "external/versiondb.h"
+#endif
 #include "SKSE/API.h"
 
 #define TRAMPOLINE					SKSE::GetTrampoline()
@@ -407,6 +412,8 @@ namespace DKUtil::Hook
 		if (!db.Load()) { ERROR("Failed to load version database!"sv); }
 
 		const auto resolvedAddr = reinterpret_cast<std::uintptr_t>(db.FindAddressById(BASE_ID)) + OFFSET_START;
+		db.Clear();
+
 		if (!resolvedAddr) { ERROR("Failed to resolve address by id {:x}", BASE_ID); }
 		DEBUG("Address: Resolved {:x}", resolvedAddr);
 
@@ -421,6 +428,25 @@ namespace DKUtil::Hook
 		return BranchToID<BASE_ID, OFFSET_START, OFFSET_END>(a_hookFunc, a_instruction.PrePatch,
 															 a_instruction.PrePatchSize, a_instruction.PostPatch,
 															 a_instruction.PostPatchSize, a_instruction.PreserveRax);
+	}
+
+
+	template <std::uint64_t ADDR, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
+	constexpr void BranchToAddress(const void* a_hookFunc, const void* a_prePatch = nullptr, 
+									const std::size_t a_prePatchSize = 0, const void* a_postPatch = nullptr,
+									const std::size_t a_postPatchSize = 0, const bool a_preserve = false)
+	{
+		return Impl::Branch_Internal<OFFSET_END - OFFSET_START>(ADDR, a_hookFunc, a_prePatch, a_prePatchSize,
+																a_postPatch, a_postPatchSize, a_preserve);
+	}
+
+
+	template <std::uint64_t ADDR, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
+	constexpr void BranchToAddress(const void* a_hookFunc, const Impl::BranchInstruction a_instruction)
+	{
+		return Impl::Branch_Internal<OFFSET_END - OFFSET_START>(ADDR, a_hookFunc, a_instruction.PrePatch,
+																a_instruction.PrePatchSize, a_instruction.PostPatch,
+																a_instruction.PostPatchSize, a_instruction.PreserveRax);
 	}
 
 
