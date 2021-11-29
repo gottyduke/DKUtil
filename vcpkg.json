@@ -6,5 +6,9 @@
     "dependencies":  [
                          "boost-stl-interfaces",
                          "spdlog"
-                     ]
+                     ],
+    "script-version":  "11129",
+    "build-config":  "MT",
+    "build-target":  "SE",
+    "install-name":  "DKUtil"
 }
