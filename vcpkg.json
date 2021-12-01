@@ -7,8 +7,8 @@
                          "boost-stl-interfaces",
                          "spdlog"
                      ],
-    "script-version":  "11129",
+    "script-version":  "11130",
     "build-config":  "MT",
-    "build-target":  "SE",
+    "build-target":  "AE",
     "install-name":  "DKUtil"
 }
