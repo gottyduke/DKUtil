@@ -80,7 +80,7 @@
 
 #define TRAMPOLINE					SKSE::GetTrampoline()
 #define TRAMPOLINE_CAPACITY			(TRAMPOLINE).allocated_size()
-#define ALLOCATE(SIZE)				CURRENT_PTR						\
+#define ALLOCATE(SIZE)				TRAM_PTR						\
 	= reinterpret_cast<std::uintptr_t>((TRAMPOLINE).allocate((SIZE)))
 
 #define WRITE(ADDR, DATA)			REL::safe_write(ADDR, DATA)
@@ -91,7 +91,8 @@
 
 
 #define DKUTIL_HOOK_NO_FUNCTION nullptr
-#define CURRENT_PTR				DKUtil::Hook::Impl::CurrentTrampolinePtr
+#define TRAM_PTR				DKUtil::Hook::Impl::CurrentTrampolinePtr
+#define CAVE_PTR				DKUtil::Hook::Impl::CurrentCavePtr
 
 // flag
 #define DEFINE_FLAG(FLAG_NAME)	bool hookFlag ## FLAG_NAME = false
@@ -120,20 +121,20 @@
 
 // codegen
 #define CODEGEN_INIT(SIZE)		Xbyak::CodeGenerator				\
-	VAR_(CodeGen)((SIZE), reinterpret_cast<void*>(CURRENT_PTR))
+	VAR_(CodeGen)((SIZE), reinterpret_cast<void*>(TRAM_PTR))
 
 #define CODEGEN_READY()												\
 	ALLOCATE(VAR_(CodeGen).getSize());								\
 	VAR_(CodeGen).ready();											\
-	MOVE(CURRENT_PTR, VAR_(CodeGen).getSize());						\
+	MOVE(TRAM_PTR, VAR_(CodeGen).getSize());						\
 	DEBUG("Xbyak: Codegen ready"sv);								\
 	DISABLE_FLAG(Branch)
 
 // cave
 #define CAVE_INIT(SRC, SIZE)												\
-	std::uintptr_t				CAVE_VAR_(Ptr) = SRC;						\
-	std::int32_t				CAVE_VAR_(Detour) = SRC;					\
-	std::size_t					CAVE_VAR_(Remain) = (SIZE) - 5;				\
+	CAVE_PTR						= SRC;									\
+	std::int32_t CAVE_VAR_(Detour)	= SRC;									\
+	std::size_t	CAVE_VAR_(Remain)	= (SIZE) - 5;							\
 	ALLOCATE(0);															\
 	DEBUG("Cave: Placeholding {}B", (SIZE));								\
 	std::uint32_t old{ 0 };													\
@@ -143,36 +144,36 @@
 	VirtualProtect(reinterpret_cast<void*>(SRC), (SIZE),					\
 		old, (PDWORD)std::addressof(old))
 
-#define CAVE_DETOUR()														\
-	WRITE_MOVE(CAVE_VAR_(Ptr), Impl::JMP);									\
-	CAVE_VAR_(Detour) = CURRENT_PTR - CAVE_VAR_(Ptr) - sizeof(std::int32_t);\
-	WRITE_MOVE(CAVE_VAR_(Ptr), CAVE_VAR_(Detour));							\
-	CAVE_VAR_(Remain) -= (sizeof(Impl::JMP) + sizeof(std::int32_t));		\
-	DEBUG("Cave: Detour -> trampoline"sv);									\
+#define CAVE_DETOUR()												\
+	WRITE_MOVE(CAVE_PTR, Impl::JMP);								\
+	CAVE_VAR_(Detour) = TRAM_PTR - CAVE_PTR - sizeof(std::int32_t);	\
+	WRITE_MOVE(CAVE_PTR, CAVE_VAR_(Detour));						\
+	CAVE_VAR_(Remain) -= (sizeof(Impl::JMP) + sizeof(std::int32_t));\
+	DEBUG("Cave: Detour -> trampoline"sv);							\
 	DISABLE_FLAG(Detour)
 
-#define CAVE_PREPATCH()											\
-	WRITE_BUF_MOVE(CAVE_VAR_(Ptr), a_prePatch, a_prePatchSize);	\
-	CAVE_VAR_(Remain) -= a_prePatchSize;						\
-	DEBUG("Cave: PrePatch applied"sv);							\
+#define CAVE_PREPATCH()										\
+	WRITE_BUF_MOVE(CAVE_PTR, a_prePatch, a_prePatchSize);	\
+	CAVE_VAR_(Remain) -= a_prePatchSize;					\
+	DEBUG("Cave: PrePatch applied"sv);						\
 	DISABLE_FLAG(PrePatch)
 
-#define CAVE_POSTPATCH()									\
-	WRITE_BUF(CAVE_VAR_(Ptr), a_postPatch, a_postPatchSize);\
-	CAVE_VAR_(Remain) -= a_postPatchSize;					\
-	DEBUG("Cave: PostPatch applied"sv);						\
+#define CAVE_POSTPATCH()								\
+	WRITE_BUF(CAVE_PTR, a_postPatch, a_postPatchSize);	\
+	CAVE_VAR_(Remain) -= a_postPatchSize;				\
+	DEBUG("Cave: PostPatch applied"sv);					\
 	DISABLE_FLAG(PostPatch)
 
-#define CAVE_PUSH()											\
-	WRITE_MOVE(CAVE_VAR_(Ptr), Impl::PUSH_RAX);				\
-	CAVE_VAR_(Remain) -= sizeof(Impl::PUSH_RAX);			\
-	DEBUG("Cave: Rax preserved"sv);							\
+#define CAVE_PUSH()								\
+	WRITE_MOVE(CAVE_PTR, Impl::PUSH_RAX);		\
+	CAVE_VAR_(Remain) -= sizeof(Impl::PUSH_RAX);\
+	DEBUG("Cave: Rax preserved"sv);				\
 	DISABLE_FLAG(Push)
 
-#define CAVE_POP()											\
-	WRITE_MOVE(CAVE_VAR_(Ptr), Impl::POP_RAX);				\
-	CAVE_VAR_(Remain) -=  sizeof(Impl::POP_RAX);			\
-	DEBUG("Cave: Rax restored"sv);							\
+#define CAVE_POP()								\
+	WRITE_MOVE(CAVE_PTR, Impl::POP_RAX);		\
+	CAVE_VAR_(Remain) -=  sizeof(Impl::POP_RAX);\
+	DEBUG("Cave: Rax restored"sv);				\
 	DISABLE_FLAG(Pop)
 
 
@@ -203,7 +204,7 @@ namespace DKUtil::Hook
 
 		// managed pointer of current trampoline
 		static std::uintptr_t CurrentTrampolinePtr = 0x0;
-		inline std::uintptr_t GetCurrentPtr() noexcept { return CurrentTrampolinePtr; }
+		static std::uintptr_t CurrentCavePtr = 0x0;
 
 #pragma endregion GLOBAL
 
@@ -343,14 +344,14 @@ namespace DKUtil::Hook
 			{
 				if (FLAG(Push))
 				{
-					WRITE_MOVE(CURRENT_PTR, Impl::PUSH_RAX);
+					WRITE_MOVE(TRAM_PTR, Impl::PUSH_RAX);
 					DEBUG("Rax: Push"sv);
 					DISABLE_FLAG(Push);
 				}
 
 				if (FLAG(PrePatch))
 				{
-					ALLOC_WRITE_BUF_MOVE(CURRENT_PTR, a_prePatch, a_prePatchSize);
+					ALLOC_WRITE_BUF_MOVE(TRAM_PTR, a_prePatch, a_prePatchSize);
 					DEBUG("PrePatch: Applied"sv);
 					DISABLE_FLAG(PrePatch);
 				}
@@ -365,23 +366,23 @@ namespace DKUtil::Hook
 
 				if (FLAG(PostPatch))
 				{
-					ALLOC_WRITE_BUF_MOVE(CURRENT_PTR, a_postPatch, a_postPatchSize);
+					ALLOC_WRITE_BUF_MOVE(TRAM_PTR, a_postPatch, a_postPatchSize);
 					DEBUG("PostPatch: Applied"sv);
 					DISABLE_FLAG(PostPatch);
 				}
 
 				if (FLAG(Pop))
 				{
-					WRITE_MOVE(CURRENT_PTR, Impl::POP_RAX);
+					WRITE_MOVE(TRAM_PTR, Impl::POP_RAX);
 					DEBUG("Rax: Pop"sv);
 					DISABLE_FLAG(Pop);
 				}
 
 				if (FLAG(Return))
 				{
-					ALLOC_WRITE_MOVE(CURRENT_PTR, Impl::JMP);
-					CAVE_VAR_(Detour) = CAVE_VAR_(Ptr) - CURRENT_PTR - sizeof(std::int32_t);
-					ALLOC_WRITE_MOVE(CURRENT_PTR, CAVE_VAR_(Detour));
+					ALLOC_WRITE_MOVE(TRAM_PTR, Impl::JMP);
+					CAVE_VAR_(Detour) = CAVE_PTR - TRAM_PTR - sizeof(std::int32_t);
+					ALLOC_WRITE_MOVE(TRAM_PTR, CAVE_VAR_(Detour));
 					DEBUG("Trampoline: Detour -> Cave"sv);
 					DISABLE_FLAG(Return);
 				}
