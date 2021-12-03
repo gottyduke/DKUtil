@@ -1,5 +1,7 @@
 #pragma once
 
+#define ANNIVERSARY_EDITION @ANNIVERSARY_EDITION@
+
 namespace Version
 {
 	inline constexpr std::size_t MAJOR = @PROJECT_VERSION_MAJOR@;

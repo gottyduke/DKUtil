@@ -7,10 +7,7 @@ endif()
 
 # out-of-source builds only
 if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
-	message(
-		FATAL_ERROR
-			"In-source builds are not allowed."
-	)
+	message(FATAL_ERROR "In-source builds are not allowed.")
 endif()
 
 if(NOT DKUTIL_DEBUG_BUILD)
@@ -87,7 +84,7 @@ project(
 )
 
 # called via add_subdirectory()
-if (NOT LINKAGE_OVERRIDE)
+if(NOT LINKAGE_OVERRIDE)
 set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
 set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "")
@@ -162,7 +159,7 @@ target_link_libraries(
 )
 
 # compiler
-if (MSVC)
+if(MSVC)
 	add_compile_definitions(
 		_UNICODE
 	)
@@ -217,7 +214,7 @@ if (MSVC)
 			"$<$<CONFIG:DEBUG>:/INCREMENTAL;/OPT:NOREF;/OPT:NOICF>"
 			"$<$<CONFIG:RELEASE>:/INCREMENTAL:NO;/OPT:REF;/OPT:ICF;/DEBUG:FULL>"
 	)
-endif ()
+endif()
 
 # pch
 target_precompile_headers(
