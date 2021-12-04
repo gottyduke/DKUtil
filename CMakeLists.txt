@@ -38,19 +38,14 @@ target_include_directories(
 
 # install
 install(
-	TARGETS 
-		${PROJECT_NAME}
-	EXPORT 
-		${PROJECT_NAME}-targets
+	TARGETS ${PROJECT_NAME}
+	EXPORT ${PROJECT_NAME}-targets
 )
 
 install(
-	EXPORT 
-		${PROJECT_NAME}-targets
-	NAMESPACE 
-		${PROJECT_NAME}::
-	DESTINATION 
-		${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+	EXPORT ${PROJECT_NAME}-targets
+	NAMESPACE ${PROJECT_NAME}::
+	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
 configure_file(
@@ -60,17 +55,13 @@ configure_file(
 )
 
 install(
-	FILES 
-		${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-	DESTINATION 
-		${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+	FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+	DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
 install(
-	DIRECTORY
-		include
-	DESTINATION 
-		${CMAKE_INSTALL_INCLUDEDIR}/include
+	DIRECTORY include
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/include
 )
 
 else()
@@ -115,17 +106,13 @@ find_package(spdlog CONFIG REQUIRED)
 execute_process(COMMAND powershell -ExecutionPolicy Bypass -File "${CMAKE_CURRENT_SOURCE_DIR}/!Update.ps1" "SOURCEGEN" "${PROJECT_VERSION}" "${CMAKE_CURRENT_BINARY_DIR}")
 include(${CMAKE_CURRENT_BINARY_DIR}/sourcelist.cmake)
 source_group(
-	TREE
-		${CMAKE_CURRENT_SOURCE_DIR}
-	FILES
-		${SOURCES}
+	TREE ${CMAKE_CURRENT_SOURCE_DIR}
+	FILES ${SOURCES}
 )
 
 source_group(
-	TREE
-		${CMAKE_CURRENT_BINARY_DIR}
-	FILES
-		${CMAKE_CURRENT_BINARY_DIR}/include/Version.h
+	TREE ${CMAKE_CURRENT_BINARY_DIR}
+	FILES ${CMAKE_CURRENT_BINARY_DIR}/include/Version.h
 )
 
 # runtime
@@ -228,10 +215,8 @@ add_custom_command(
 	TARGET 
 		${PROJECT_NAME}
 	POST_BUILD
-		COMMAND 
-			powershell -NoProfile -ExecutionPolicy Bypass -File "${CMAKE_CURRENT_SOURCE_DIR}/!Update.ps1" "COPY" "${PROJECT_VERSION}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$(ConfigurationName)" "${PROJECT_NAME}"
-		COMMENT 
-			"Updating DLL to MO2 directory..."
+		COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File "${CMAKE_CURRENT_SOURCE_DIR}/!Update.ps1" "COPY" "${PROJECT_VERSION}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$(ConfigurationName)" "${PROJECT_NAME}"
+		COMMENT "Updating project..."
 )
 
 # called via !Rebuild.ps1
