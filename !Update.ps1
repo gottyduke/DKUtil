@@ -67,17 +67,17 @@ if ($Mode -eq 'COPY') { # post build event
     }
 
     # MO2 support
-    if ($MO2) {
-        $Destination = Join-Path "$MO2/mods" $vcpkg.'install-name'
-    } else {
-        Add-Type -AssemblyName Microsoft.VisualBasic | Out-Null
-        $Result = [Microsoft.VisualBasic.Interaction]::MsgBox("$Project has been built`n`nCopy to game folder?", 52, $Project)
-        if ($Result -eq 6) {
-            $Destination = Join-Path "$GameBase" "Data" 
+    Add-Type -AssemblyName Microsoft.VisualBasic | Out-Null
+    $Result = [Microsoft.VisualBasic.Interaction]::MsgBox("$Project has been built`n`nCopy to game folder?", 52, $Project)
+    if ($Result -eq 6) {
+        if ($MO2) {
+            $Destination = Join-Path "$MO2/mods" $vcpkg.'install-name'
         } else {
-            Invoke-Item $Path
-            Exit
+            $Destination = Join-Path "$GameBase" "Data" 
         }
+    } else {
+        Invoke-Item $Path
+        Exit
     }
        
     New-Item -Type Directory "$Destination/SKSE/Plugins" -Force | Out-Null

@@ -5,7 +5,9 @@
     "license":  "MIT",
     "dependencies":  [
                          "boost-stl-interfaces",
-                         "spdlog"
+                         "rsm-binary-io",
+                         "spdlog",
+                         "xbyak"
                      ],
     "script-version":  "11203",
     "build-config":  "MD",
