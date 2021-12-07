@@ -135,7 +135,7 @@ if ($Mode -eq 'COPY') { # post build event
                 Write-Host "`tDone  "
                 
                 Add-Type -AssemblyName Microsoft.VisualBasic | Out-Null
-                [Microsoft.VisualBasic.Interaction]::MsgBox("$Project has been changed from $($OriginalVersion) to $($OutputVersion)`n`nThis update will be in effect after next succesful build", 48, 'Version Update')
+                [Microsoft.VisualBasic.Interaction]::MsgBox("$Project has been changed from $($OriginalVersion) to $($OutputVersion)`n`nThis update will be in effect after next successful build", 48, 'Version Update')
                 Exit
             }
         }
@@ -156,7 +156,6 @@ if ($Mode -eq 'COPY') { # post build event
         # update vcpkg.json accordinly
         $vcpkg = [IO.File]::ReadAllText("$PSScriptRoot/vcpkg.json") | ConvertFrom-Json
         $vcpkg.'version-string' = $Version    
-        
         if ($env:RebuildInvoke) {
             if ($vcpkg | Get-Member script-version) {
                 $vcpkg.'script-version' = $env:DKScriptVersion
@@ -177,6 +176,12 @@ if ($Mode -eq 'COPY') { # post build event
                 $vcpkg | Add-Member -Name 'install-name' -Value $Folder -MemberType NoteProperty
             }
         }
+
+        if (Test-Path "$Path/version.rc" -PathType Leaf) {
+            $VersionResource = [IO.File]::ReadAllText("$Path/version.rc") -replace "`"FileDescription`",\s`"$Folder`"",  "`"FileDescription`", `"$($vcpkg.'description')`""
+            [IO.File]::WriteAllText("$Path/version.rc", $VersionResource)
+        }
+
         $vcpkg = $vcpkg | ConvertTo-Json
         [IO.File]::WriteAllText("$PSScriptRoot/vcpkg.json", $vcpkg) # damn you encoding
     }
@@ -194,8 +199,8 @@ Write-Host "`t<$Folder> [$Mode] DONE"
 # SIG # Begin signature block
 # MIIR2wYJKoZIhvcNAQcCoIIRzDCCEcgCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQURNWSaHUMAZ1pFh8iZEk+eY5J
-# M1mggg1BMIIDBjCCAe6gAwIBAgIQZAPCkAxHzpxOvoeEUruLiDANBgkqhkiG9w0B
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU1OAWHeuDcjkmCW38+64tf09i
+# HuGggg1BMIIDBjCCAe6gAwIBAgIQZAPCkAxHzpxOvoeEUruLiDANBgkqhkiG9w0B
 # AQsFADAbMRkwFwYDVQQDDBBES1NjcmlwdFNlbGZDZXJ0MB4XDTIxMTIwMjEyMzYz
 # MFoXDTIyMTIwMjEyNTYzMFowGzEZMBcGA1UEAwwQREtTY3JpcHRTZWxmQ2VydDCC
 # ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAL9d3xGpFZgLEPcI1mIG8OPB
@@ -269,23 +274,23 @@ Write-Host "`t<$Folder> [$Mode] DONE"
 # AQEwLzAbMRkwFwYDVQQDDBBES1NjcmlwdFNlbGZDZXJ0AhBkA8KQDEfOnE6+h4RS
 # u4uIMAkGBSsOAwIaBQCgeDAYBgorBgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqG
 # SIb3DQEJAzEMBgorBgEEAYI3AgEEMBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3
-# AgEVMCMGCSqGSIb3DQEJBDEWBBSSd4xP7G8jPHN8Wb81j3f8HZz8KDANBgkqhkiG
-# 9w0BAQEFAASCAQBWIwwKqG0ZDikl3WUS0upCWZ7WglzVpB2vyLAamGtihwctJAbV
-# KN8qslXFXMsye3DYLFvPUfN6bpUX4eKb+KhuxkCvc0AJm2abZCx51plUJQ0U92tR
-# 48Dn857uP5FnBmG4dW9AuG1RNxLEEIPK+G8U+Fw7RU3wTiBheL9TuufXSyPFOuVp
-# 6OiIsMmwvfNmbzhsU5j52fLpo+784SI79s8oORT3rnP/87xPHITzYd4BCZAE14IJ
-# tG7mMO80Zsh4Up36nAAKK02nZAEKEIzhqtG1Ub/lXCmgC72zAEwblaIrg3O4QFrR
-# i91IPzJumpEDBRfh7rTM0qXnuMsUigf4uEcmoYICMDCCAiwGCSqGSIb3DQEJBjGC
+# AgEVMCMGCSqGSIb3DQEJBDEWBBSshcwi9jiJcPJjf5jRzQf2FHS5ADANBgkqhkiG
+# 9w0BAQEFAASCAQAEvCJfofN64fH0WH92sanVvugywBUjEjp8O2152/IkgBCg8lPK
+# s1mRp/ScuR8gW7677ScnaZ3If49IddDLsrGdaVEb3cfwEzdPPZYtrQ0eQip57By9
+# yHGw7OgF31pmW376yxgdeR9qIIN+rkPiBNhUUg8xazSm6SQGg5H7EdHPPasZyGmX
+# ubidDtB53q9H7iWyGvNkj8Jag7rRPql4eO6/MzE6OBXD3Of0US/1chHcI5z5MHSg
+# eABR4Vizy53ota8XajeJ4fstBGcjY67RISjCyJ8a4Qq/ikOhiBnxF7MGIMl9fRMr
+# CId7nZAzkfgt8xOR84UySGM5EaM0Jr7vFgJHoYICMDCCAiwGCSqGSIb3DQEJBjGC
 # Ah0wggIZAgEBMIGGMHIxCzAJBgNVBAYTAlVTMRUwEwYDVQQKEwxEaWdpQ2VydCBJ
 # bmMxGTAXBgNVBAsTEHd3dy5kaWdpY2VydC5jb20xMTAvBgNVBAMTKERpZ2lDZXJ0
 # IFNIQTIgQXNzdXJlZCBJRCBUaW1lc3RhbXBpbmcgQ0ECEA1CSuC+Ooj/YEAhzhQA
 # 8N0wDQYJYIZIAWUDBAIBBQCgaTAYBgkqhkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwG
-# CSqGSIb3DQEJBTEPFw0yMTEyMDMxNjE1NTFaMC8GCSqGSIb3DQEJBDEiBCChKy0u
-# an2QwfWy/257SPb2mWtdmFD4Hvf9vwt9hqFffTANBgkqhkiG9w0BAQEFAASCAQAQ
-# YSCzdjMbyGpsDFn8aG2JelZgNLNEAkAaMm/MQSWzCuHkYcIQF0VachQFxqpr8VSm
-# WP89UERlaCuFBisujojeiiLDQdV2kW8+EA45ghSmO75JxCWiUt8HWxN/O5rNt4M4
-# ATVsWnFRElTwNM9nzBJeD/sDvv2xCDCDcfhP3JgsmcIsZJEamI2Z3mt1RllGyLWb
-# Z2d5djvhaaf/vsa8SfwrQj6HIlD73o2icLinptG85UPlBwuXzldwm3hIEM8BiWad
-# nr3AwPps3taN83i1xKvCaBXDAHNbQh8AqiOGI5xsx5fkvr9lfrkhVi7lyLvnZx/7
-# XdbNTm0xy1PTwcUalauk
+# CSqGSIb3DQEJBTEPFw0yMTEyMDUxNDM5MTFaMC8GCSqGSIb3DQEJBDEiBCBCHGRd
+# LBikz/tRliiU9rNo7U053ttCN7CArKJ+om6xlzANBgkqhkiG9w0BAQEFAASCAQCn
+# zz00NabUb0di5+JIoJpVWSYXD+3gMF00nAqLYM5usn64dL7/UiTAN6KEhRDBo8VM
+# /IFwbVCfTA4DgBZfmCUTukTkvaHOrmLN97RA0mG11cZUT280RTOkSmOJH8yNqdyi
+# DIxpeOpuMEelzko1pFjt7j6Tl1MYkuWePizRMNEz//JYR8t6UbjsrqP7pEOO6dy0
+# rVi1v1kRp4WINxPDh4FnN1Rw9xlQgc4fiovigGL4MjMrd9Y6TJBa+sadpzqd9E/i
+# /ImKD6yWScPqfeZaeOeQl01PZ2OMUBbEA4fNMuwNAah13uzMDGIArjl9U0tRlw07
+# /9cY+y3ImkeUHi7yZ5LD
 # SIG # End signature block

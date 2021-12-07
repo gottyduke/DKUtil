@@ -84,13 +84,13 @@ namespace DKUtil::Config
 			constexpr ~AData() noexcept = default;
 
 			// return the front if out of bounds
-			[[nodiscard]] auto operator[](const std::size_t a_index) noexcept -> underlying_data_t*
+			[[nodiscard]] auto& operator[](const std::size_t a_index) noexcept
 				requires (!std::is_same_v<underlying_data_t, bool>)
 			{ 
 				if (_isCollection && a_index < _collection->size()) {
-					return std::addressof(_collection->at(a_index));
+					return _collection->at(a_index);
 				} else {
-					return std::addressof(_data);
+					return _data;
 				}
 			}
 			[[nodiscard]] auto& operator*() noexcept { return _data; }
@@ -104,7 +104,14 @@ namespace DKUtil::Config
 			[[nodiscard]] constexpr auto is_collection() const noexcept { return _isCollection; }
 
 			[[nodiscard]] constexpr const auto& get_data() const noexcept { return _data; }
-			[[nodiscard]] constexpr auto& get_collection() noexcept { return *_collection; }
+			[[nodiscard]] constexpr auto& get_collection() noexcept 
+			{
+				if (_isCollection) {
+					return *_collection;
+				} else {
+					ERROR(".get_collection is called on config value {} while it holds singular data!\n\nCall .is_collection before accessing collcetion!", _key);
+				}
+			}
 			[[nodiscard]] constexpr auto& get_type() const noexcept { return typeid(underlying_data_t); }
 			constexpr void set_data(const std::initializer_list<underlying_data_t>& a_list)
 			{
@@ -476,32 +483,48 @@ namespace DKUtil::Config
 							switch (_manager.Visit(dataKey)) {
 							case Data::DataType::kInteger:
 							{
+								std::int64_t input;
 								if (raw->second.is_array()) {
-									std::vector<std::int64_t> array;
-									for (auto& node : *raw->second.as_array()) {
-										array.push_back(node.as_integer()->get());
-									}
+									if (raw->second.as_array()->size()) {
+										std::vector<std::int64_t> array;
+										for (auto& node : *raw->second.as_array()) {
+											array.push_back(node.as_integer()->get());
+										}
 
-									auto data = dynamic_cast<Data::AData<std::int64_t>*>(dataPtr);
-									data->set_data(array);
+										auto data = dynamic_cast<Data::AData<std::int64_t>*>(dataPtr);
+										data->set_data(array);
+
+										break;
+									} else {
+										input = raw->second.as_array()->front().as_integer()->get();
+									}
 								} else {
-									_manager.SetByKey(dataKey, raw->second.as_integer()->get());
+									input = raw->second.as_integer()->get();
 								}
+								_manager.SetByKey(dataKey, input);
 								break;
 							}
 							case Data::DataType::kDouble:
 							{
+								double input;
 								if (raw->second.is_array()) {
-									std::vector<double> array;
-									for (auto& node : *raw->second.as_array()) {
-										array.push_back(node.as_floating_point()->get());
-									}
+									if (raw->second.as_array()->size()) {
+										std::vector<double> array;
+										for (auto& node : *raw->second.as_array()) {
+											array.push_back(node.as_floating_point()->get());
+										}
 
-									auto data = dynamic_cast<Data::AData<double>*>(dataPtr);
-									data->set_data(array);
+										auto data = dynamic_cast<Data::AData<double>*>(dataPtr);
+										data->set_data(array);
+
+										break;
+									} else {
+										input = raw->second.as_array()->front().as_floating_point()->get();
+									}
 								} else {
-									_manager.SetByKey(dataKey, raw->second.as_floating_point()->get());
+									input = raw->second.as_floating_point()->get();
 								}
+								_manager.SetByKey(dataKey, input);
 								break;
 							}
 							case Data::DataType::kBoolean:
@@ -511,17 +534,25 @@ namespace DKUtil::Config
 							}
 							case Data::DataType::kString:
 							{
+								std::basic_string<char> input;
 								if (raw->second.is_array()) {
-									std::vector<std::basic_string<char>> array;
-									for (auto& node : *raw->second.as_array()) {
-										array.push_back(node.as_string()->get());
-									}
+									if (raw->second.as_array()->size()) {
+										std::vector<std::basic_string<char>> array;
+										for (auto& node : *raw->second.as_array()) {
+											array.push_back(node.as_string()->get());
+										}
 
-									auto data = dynamic_cast<Data::AData<std::basic_string<char>>*>(dataPtr);
-									data->set_data(array);
+										auto data = dynamic_cast<Data::AData<std::basic_string<char>>*>(dataPtr);
+										data->set_data(array);
+
+										break;
+									} else {
+										input = raw->second.as_array()->front().as_string()->get();
+									}
 								} else {
-									_manager.SetByKey(dataKey, raw->second.as_string()->get());
+									input = raw->second.as_string()->get();
 								}
+								_manager.SetByKey(dataKey, input);
 								break;
 							}
 							case Data::DataType::kError:

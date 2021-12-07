@@ -119,17 +119,6 @@
 #define VAR_(NAME)				hookLocal ## NAME
 #define CAVE_VAR_(NAME)			VAR_(Cave ## NAME)
 
-// codegen
-#define CODEGEN_INIT(SIZE)		Xbyak::CodeGenerator				\
-	VAR_(CodeGen)((SIZE), reinterpret_cast<void*>(TRAM_PTR))
-
-#define CODEGEN_READY()												\
-	ALLOCATE(VAR_(CodeGen).getSize());								\
-	VAR_(CodeGen).ready();											\
-	MOVE(TRAM_PTR, VAR_(CodeGen).getSize());						\
-	DEBUG("Xbyak: Codegen ready"sv);								\
-	DISABLE_FLAG(Branch)
-
 // cave
 #define CAVE_INIT(SRC, SIZE)												\
 	CAVE_PTR						= SRC;									\
@@ -186,10 +175,14 @@ namespace DKUtil::Hook
 
 	namespace Impl
 	{
-		constexpr std::uint8_t NOP = 0x90;
-		constexpr std::uint8_t JMP = 0xE9;
-		constexpr std::uint8_t PUSH_RAX = 0x50;
-		constexpr std::uint8_t POP_RAX = 0x58;
+		using OpCode = std::uint8_t;
+
+		constexpr OpCode NOP = 0x90;
+		constexpr OpCode JMP = 0xE9;
+		constexpr OpCode PUSH_RAX = 0x50;
+		constexpr OpCode POP_RAX = 0x58;
+		constexpr OpCode MOVABS_RAX[2] = { 0x48, 0xB8 };
+		constexpr OpCode CALL_RAX[2] = { 0xFF, 0xD0 };
 
 
 		struct BranchInstruction
@@ -327,9 +320,7 @@ namespace DKUtil::Hook
 					if (FLAG(Pop) && CAVE_VAR_(Remain) >= sizeof(POP_RAX)) { CAVE_POP(); }
 				}
 			}
-
-			// both patches exist, size insufficient, sequential write
-			DEBUG("Cave: Sequence mode"sv);
+			
 			// push rax onto stack
 			if (FLAG(Push) && CAVE_VAR_(Remain) >= sizeof(PUSH_RAX)) { CAVE_PUSH(); }
 
@@ -358,10 +349,10 @@ namespace DKUtil::Hook
 
 				if (FLAG(Branch))
 				{
-					CODEGEN_INIT(12);
-					VAR_(CodeGen).mov(VAR_(CodeGen).rax, reinterpret_cast<std::uintptr_t>(a_hookFunc));
-					VAR_(CodeGen).call(VAR_(CodeGen).rax);
-					CODEGEN_READY();
+					ALLOC_WRITE_BUF_MOVE(TRAM_PTR, Impl::MOVABS_RAX, sizeof(Impl::MOVABS_RAX));
+					ALLOC_WRITE_MOVE(TRAM_PTR, reinterpret_cast<std::uintptr_t>(a_hookFunc));
+					ALLOC_WRITE_BUF_MOVE(TRAM_PTR, Impl::CALL_RAX, sizeof(Impl::CALL_RAX));
+					DEBUG("BranchTarget: {}.{:x}", Version::PROJECT, reinterpret_cast<std::uintptr_t>(a_hookFunc));
 				}
 
 				if (FLAG(PostPatch))
@@ -401,7 +392,7 @@ namespace DKUtil::Hook
 
 
 	// ID + Offset
-	template <std::uint64_t BASE_ID, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
+	template <std::uint64_t BASE_ID, std::ptrdiff_t OFFSET_START, std::ptrdiff_t OFFSET_END>
 	constexpr void BranchToID(const void* a_hookFunc, const void* a_prePatch = nullptr,
 							  const std::size_t a_prePatchSize = 0, const void* a_postPatch = nullptr,
 							  const std::size_t a_postPatchSize = 0, const bool a_preserve = false)
@@ -423,7 +414,7 @@ namespace DKUtil::Hook
 	}
 
 
-	template <std::uint64_t BASE_ID, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
+	template <std::uint64_t BASE_ID, std::ptrdiff_t OFFSET_START, std::ptrdiff_t OFFSET_END>
 	constexpr void BranchToID(const void* a_hookFunc, const Impl::BranchInstruction a_instruction)
 	{
 		return BranchToID<BASE_ID, OFFSET_START, OFFSET_END>(a_hookFunc, a_instruction.PrePatch,
@@ -432,7 +423,7 @@ namespace DKUtil::Hook
 	}
 
 
-	template <std::uint64_t ADDR, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
+	template <std::uint64_t ADDR, std::ptrdiff_t OFFSET_START, std::ptrdiff_t OFFSET_END>
 	constexpr void BranchToAddress(const void* a_hookFunc, const void* a_prePatch = nullptr, 
 									const std::size_t a_prePatchSize = 0, const void* a_postPatch = nullptr,
 									const std::size_t a_postPatchSize = 0, const bool a_preserve = false)
@@ -442,7 +433,7 @@ namespace DKUtil::Hook
 	}
 
 
-	template <std::uint64_t ADDR, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
+	template <std::uint64_t ADDR, std::ptrdiff_t OFFSET_START, std::ptrdiff_t OFFSET_END>
 	constexpr void BranchToAddress(const void* a_hookFunc, const Impl::BranchInstruction a_instruction)
 	{
 		return Impl::Branch_Internal<OFFSET_END - OFFSET_START>(ADDR, a_hookFunc, a_instruction.PrePatch,
