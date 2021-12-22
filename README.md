@@ -1,8 +1,9 @@
-# DKUtil
-Header library for my personal SKSE plugin development.
+<h1 align="center">DKUtil</h1>
+Some utilitarian headers to help with SKSE64 plugin development
+
 ---
----
-## Consumption
+<h2 align="center">Consumption</h2>
+
 Clone a copy of `DKUtil` onto your local environment, in your target project's `CMakeLists.txt`, add
 ```CMake
 add_subdirectory("Path/To/Local/Copy/Of/DKUtil" DKUtil)
@@ -13,19 +14,22 @@ target_link_libraries(
 		DKUtil::DKUtil
 )
 ```
+
 ---
-## Implementations:
+<h2 align="center">Implementations</h2>
+
 + [Config](#Config)
-+ ENB (WIP)
 + [Hook](#Hook)
 + [Logger (spdlog backend)](#Logger)
 + [Utility](#Utility)
----
 
-## Config
+---
+# Config
+
 An all purpose configuration library for SKSE plugin projects, supports `ini`, `json` and `toml` file types out of box. No more handling these settings on our own, use simplied API from this library!
 
-### Data
+## Data
+
 `DKUtil::Config` supports 3 primitive data types and string variants. All types except `Boolean` are collection enabled, to mimic the array-like behaviors if they were one.  
 
 The data can be accessed by prepending the asterisk symbol `*` as if it were a pointer type, or the getter method `get_data()`.  
@@ -42,7 +46,8 @@ Boolean myBoolData{ "MyBoolKey" }; // bool
 String myStringData{ "MyStringKey" }; // std::basic_string<char>
 ```
 
-### Proxy
+## Proxy
+
 The configuration system in DKUtil works as "proxy per file", each `Proxy` is responsible for one specific configuration file and the subsequent `Load` and `Write` calls.
 
 `Proxy` can be compile time and/or runtime determined for the given file. If the file name and type is already known at the compile time, use `COMPILE_PROXY` macro to get the corresponding parser for such file type. If the file name is runtime generated, use `RUNTIME_PROXY` macro for file type/name that is unknown at the compile time.
@@ -60,7 +65,8 @@ std::string runtimeFile = FileHead + FileTrail + FileType;
 auto RuntimeConfig = RUNTIME_PROXY(runtimeFile); // will be evaluated to toml proxy at runtime
 ```
 
-### Usage
+## Usage
+
 The data can be declared with/without `static` keyword and initialized with the proper key name and/or optional section name, you may `Bind` the data to a `Proxy` with default value set for that data.  
 
 Given file `MyConfigFile.toml`:
@@ -122,95 +128,87 @@ void Load() noexcept
 }
 ```
 
-***
-## Hook
-Smart way to write hooks and memory patches with ease. Determines the best hooking/patching strategy on compile time and save you those memory bytes.
+---
+# Hook
 
-### API
-```c++
-template <std::uint64_t BASE_ID, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
-void BranchToID(
-    std::uintptr_t a_hookFunc,          // destination function to hook
-    const void* a_prePatch = nullptr,   // patch before calling destination function
-    const std::uint64_t a_preSize = 0,  // size of pre patch
-    const void* a_postPatch = nullptr,  // patch after returning from destination function
-    const std::uint64_t a_postSize = 0, // size of post patch
-    const bool a_preserveRax = false    // toggle preserving rax register
-); 
+Some APIs to write hooks and memory patches with ease.
 
-// packed parameter
-struct BranchInstruction
-{
-    const void* PrePatch;
-    const std::size_t PrePatchSize;
-    const void* PostPatch;
-    const std::size_t PostPatchSize;
-    const bool PreserveRax = false;
+## API
+
+```c++	
+// Empty a code cave in the body of target function and branch to trampoline
+// Accepts a prolog patch before invoking payload and a epilog patch after returning from payload
+template <
+    const std::ptrdiff_t OffsetLow, 
+    const std::ptrdiff_t OffsetHigh, 
+    const CaveReturnPoint ReturnPoint = CaveReturnPoint::kSkipOP
+    > 
+inline auto AddCaveHook(
+    const std::uintptr_t a_src, // target function address
+    const FuncInfo a_func, // helper struct describing function info
+    const Patch* a_prolog = nullptr,
+    const Patch* a_epilog = nullptr
+) noexcept // return CaveHookHandle
+
+// Memory patch
+Patch {
+    const void* Data;
+    const std::size_t Size;
+}
+```
+## Example
+
+```C++
+// payload function
+float __cdecl Hook_MyAwesomeFunc(int a_awesomeInt) {
+    // awesome stuff
+    return static_cast<float>(a_awesomeInt);
+}
+
+constexpr std::uintptr_t FuncAddr = 0x7ff712345678; // target function address
+constexpr std::uintptr_t OffsetLow = 0x120; // offset start from target function address
+constexpr std::uintptr_t OffsetHigh = 0x130; // offset end from target function address
+// OffsetHigh must be greater than OffsetLow by 0x5 bytes
+
+constexpr DKUtil::Hook::Patch Epilog = {
+    "\x0F\x10\xD8", // movups xmm3, xmm0
+    0x3 // size of patch
 };
 
-template <std::uint64_t BASE_ID, std::uintptr_t OFFSET_START, std::uintptr_t OFFSET_END>
-void BranchToID(
-    const std::uintptr_t a_hookFunc,    // destination function to hook
-    BranchInstruction a_instruction     // packed parameter to reduce parameter list length
-);
-
-```
-### Function detour example
-```C++
-// destination function, no return, no parameter
-void Hook_MyAwesomeFunc() {
-    // awesome stuff
-}
-
-constexpr std::uint64_t FUNC_ID = 12345;        // id of source address in bin file
-constexpr std::uintptr_t OFFSET_START = 0x120;  // offset start from the FUNC_ID base address
-constexpr std::uintptr_t OFFSET_END = 0x130;    // offset end from FUNC_ID base address
-
-void InstallHooks() 
+void Install() 
 {
-    DKUtil::Hook::BranchToID<FUNC_ID, OFFSET_START, OFFSET_END>(
-        std::addressof(Hook_MyAwesomeFunc)
-    );
+    using namespace DKUtil::Alias;
+    HookHandle _Hook_MAF; // hook handle to Hook_MyAwesomeFunc()
+
+
+    static std::once_flag HookInit;
+        std::call_once(HookInit, [&]()
+            {
+                _Hook_MAF = DKUtil::Hook::AddCaveHook<OffsetLow, OffsetHigh>(FuncAddr, FUNC_INFO(Hook_MyAwesomeFunc), nullptr, &Epilog);
+            }
+        );
+
+        _Hook_MAF->Enable();
+
+        INFO("Hooks installed"sv);
 }
 ```
-In this example we simply wrote a detour from address that corresponds to id `12345` with offset `0x120`, to our own `Hook_MyAwesomeFunc` function, and return to address that corresponds to id `12345` with offset `0x130`.
+In this example we simply wrote a detour from address `0x7ff712345678` with offset `0x120`, to our own `Hook_MyAwesomeFunc` function, and return to address `0x7ff712345678` with offset `0x130`. This detour uses `rcx` as first parameter, and returns the float through `xmm0`, so we also patched the function epilog to move the return value to our desired register `xmm3`.
 
-
-### Memory patching example
-```C++
-// destination function, return int, 1 int parameter
-int Hook_MyAwesomeFunc(int a_paramenter){
-    // awesome stuff
-    return a_paramenter + a_paramenter;
-}
-
-constexpr std::uint64_t FUNC_ID = 12345;
-constexpr std::uintptr_t OFFSET_START = 0x120;
-constexpr std::uintptr_t OFFSET_END = 0x130;
-
-void InstallHooks() 
-{
-    DKUtil::Hook::BranchToFunction<FUNC_ID, OFFSET_START, OFFSET_END>(
-        std::addressof(Hook_MyAwesomeFunc),
-        "\x48\x8B\x0D\x30\x00\x00\x00", // mov rcx, qword ptr [ rip + 0x30 ]
-        7,                              // size of pre patch
-        "\x48\x89\xC1",                 // mov rcx, rax
-        3                               // size of post patch
-    );
-}
-```
-In this example not only we wrote a detour from address that corresponds to id `12345` with offset `0x120`, to our own `Hook_MyAwesomeFunc` function, but also added pre patch code before detouring and post patch code upon returning to address that corresponds to id `12345` with offset `0x130`.
-
-Use packed parameter to reduce the length of parameter list.
-***
+---
 ## Logger
+
 Some SKSE style macro loggers with `spdlog` backend
 ```C++
 INFO("{} {} {} {}", a, b, c, d);
 DEBUG("Important debug info that shows on debug build"sv);
 ERROR("This will abort the process!"sv);
+Dump(container, fmt);
 ```
 
-***
+---
 ## Utility
-Currently just FNV-1 and FNV-1A compile time string hashing implementation.
+
++ FNV-1A compile time string hashing with both 32bit/64bit implementation.
++ `lvalue_cast`
++ Singleton data model abstract class to save boiler plater code.

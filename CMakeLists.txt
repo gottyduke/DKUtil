@@ -6,11 +6,12 @@ if(TARGET DKUtil)
 endif()
 
 # out-of-source builds only
-if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
+if(${PROJECT_SOURCE_DIR} STREQUAL ${PROJECT_BINARY_DIR})
 	message(FATAL_ERROR "In-source builds are not allowed.")
 endif()
 
-if(NOT DKUTIL_DEBUG_BUILD)
+if(NOT ${DKUTIL_DEBUG_BUILD})
+
 # info
 project(
 	DKUtil
@@ -65,8 +66,7 @@ install(
 )
 
 else()
-# ide integration for debugging
-set(DKUTIL_DEBUG_BUILD OFF)
+
 # info
 project(
 	DKUtilDebugger
@@ -75,8 +75,11 @@ project(
 )
 
 # called via add_subdirectory()
-if(NOT LINKAGE_OVERRIDE)
 set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+if(${MTD})
+set(VCPKG_TARGET_TRIPLET "x64-windows-static-md" CACHE STRING "")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL" CACHE STRING "")
+else()
 set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "")
 endif()
@@ -100,7 +103,10 @@ set(Boost_USE_STATIC_LIBS ON)
 
 # dependencies
 add_subdirectory($ENV{CommonLibSSEPath} CommonLibSSE)
+find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
+find_package(tomlplusplus CONFIG REQUIRED)
+find_package(xbyak CONFIG REQUIRED)
 
 # source files
 execute_process(COMMAND powershell -ExecutionPolicy Bypass -File "${CMAKE_CURRENT_SOURCE_DIR}/!Update.ps1" "SOURCEGEN" "${PROJECT_VERSION}" "${CMAKE_CURRENT_BINARY_DIR}")
@@ -142,7 +148,10 @@ target_link_libraries(
 	${PROJECT_NAME}
 	PRIVATE
 		CommonLibSSE::CommonLibSSE
+		nlohmann_json::nlohmann_json
 		spdlog::spdlog
+		tomlplusplus::tomlplusplus
+		xbyak::xbyak
 )
 
 # compiler
@@ -229,5 +238,7 @@ set_target_properties(
 )
 endif()
 
+set(DKUTIL_DEBUG_BUILD OFF)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR} DKUtil)
+
 endif()

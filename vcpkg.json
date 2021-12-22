@@ -1,16 +1,18 @@
 {
     "name":  "dkutil",
     "version-string":  "1.9.2",
-    "description":  "A header-only library to help with SKSE plugin development.",
+    "description":  "An utilitarian library to help with SKSE plugin development.",
     "license":  "MIT",
     "dependencies":  [
-                         "boost-stl-interfaces",
-                         "rsm-binary-io",
+                         "nlohmann-json",
+                         "simpleini",
                          "spdlog",
+                         "tomlplusplus",
                          "xbyak"
                      ],
-    "script-version":  "11203",
-    "build-config":  "MD",
-    "build-target":  "AE",
-    "install-name":  "DKUtil"
+    "features":  {
+                     "mo2-install":  {
+                                         "description":  "DKUtilDebugger"
+                                     }
+                 }
 }

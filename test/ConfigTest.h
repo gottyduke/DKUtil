@@ -24,7 +24,7 @@ namespace Test::Config
 		Main.Load();
 
 		DEBUG("{} {} {} {}", *iA, *sA, *bA, *dA);
-		DEBUG("{} {} {}", *sA[0], *sA[1], *sA[2]);
+		DEBUG("{} {} {}", sA[0], sA[1], sA[2]);
 
 		std::string someRandomeName = DKUtil::Config::GetPath("AnotherBiteTheConfig.ini");		
 		static auto runtime = RUNTIME_PROXY(someRandomeName);

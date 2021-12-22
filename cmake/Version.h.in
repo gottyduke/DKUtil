@@ -1,6 +1,5 @@
 #pragma once
 
-#define ANNIVERSARY_EDITION @ANNIVERSARY_EDITION@
 
 namespace Version
 {
