@@ -1,5 +1,4 @@
-#include "ConfigTest.h"
-#include "HookTest.h"
+#include "GUITest.h"
 
 
 #if ANNIVERSARY_EDITION
@@ -62,8 +61,8 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 
 	SKSE::Init(a_skse);
 
-	Test::Config::Load();
-	Test::Hook::Install();
-	
+	Test::GUI::Install();
+	Test::GUI::Start();
+
 	return true;
 }

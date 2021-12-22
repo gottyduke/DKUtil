@@ -36,11 +36,11 @@
 using namespace std::literals;
 
 
-#define ERROR(...)															\
-	const auto errormsg = "ERROR\n"s + fmt::format(__VA_ARGS__);			\
-	spdlog::default_logger_raw()->log(spdlog::source_loc{__FILE__, __LINE__,\
-		SPDLOG_FUNCTION}, spdlog::level::critical, __VA_ARGS__);			\
-	MessageBoxA(nullptr, errormsg.c_str(), Version::PROJECT.data(), MB_OK);	\
+#define ERROR(...)																\
+	const auto errormsg = "ERROR\n"s + fmt::format(__VA_ARGS__);				\
+	spdlog::default_logger_raw()->log(spdlog::source_loc{__FILE__, __LINE__,	\
+		SPDLOG_FUNCTION}, spdlog::level::critical, __VA_ARGS__);				\
+	MessageBoxA(nullptr, errormsg.c_str(), Version::PROJECT.data(), MB_OK);		\
 	ExitProcess(114514);
 
 #define DUMP(CONTAINTER, FMT) DKUtil::Logger::Dump(CONTAINER, FMT)
