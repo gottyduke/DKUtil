@@ -6,26 +6,49 @@
 #include <ShlObj.h>
 #include <WinUser.h>
 
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
 
+#ifndef SPDLOG_H // in case other libraries already included <spdlog>
 
-using namespace std::literals;
+#ifndef NDEBUG
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#else
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_INFO
+#endif
 
+#define INFO(...)	SPDLOG_INFO(__VA_ARGS__)
+#define DEBUG(...)	SPDLOG_DEBUG(__VA_ARGS__)
+
+#else
 
 #define INFO(...)	SPDLOG_INFO(__VA_ARGS__)
 #ifndef NDEBUG
 #define DEBUG(...)	SPDLOG_INFO(__VA_ARGS__)
 #else
-#define DEBUG(...)
+#define DEBUG(...)	void(0)
 #endif
-#define ERROR(...)									\
-	const auto errormsg = std::string("ERROR\n") +	\
-	fmt::format(__VA_ARGS__);						\
-	SPDLOG_CRITICAL(errormsg);						\
-	MessageBoxA(nullptr, errormsg.c_str(),			\
-		Version::PROJECT.data(), MB_OK);			\
+
+#endif
+
+
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
+
+using namespace std::literals;
+
+
+#define ERROR(...)															\
+	const auto errormsg = "ERROR\n"s + fmt::format(__VA_ARGS__);			\
+	spdlog::default_logger_raw()->log(spdlog::source_loc{__FILE__, __LINE__,\
+		SPDLOG_FUNCTION}, spdlog::level::critical, __VA_ARGS__);			\
+	MessageBoxA(nullptr, errormsg.c_str(), Version::PROJECT.data(), MB_OK);	\
 	ExitProcess(114514);
+
+#define DUMP(CONTAINTER, FMT) DKUtil::Logger::Dump(CONTAINER, FMT)
+
+
+#ifndef LOG_PATH
+#define LOG_PATH "My Games/Skyrim Special Edition/SKSE"sv
+#endif
 
 
 namespace DKUtil::Logger
@@ -39,7 +62,8 @@ namespace DKUtil::Logger
 		if (!knownPath || result != S_OK) { return std::nullopt; }
 
 		std::filesystem::path path = knownPath.get();
-		path /= "My Games/Skyrim Special Edition/SKSE"sv;
+		path /= LOG_PATH;
+
 		return path;
 	}
 
@@ -68,7 +92,14 @@ namespace DKUtil::Logger
 
 		set_default_logger(std::move(log));
 
-		DEBUG("Debug mode"sv);
+		DEBUG("Debug Mode {}"sv, ANNIVERSARY_EDITION ? "Anniversary Edition"sv : "Special Edition"sv);
+	}
+
+
+	// TODO
+	inline void Dump()
+	{
+
 	}
 
 
@@ -80,8 +111,8 @@ namespace DKUtil::Logger
 
 		struct SinkInfo
 		{
-			const std::string_view Name;
-			const std::string_view Version;
+			const std::string Name;
+			const std::string Version;
 		};
 
 

@@ -2,8 +2,13 @@
 
 
 /*
+ * 1.0.1
+ * Fixed toml empty array crash;
+ * Removed explicit identifier on copy constructor;
+ * 
+ * 
  * 1.0.0
- * Proxy, Bind and Load APIs for ini, json and toml type config files.
+ * Proxy, Bind and Load APIs for ini, json and toml type config files;
  * 
  */
 
@@ -19,10 +24,10 @@
 #include "Logger.hpp"
 #include "Utility.hpp"
 
-#include "external/SimpleIni.h"
-#include "external/json.hpp"
+#include "nlohmann/json.hpp"
+#include "SimpleIni.h"
 #define TOML_EXCEPTIONS 0
-#include "external/toml.h"
+#include "toml++/toml.h"
 
 
 #pragma warning( push )
@@ -75,7 +80,7 @@ namespace DKUtil::Config
 			using IData::IData;
 
 			constexpr AData() noexcept = delete;
-			constexpr explicit AData(const std::string& a_key, const std::string& a_section = "") :
+			constexpr AData(const std::string& a_key, const std::string& a_section = "") :
 				_key(std::move(a_key)), _section(std::move(a_section))
 			{}
 
@@ -94,9 +99,9 @@ namespace DKUtil::Config
 				}
 			}
 			[[nodiscard]] auto& operator*() noexcept { return _data; }
-			[[nodiscard]] auto	operator<=>(const std::three_way_comparable<underlying_data_t> auto a_rhs) const noexcept { return _data <=> a_rhs; }
+			[[nodiscard]] auto	operator<=>(const std::three_way_comparable<underlying_data_t> auto& a_rhs) const noexcept { return _data <=> a_rhs; }
 			[[nodiscard]] auto	operator<=>(const AData<underlying_data_t>& a_rhs) const noexcept { return _data <=> a_rhs._data; }
-			[[nodiscard]] auto	operator==(const  AData<underlying_data_t>& a_rhs) const noexcept { return _data == a_rhs._data; }
+			[[nodiscard]] auto	operator==(const AData<underlying_data_t>& a_rhs) const noexcept { return _data == a_rhs._data; }
 			[[nodiscard]] auto	operator!=(const AData<underlying_data_t>& a_rhs) const noexcept { return _data != a_rhs._data; }
 
 			[[nodiscard]] constexpr auto get_key() const noexcept { return _key.c_str(); }
@@ -109,10 +114,11 @@ namespace DKUtil::Config
 				if (_isCollection) {
 					return *_collection;
 				} else {
-					ERROR(".get_collection is called on config value {} while it holds singular data!\n\nCall .is_collection before accessing collcetion!", _key);
+					ERROR(".get_collection is called on config value {} while it holds singular data!\n\nCheck .is_collection before accessing collcetion!", _key);
 				}
 			}
 			[[nodiscard]] constexpr auto& get_type() const noexcept { return typeid(underlying_data_t); }
+
 			constexpr void set_data(const std::initializer_list<underlying_data_t>& a_list)
 			{
 				_collection.reset();
