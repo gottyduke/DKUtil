@@ -42,7 +42,7 @@ namespace DKUtil
 
 		template<typename rvalue_t> 
 		rvalue_t& lvalue_cast(rvalue_t&& a_rvalue) {
-			return a_rvalue;
+			return const_cast<rvalue_t&>(a_rvalue);
 		}
 
 

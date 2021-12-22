@@ -210,9 +210,9 @@ namespace DKUtil::Hook
 	}
 
 
-	inline void WriteData(std::uintptr_t&& a_dst, const void* a_data, const std::size_t a_size, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WriteData(const std::uintptr_t&& a_dst, const void* a_data, const std::size_t a_size, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
 	{
-		return WriteData(a_dst, a_data, a_size, a_forwardPtr, a_requestAlloc);
+		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_data, a_size, a_forwardPtr, a_requestAlloc);
 	}
 
 
@@ -222,9 +222,9 @@ namespace DKUtil::Hook
 	}
 
 
-	inline void WriteImm(std::uintptr_t&& a_dst, const dku_h_pod_t auto& a_data, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WriteImm(const std::uintptr_t&& a_dst, const dku_h_pod_t auto& a_data, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
 	{
-		return WriteData(a_dst, std::addressof(a_data), sizeof(a_data), a_forwardPtr, a_requestAlloc);
+		return WriteData(const_cast<std::uintptr_t&>(a_dst), std::addressof(a_data), sizeof(a_data), a_forwardPtr, a_requestAlloc);
 	}
 
 
@@ -234,9 +234,9 @@ namespace DKUtil::Hook
 	}
 
 
-	inline void WritePatch(std::uintptr_t&& a_dst, const Patch* a_patch, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WritePatch(const std::uintptr_t&& a_dst, const Patch* a_patch, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
 	{
-		return WriteData(a_dst, a_patch->Data, a_patch->Size, a_forwardPtr, a_requestAlloc);
+		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_patch->Data, a_patch->Size, a_forwardPtr, a_requestAlloc);
 	}
 
 
@@ -268,16 +268,15 @@ namespace DKUtil::Hook
 		virtual void Disable() noexcept = 0;
 
 
-		const std::uintptr_t Address;
-		const std::ptrdiff_t OffsetLow;
-		const std::ptrdiff_t OffsetHigh;
-		const std::uintptr_t TramEntry;
+		std::uintptr_t Address;
+		std::uintptr_t TramEntry;
 		std::uintptr_t TramPtr{ 0x0 };
+
 
 		virtual ~HookHandle() noexcept = default;
 	protected:
-		HookHandle(const std::uintptr_t a_address, const std::ptrdiff_t a_offsetLow, const std::ptrdiff_t a_offsetHigh, const std::uintptr_t a_tramEntry)
-			: Address(a_address), OffsetLow(a_offsetLow), OffsetHigh(a_offsetHigh), TramEntry(a_tramEntry), TramPtr(a_tramEntry)
+		HookHandle(const std::uintptr_t a_address, const std::uintptr_t a_tramEntry)
+			: Address(a_address), TramEntry(a_tramEntry), TramPtr(a_tramEntry)
 		{}
 	};
 
@@ -287,8 +286,8 @@ namespace DKUtil::Hook
 	class CaveHookHandle : public HookHandle
 	{
 	public:
-		CaveHookHandle(const std::uintptr_t a_address, const std::ptrdiff_t a_offsetLow, const std::ptrdiff_t a_offsetHigh, const std::uintptr_t a_tramEntry) noexcept
-			: HookHandle(a_address, a_offsetLow, a_offsetHigh, a_tramEntry), CaveEntry(Address + OffsetLow), CavePtr(Address + OffsetLow)
+		CaveHookHandle(const std::uintptr_t a_address, const std::uintptr_t a_tramEntry, const std::ptrdiff_t a_offsetLow, const std::ptrdiff_t a_offsetHigh) noexcept
+			: HookHandle(a_address, a_tramEntry), OffsetLow(a_offsetLow), OffsetHigh(a_offsetHigh), CaveEntry(Address + OffsetLow), CavePtr(Address + OffsetLow)
 		{
 			DEBUG("DKU_H: Cave capacity: {} bytes\nCave Entry @{:x} | Tram Entry @{:x}", OffsetHigh - OffsetLow, CaveEntry, TramEntry);
 		}
@@ -308,6 +307,8 @@ namespace DKUtil::Hook
 		}
 
 
+		const std::ptrdiff_t OffsetLow;
+		const std::ptrdiff_t OffsetHigh;
 		const std::uintptr_t CaveEntry;
 
 		std::uintptr_t CavePtr{ 0x0 };
@@ -316,8 +317,6 @@ namespace DKUtil::Hook
 		OpCode CaveBuf[CAVE_MAXIMUM_BYTES]{};
 	};
 
-
-	/* Cave */
 
 	enum class CaveReturnPoint : std::uint32_t
 	{
@@ -335,8 +334,8 @@ namespace DKUtil::Hook
 	};
 
 
-	// Empty a code cave in the body of target function and branch to trampoline
-	// Accepts a prolog patch before invoking payload and a epilog patch after returning from payload
+	// empty a code cave in the body of target function and branch to trampoline
+	// accepts a prolog patch before invoking payload and a epilog patch after returning from payload
 	template <const std::ptrdiff_t OffsetLow, const std::ptrdiff_t OffsetHigh, const CaveReturnPoint ReturnPoint = CaveReturnPoint::kSkipOP>
 		requires ((OffsetHigh - OffsetLow) >= CAVE_MINIMUM_BYTES)
 	inline auto AddCaveHook(
@@ -370,7 +369,7 @@ namespace DKUtil::Hook
 			DEBUG("DKU_H: Detour -> {}@{}.{:x}", a_func.Name.data(), Version::PROJECT.data(), a_func.Address);
 		}
 
-		auto handle = std::make_unique<CaveHookHandle>(a_src, OffsetLow, OffsetHigh, tramPtr);
+		auto handle = std::make_unique<CaveHookHandle>(a_src, tramPtr, OffsetLow, OffsetHigh);
 
 		std::memcpy(handle->OldBytes, reinterpret_cast<void*>(handle->CaveEntry), handle->OffsetHigh - handle->OffsetLow);
 		std::fill_n(handle->CaveBuf, handle->OffsetHigh - handle->OffsetLow, NOP);
@@ -427,7 +426,76 @@ namespace DKUtil::Hook
 #pragma endregion
 
 
-#pragma region VTblHook
+#pragma region VMTHook
+	
+	class VMTHookHandle : public HookHandle
+	{
+	public:
+
+		VMTHookHandle(const std::uintptr_t a_address, const std::uintptr_t a_tramEntry, const std::uint16_t a_index) noexcept
+			: HookHandle(a_address + sizeof(std::uintptr_t) * a_index, a_tramEntry), OldAddress(*reinterpret_cast<std::uintptr_t*>(Address))
+		{
+			DEBUG("DKU_H: VMT {:x} @{}\nOld Entry @{:x} | New Entry @{:x}", a_address, a_index, OldAddress, TramEntry);
+		}
+
+
+		void Enable() noexcept override
+		{
+			WriteImm(Address, TramEntry, NO_FORWARD, NO_ALLOC);
+			DEBUG("DKU_H: Enabled vmt hook"sv);
+		}
+
+
+		void Disable() noexcept override
+		{
+			WriteImm(Address, OldAddress, NO_FORWARD, NO_ALLOC);
+			DEBUG("DKU_H: Disabled vmt hook"sv);
+		}
+
+
+		const std::uintptr_t OldAddress;
+	};
+
+
+	// swaps a virtual method table address with target function address
+	// accepts a prolog patch before invoking payload
+	inline auto AddVMTHook(
+		void* a_vtbl,
+		const std::uint16_t a_index,
+		const FuncInfo a_func,
+		const Patch* a_prolog = nullptr
+	) noexcept
+	{
+		using namespace Impl;
+
+		if (!a_func.Address) {
+			ERROR("DKU_H: VMTHook must have a valid function pointer"sv);
+		}
+		DEBUG("DKU_H: Detour -> {}@{}.{:x}", a_func.Name.data(), Version::PROJECT.data(), a_func.Address);
+
+		if (a_prolog) {
+			auto tramPtr = TRAM_ALLOC(0);
+
+			CallRip asmBranch;
+
+			WriteImm(tramPtr, a_func.Address);
+			asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
+
+			auto handle = std::make_unique<VMTHookHandle>(*reinterpret_cast<std::uintptr_t*>(a_vtbl), tramPtr, a_index);
+
+			WritePatch(tramPtr, a_prolog);
+			asmBranch.Disp -= static_cast<Disp32>(a_prolog->Size);
+
+			asmBranch.Disp -= static_cast<Disp32>(sizeof(asmBranch));
+			WriteData(tramPtr, &asmBranch, sizeof(asmBranch));
+
+			return std::move(handle);
+		} else {
+			auto handle = std::make_unique<VMTHookHandle>(*reinterpret_cast<std::uintptr_t*>(a_vtbl), a_func.Address, a_index);
+			return std::move(handle);
+		}
+	}
+
 #pragma endregion
 
 

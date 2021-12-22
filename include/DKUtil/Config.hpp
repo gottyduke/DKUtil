@@ -262,7 +262,7 @@ namespace DKUtil::Config
 				_ini.SetUnicode();
 				auto result = a_data ? _ini.LoadData(a_data) : _ini.LoadFile(_filePath.c_str());
 				if (result < 0) {
-					ERROR("Parser#{}: Loading failed! -> {}\n{}", _id, _filePath.c_str(), err_getmsg());
+					ERROR("DKU_C: Parser#{}: Loading failed! -> {}\n{}", _id, _filePath.c_str(), err_getmsg());
 				}
 
 				CSimpleIniA::TNamesDepend sections;
@@ -326,14 +326,14 @@ namespace DKUtil::Config
 						}
 					}
 				}
-				DEBUG("Parser#{}: Parsing finished", _id);
+				DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
 			}
 
 			void WriteFile(const std::string_view a_filePath) noexcept override
 			{
 				auto result = a_filePath.empty() ? _ini.SaveFile(_filePath.c_str()) : _ini.SaveFile(a_filePath.data());
 				if (result < 0) {
-					ERROR("Parser#{}: Saving file failed!\n{}", _id, err_getmsg());
+					ERROR("DKU_C: Parser#{}: Saving file failed!\n{}", _id, err_getmsg());
 				}
 			}
 
@@ -341,7 +341,7 @@ namespace DKUtil::Config
 			{
 				auto result = _ini.Save(_out);
 				if (result < 0) {
-					ERROR("Parser#{}: Saving data failed!\n{}", _id, err_getmsg());
+					ERROR("DKU_C: Parser#{}: Saving data failed!\n{}", _id, err_getmsg());
 				}
 
 				a_data = _out.c_str();
@@ -356,7 +356,7 @@ namespace DKUtil::Config
 
 			inline void err_mismatch(const char* a_key, const char* a_type, const char* a_value) noexcept
 			{
-				ERROR("Parser#{}: Value type mismatch!\nFile: {}\nKey: {}, Expected: {}, Value: {}", _id, _filePath.c_str(), a_key, a_type, a_value);
+				ERROR("DKU_C: Parser#{}: Value type mismatch!\nFile: {}\nKey: {}, Expected: {}, Value: {}", _id, _filePath.c_str(), a_key, a_type, a_value);
 			}
 
 
@@ -379,7 +379,7 @@ namespace DKUtil::Config
 				} else {
 					std::basic_ifstream<char> file(_filePath);
 					if (!file.is_open()) {
-						ERROR("Parser#{}: Loading failed! -> {}", _id, _filePath.c_str());
+						ERROR("DKU_C: Parser#{}: Loading failed! -> {}", _id, _filePath.c_str());
 					}
 
 					file >> _json;
@@ -389,7 +389,7 @@ namespace DKUtil::Config
 				for (auto& data : _manager.get_managed()) {
 					auto raw = _json.find(data.first.data());
 					if (raw == _json.end()) {
-						ERROR("Parser#{}: Retrieving config failed!\nFile: {}\nKey: {}", _id, _filePath.c_str(), data.first);
+						ERROR("DKU_C: Parser#{}: Retrieving config failed!\nFile: {}\nKey: {}", _id, _filePath.c_str(), data.first);
 					}
 
 					switch (_manager.Visit(data.first)) {
@@ -430,7 +430,7 @@ namespace DKUtil::Config
 						continue;
 					}
 				}
-				DEBUG("Parser#{}: Parsing finished", _id);
+				DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
 			}
 
 			void WriteData(const char*& a_data) noexcept override
@@ -438,7 +438,7 @@ namespace DKUtil::Config
 				_out = _json.dump();
 
 				if (_out.empty()) {
-					ERROR("Parser#{}: Saving data failed!", _id);
+					ERROR("DKU_C: Parser#{}: Saving data failed!", _id);
 				}
 
 				a_data = _out.c_str();
@@ -449,7 +449,7 @@ namespace DKUtil::Config
 				auto filePath = a_filePath.empty() ? _filePath.c_str() : a_filePath.data();
 				std::basic_ofstream<char> file(filePath);
 				if (!file.is_open()) {
-					ERROR("Parser#{}: Saving file failed! -> {}", _id, filePath);
+					ERROR("DKU_C: Parser#{}: Saving file failed! -> {}", _id, filePath);
 				}
 
 				file << _json;
@@ -470,13 +470,13 @@ namespace DKUtil::Config
 			{
 				auto result = a_data ? toml::parse(a_data) : toml::parse_file(_filePath);
 				if (!result) {
-					ERROR("Parser#{}: Parsing failed!\nFile: {}\nDesc: {}", _id, *result.error().source().path.get(), result.error().description());
+					ERROR("DKU_C: Parser#{}: Parsing failed!\nFile: {}\nDesc: {}", _id, *result.error().source().path.get(), result.error().description());
 				}
 				
 				_toml = std::move(result).table();
 				for (auto& [section, table] : _toml) {
 					if (!table.is_table()) {
-						INFO("WARNING\nParser#{}: Sectionless configuration present and skipped\nPossible inappropriate formatting", _id);
+						INFO("DKU_C: WARNING\nParser#{}: Sectionless configuration present and skipped\nPossible inappropriate formatting", _id);
 						continue;
 					} else {
 						for (auto& [dataKey, dataPtr] : _manager.get_managed()) {
@@ -568,7 +568,7 @@ namespace DKUtil::Config
 						}
 					}
 				}
-				DEBUG("Parser#{}: Parsing finished", _id);
+				DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
 			}
 
 			void WriteData(const char*& a_data) noexcept override 
@@ -582,7 +582,7 @@ namespace DKUtil::Config
 				auto filePath = a_filePath.empty() ? _filePath.c_str() : a_filePath.data();
 				std::basic_ofstream<char> file(filePath);
 				if (!file.is_open()) {
-					ERROR("Parser#{}: Saving file failed! -> {}", _id, filePath);
+					ERROR("DKU_C: Parser#{}: Saving file failed! -> {}", _id, filePath);
 				}
 
 				file << _toml;
@@ -658,7 +658,7 @@ namespace DKUtil::Config
 				_id(Utility::FNV_1A_32(a_file.data())), _loaded(false), 
 				_file(a_file.data()), _type(file_type), _parser(std::make_unique<parser_t>(a_file.data(), _id, _manager))
 			{
-				DEBUG("Proxy#{}: Compile -> {}", _id, _file);
+				DEBUG("DKU_C: Proxy#{}: Compile -> {}", _id, _file);
 			}
 
 			// runtime defined
@@ -690,9 +690,9 @@ namespace DKUtil::Config
 					_type = FileType::kToml;
 					_parser = std::make_unique<Parser::Toml>(a_file.data(), _id, _manager);
 				} else {
-					ERROR("Proxy#{}: No suitable parser found for file -> {}", _id, a_file);
+					ERROR("DKU_C: Proxy#{}: No suitable parser found for file -> {}", _id, a_file);
 				}
-				DEBUG("Proxy#{}: Runtime -> {}", _id, _file);
+				DEBUG("DKU_C: Proxy#{}: Runtime -> {}", _id, _file);
 			}
 
 
@@ -712,7 +712,7 @@ namespace DKUtil::Config
 					return;
 				}
 
-				DEBUG("Proxy#{}: Loading -> {}", _id, _file);
+				DEBUG("DKU_C: Proxy#{}: Loading -> {}", _id, _file);
 
 				_parser->Parse(a_data);
 
