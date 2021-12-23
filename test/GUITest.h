@@ -8,44 +8,51 @@ namespace Test::GUI
 
 	static bool Show = false;
 
+
 	void SimpleWindow() noexcept
 	{
 		if (Show) {
+            // render
+            ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), 0);
 			ImGui::Begin("DKU_G Test Window");
 
-			ImGui::Text("This is a hello string from DKU_G");
+
 
 			ImGui::End();
 		}
 	}
 
 
-	HookHandle _Hook_P;
-
-
-	void Install()
-	{
-		DKUtil::GUI::AddCallback(FUNC_INFO(SimpleWindow));
-		DKUtil::GUI::InitD3D();
-
-		INFO("GUI installed!"sv);
-	}
-
-
 	void Start()
 	{
+        // load resource
+
+
 		Show = true;
 	}
 
 
 	void Stop()
 	{
+        // unload resource
+
+
 		Show = false;
 	}
 
 
+    void Install()
+    {
+        DKUtil::GUI::AddCallback(FUNC_INFO(SimpleWindow));
+        DKUtil::GUI::InitGUI();
+
+        INFO("GUI installed!"sv);
+    }
+
+
 	void Uninstall()
 	{
+        Stop();
 		DKUtil::GUI::StopAll();
 
 		INFO("GUI uninstalled!"sv);
