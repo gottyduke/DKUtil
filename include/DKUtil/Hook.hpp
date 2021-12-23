@@ -2,11 +2,14 @@
 
 
 /*
+ * 1.9.4;
+ * Added virtual method table hook;
+ * 
  * 1.9.3
  * Code partial redone; wtf are those macros;
  * Added stack buffer to help with stack unwindability;
  * Replaced old detour method ( rax call ) with ( call rip ) so DKUtil does not dirty register;
- * 
+ *
  * 1.0.0 ~ 1.9.2
  * CMake integration, inter-library integration;
  * Fixed a misrelocation where trampoline ptr may not be pointed to correct address within cave;
@@ -46,7 +49,7 @@
 #pragma warning ( disable : 4244 )
 
 
-// AdditionalInclude
+ // AdditionalInclude
 #include <cstdint>
 #include <xbyak/xbyak.h>
 
@@ -243,15 +246,15 @@ namespace DKUtil::Hook
 	inline std::uintptr_t RVA2Abs(std::uint64_t a_id)
 	{
 		VersionDb db;
-		if (!db.Load()) { 
-			ERROR("Failed to load version database!"sv); 
+		if (!db.Load()) {
+			ERROR("Failed to load version database!"sv);
 		}
 
 		const auto resolvedAddr = reinterpret_cast<std::uintptr_t>(db.FindAddressById(a_id));
 		db.Clear();
 
 		if (!resolvedAddr) {
-			ERROR("Failed to resolve address by id {:x}", a_id); 
+			ERROR("Failed to resolve address by id {:x}", a_id);
 		}
 		DEBUG("Address: Resolved {:x}", resolvedAddr);
 
@@ -289,7 +292,7 @@ namespace DKUtil::Hook
 		CaveHookHandle(const std::uintptr_t a_address, const std::uintptr_t a_tramEntry, const std::ptrdiff_t a_offsetLow, const std::ptrdiff_t a_offsetHigh) noexcept
 			: HookHandle(a_address, a_tramEntry), OffsetLow(a_offsetLow), OffsetHigh(a_offsetHigh), CaveEntry(Address + OffsetLow), CavePtr(Address + OffsetLow)
 		{
-			DEBUG("DKU_H: Cave capacity: {} bytes\nCave Entry @{:x} | Tram Entry @{:x}", OffsetHigh - OffsetLow, CaveEntry, TramEntry);
+			DEBUG("DKU_H: Cave capacity: {} bytes\nCave Entry @ {:x} | Tram Entry @ {:x}", OffsetHigh - OffsetLow, CaveEntry, TramEntry);
 		}
 
 
@@ -339,7 +342,7 @@ namespace DKUtil::Hook
 	template <const std::ptrdiff_t OffsetLow, const std::ptrdiff_t OffsetHigh, const CaveReturnPoint ReturnPoint = CaveReturnPoint::kSkipOP>
 		requires ((OffsetHigh - OffsetLow) >= CAVE_MINIMUM_BYTES)
 	inline auto AddCaveHook(
-		const std::uintptr_t a_src, 
+		const std::uintptr_t a_src,
 		const FuncInfo a_func = DKU_H_NO_FUNC,
 		const Patch* a_prolog = nullptr,
 		const Patch* a_epilog = nullptr
@@ -366,7 +369,7 @@ namespace DKUtil::Hook
 
 		if (a_func.Address) {
 			WriteImm(tramPtr, a_func.Address);
-			DEBUG("DKU_H: Detour -> {}@{}.{:x}", a_func.Name.data(), Version::PROJECT.data(), a_func.Address);
+			DEBUG("DKU_H: Detour -> {} @ {}.{:x}", a_func.Name.data(), Version::PROJECT.data(), a_func.Address);
 		}
 
 		auto handle = std::make_unique<CaveHookHandle>(a_src, tramPtr, OffsetLow, OffsetHigh);
@@ -381,7 +384,7 @@ namespace DKUtil::Hook
 			WritePatch(handle->TramPtr, a_prolog);
 			asmBranch.Disp -= static_cast<Disp32>(a_prolog->Size);
 		}
-		
+
 		if (a_func.Address) {
 			const auto stackBufSize = a_func.ArgsCount * sizeof(std::uint64_t);
 			if (!stackBufSize) {
@@ -427,7 +430,7 @@ namespace DKUtil::Hook
 
 
 #pragma region VMTHook
-	
+
 	class VMTHookHandle : public HookHandle
 	{
 	public:
@@ -435,7 +438,7 @@ namespace DKUtil::Hook
 		VMTHookHandle(const std::uintptr_t a_address, const std::uintptr_t a_tramEntry, const std::uint16_t a_index) noexcept
 			: HookHandle(a_address + sizeof(std::uintptr_t) * a_index, a_tramEntry), OldAddress(*reinterpret_cast<std::uintptr_t*>(Address))
 		{
-			DEBUG("DKU_H: VMT {:x} @{}\nOld Entry @{:x} | New Entry @{:x}", a_address, a_index, OldAddress, TramEntry);
+			DEBUG("DKU_H: VMT @ {:x} [{}]\nOld Entry @ {:x} | New Entry @ {:x}", a_address, a_index, OldAddress, TramEntry);
 		}
 
 
@@ -461,8 +464,8 @@ namespace DKUtil::Hook
 	// accepts a prolog patch before invoking payload
 	inline auto AddVMTHook(
 		void* a_vtbl,
-		const std::uint16_t a_index,
 		const FuncInfo a_func,
+		const std::uint16_t a_index = 0,
 		const Patch* a_prolog = nullptr
 	) noexcept
 	{
@@ -471,7 +474,7 @@ namespace DKUtil::Hook
 		if (!a_func.Address) {
 			ERROR("DKU_H: VMTHook must have a valid function pointer"sv);
 		}
-		DEBUG("DKU_H: Detour -> {}@{}.{:x}", a_func.Name.data(), Version::PROJECT.data(), a_func.Address);
+		DEBUG("DKU_H: Detour -> {} @ {}.{:x}", a_func.Name.data(), Version::PROJECT.data(), a_func.Address);
 
 		if (a_prolog) {
 			auto tramPtr = TRAM_ALLOC(0);

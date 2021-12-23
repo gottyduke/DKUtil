@@ -210,7 +210,7 @@ if ($Mode -eq 'COPY') {
                 [IO.File]::WriteAllText("$PSScriptRoot/CMakeLists.txt", $CMakeLists)
 
                 $vcpkg.'version-string' = $OutputVersion
-                $vcpkg = $vcpkg | ConvertTo-Json
+                $vcpkg = $vcpkg | ConvertTo-Json -Depth 9
                 [IO.File]::WriteAllText("$PSScriptRoot/vcpkg.json", $vcpkg)
                 
                 $Message.Text += "`n$Project has been changed from $($OriginalVersion) to $($OutputVersion)`n`nThis update will be in effect after next successful build!"
@@ -266,7 +266,7 @@ if ($Mode -eq 'SOURCEGEN') {
         [IO.File]::WriteAllText("$Path/version.rc", $VersionResource)
     }
 
-    $vcpkg = $vcpkg | ConvertTo-Json
+    $vcpkg = $vcpkg | ConvertTo-Json -Depth 9
     [IO.File]::WriteAllText("$PSScriptRoot/vcpkg.json", $vcpkg)
 }
 

@@ -12,8 +12,8 @@ namespace Test::GUI
 	void SimpleWindow() noexcept
 	{
 		if (Show) {
-            // render
-            ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), 0);
+			// render
+			ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), 0);
 			ImGui::Begin("DKU_G Test Window");
 
 
@@ -25,7 +25,7 @@ namespace Test::GUI
 
 	void Start()
 	{
-        // load resource
+		// load resource
 
 
 		Show = true;
@@ -34,26 +34,27 @@ namespace Test::GUI
 
 	void Stop()
 	{
-        // unload resource
+		// unload resource
 
 
 		Show = false;
 	}
 
 
-    void Install()
-    {
-        DKUtil::GUI::AddCallback(FUNC_INFO(SimpleWindow));
-        DKUtil::GUI::InitGUI();
+	void Install()
+	{
+		DKUtil::GUI::AddCallback(FUNC_INFO(SimpleWindow));
+		DKUtil::GUI::InitGUI();
 
-        INFO("GUI installed!"sv);
-    }
+		INFO("GUI installed!"sv);
+	}
 
 
 	void Uninstall()
 	{
-        Stop();
+		Stop();
 		DKUtil::GUI::StopAll();
+		DKUtil::GUI::RemoveCallback(FUNC_INFO(SimpleWindow));
 
 		INFO("GUI uninstalled!"sv);
 	}

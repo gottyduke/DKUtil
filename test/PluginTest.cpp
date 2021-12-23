@@ -1,4 +1,15 @@
 #include "GUITest.h"
+#include "ConfigTest.h"
+#include "HookTest.h"
+#include "LoggerTest.h"
+#include "UtilityTest.h"
+
+
+#define TEST_CONFIG		0
+#define TEST_GUI		1
+#define TEST_HOOK		0
+#define TEST_LOGGER		0
+#define TEST_UTILITY	0
 
 
 #if ANNIVERSARY_EDITION
@@ -61,8 +72,26 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 
 	SKSE::Init(a_skse);
 
-	Test::GUI::Install();
-	Test::GUI::Start();
+	if (TEST_CONFIG) {
+		Test::Config::Load();
+	}
+
+	if (TEST_GUI) {
+		Test::GUI::Install();
+		Test::GUI::Start();
+	}
+
+	if (TEST_HOOK) {
+
+	}
+
+	if (TEST_LOGGER) {
+
+	}
+
+	if (TEST_UTILITY) {
+		Test::Utility::StartTest();
+	}
 
 	return true;
 }

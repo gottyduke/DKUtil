@@ -8,7 +8,14 @@
                          "simpleini",
                          "spdlog",
                          "tomlplusplus",
-                         "xbyak"
+                         "xbyak",
+                         {
+                             "name":  "imgui",
+                             "features":  [
+                                              "dx11-binding",
+                                              "win32-binding"
+                                          ]
+                         }
                      ],
     "features":  {
                      "mo2-install":  {

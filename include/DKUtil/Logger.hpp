@@ -43,9 +43,6 @@ using namespace std::literals;
 	MessageBoxA(nullptr, errormsg.c_str(), Version::PROJECT.data(), MB_OK);		\
 	ExitProcess(114514);
 
-#define DUMP(CONTAINTER, FMT) DKUtil::Logger::Dump(CONTAINER, FMT)
-
-
 #ifndef LOG_PATH
 #define LOG_PATH "My Games/Skyrim Special Edition/SKSE"sv
 #endif
@@ -56,7 +53,7 @@ namespace DKUtil::Logger
 	// From CommonLibSSE https://github.com/Ryan-rsm-McKenzie/CommonLibSSE
 	inline std::optional<std::filesystem::path> log_directory()
 	{
-		wchar_t* buffer{nullptr};
+		wchar_t* buffer{ nullptr };
 		const auto result = SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, nullptr, std::addressof(buffer));
 		std::unique_ptr<wchar_t[], decltype(&CoTaskMemFree)> knownPath(buffer, CoTaskMemFree);
 		if (!knownPath || result != S_OK) { return std::nullopt; }
@@ -93,13 +90,6 @@ namespace DKUtil::Logger
 		set_default_logger(std::move(log));
 
 		DEBUG("Debug Mode {}"sv, ANNIVERSARY_EDITION ? "Anniversary Edition"sv : "Special Edition"sv);
-	}
-
-
-	// TODO
-	inline void Dump()
-	{
-
 	}
 
 

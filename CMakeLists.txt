@@ -15,9 +15,17 @@ if(NOT ${DKUTIL_DEBUG_BUILD})
 # info
 project(
 	DKUtil
-	VERSION 1.9.2
+	VERSION 1.9.3
 	LANGUAGES CXX
 )
+
+# dependencies
+find_package(imgui CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(tomlplusplus CONFIG REQUIRED)
+find_package(xbyak CONFIG REQUIRED)
 
 # header only library
 add_library(
@@ -103,6 +111,7 @@ set(Boost_USE_STATIC_LIBS ON)
 
 # dependencies
 add_subdirectory($ENV{CommonLibSSEPath} CommonLibSSE)
+find_package(imgui CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
@@ -148,6 +157,7 @@ target_link_libraries(
 	${PROJECT_NAME}
 	PRIVATE
 		CommonLibSSE::CommonLibSSE
+		imgui::imgui
 		nlohmann_json::nlohmann_json
 		spdlog::spdlog
 		tomlplusplus::tomlplusplus
