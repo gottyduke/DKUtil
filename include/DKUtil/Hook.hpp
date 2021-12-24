@@ -213,9 +213,9 @@ namespace DKUtil::Hook
 	}
 
 
-	inline void WriteData(const std::uintptr_t&& a_dst, const void* a_data, const std::size_t a_size, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WriteData(const std::uintptr_t&& a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = REQUEST_ALLOC) noexcept
 	{
-		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_data, a_size, a_forwardPtr, a_requestAlloc);
+		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_data, a_size, NO_FORWARD, a_requestAlloc);
 	}
 
 
@@ -225,9 +225,9 @@ namespace DKUtil::Hook
 	}
 
 
-	inline void WriteImm(const std::uintptr_t&& a_dst, const dku_h_pod_t auto& a_data, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WriteImm(const std::uintptr_t&& a_dst, const dku_h_pod_t auto& a_data, bool a_requestAlloc = REQUEST_ALLOC) noexcept
 	{
-		return WriteData(const_cast<std::uintptr_t&>(a_dst), std::addressof(a_data), sizeof(a_data), a_forwardPtr, a_requestAlloc);
+		return WriteData(const_cast<std::uintptr_t&>(a_dst), std::addressof(a_data), sizeof(a_data), NO_FORWARD, a_requestAlloc);
 	}
 
 
@@ -237,9 +237,9 @@ namespace DKUtil::Hook
 	}
 
 
-	inline void WritePatch(const std::uintptr_t&& a_dst, const Patch* a_patch, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WritePatch(const std::uintptr_t&& a_dst, const Patch* a_patch, bool a_requestAlloc = REQUEST_ALLOC) noexcept
 	{
-		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_patch->Data, a_patch->Size, a_forwardPtr, a_requestAlloc);
+		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_patch->Data, a_patch->Size, NO_FORWARD, a_requestAlloc);
 	}
 
 
@@ -271,8 +271,8 @@ namespace DKUtil::Hook
 		virtual void Disable() noexcept = 0;
 
 
-		std::uintptr_t Address;
-		std::uintptr_t TramEntry;
+		const std::uintptr_t Address;
+		const std::uintptr_t TramEntry;
 		std::uintptr_t TramPtr{ 0x0 };
 
 
@@ -444,14 +444,14 @@ namespace DKUtil::Hook
 
 		void Enable() noexcept override
 		{
-			WriteImm(Address, TramEntry, NO_FORWARD, NO_ALLOC);
+			WriteImm(std::uintptr_t(Address), TramEntry, NO_ALLOC);
 			DEBUG("DKU_H: Enabled vmt hook"sv);
 		}
 
 
 		void Disable() noexcept override
 		{
-			WriteImm(Address, OldAddress, NO_FORWARD, NO_ALLOC);
+			WriteImm(std::uintptr_t(Address), OldAddress, NO_ALLOC);
 			DEBUG("DKU_H: Disabled vmt hook"sv);
 		}
 

@@ -99,13 +99,15 @@ if ($Mode -eq 'COPY') {
 
     [System.Windows.Forms.Application]::EnableVisualStyles()
     $MsgBox = New-Object System.Windows.Forms.Form -Property @{
+        TopLevel = $true
+        TopMost = $true
         ClientSize = '350, 250'
         Text = $Project
         StartPosition = 'CenterScreen'
         FormBorderStyle = 'FixedDialog'
         MaximizeBox = $false
         MinimizeBox = $false
-        Font = New-Object System.Drawing.Font('Segoe UI', 12, [System.Drawing.FontStyle]::Regular)
+        Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Regular)
     }
     
     $Message = New-Object System.Windows.Forms.Label -Property @{
@@ -126,7 +128,10 @@ if ($Mode -eq 'COPY') {
             $Message.Text += "`nBinary file copied!"
 
             # configs
-            Get-ChildItem $PSScriptRoot -Recurse | Where-Object {($_.Extension -in '.toml', '.json', '.ini') -and ($_.Name -ne 'vcpkg.json')} | ForEach-Object {
+            Get-ChildItem $PSScriptRoot -Recurse | Where-Object {
+                ($_.Extension -in '.toml', '.json', '.ini') -and 
+                ($_.Name -ne 'vcpkg.json')
+            } | ForEach-Object {
                 Copy-Item $_.FullName "$Destination/SKSE/Plugins/$($_.Name)" -Force
                 $Message.Text += "`n$($_.Name) copied!"
             }
@@ -261,6 +266,7 @@ if ($Mode -eq 'SOURCEGEN') {
     }
     $vcpkg.PsObject.Properties.Remove('install-name')
 
+    # inversed version control
     if (Test-Path "$Path/version.rc" -PathType Leaf) {
         $VersionResource = [IO.File]::ReadAllText("$Path/version.rc") -replace "`"FileDescription`",\s`"$Folder`"",  "`"FileDescription`", `"$($vcpkg.'description')`""
         [IO.File]::WriteAllText("$Path/version.rc", $VersionResource)
@@ -281,3 +287,4 @@ if ($Mode -eq 'DISTRIBUTE') { # update script to every project
         Robocopy.exe "$PSScriptRoot" "$_" '!Update.ps1' /MT /NJS /NFL /NDL /NJH | Out-Null
     }
 }
+

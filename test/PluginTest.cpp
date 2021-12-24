@@ -13,7 +13,7 @@
 
 
 #if ANNIVERSARY_EDITION
-
+ 
 extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []()
 {
 	SKSE::PluginVersionData data{};
@@ -72,26 +72,32 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 
 	SKSE::Init(a_skse);
 
-	if (TEST_CONFIG) {
-		Test::Config::Load();
-	}
+#if TEST_CONFIG
 
-	if (TEST_GUI) {
-		Test::GUI::Install();
-		Test::GUI::Start();
-	}
+	Test::Config::Load();
 
-	if (TEST_HOOK) {
+#endif
 
-	}
+#if TEST_GUI
 
-	if (TEST_LOGGER) {
+	Test::GUI::Install();
+	Test::GUI::Start();
 
-	}
+#endif
 
-	if (TEST_UTILITY) {
-		Test::Utility::StartTest();
-	}
+#if TEST_HOOK
+
+#endif
+
+#if TEST_LOGGER
+
+#endif
+
+#if TEST_UTILITY
+
+	Test::Utility::StartTest();
+
+#endif
 
 	return true;
 }

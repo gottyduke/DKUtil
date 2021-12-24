@@ -65,5 +65,14 @@ namespace DKUtil
 			Singleton() = default;
 			virtual ~Singleton() = default;
 		};
+
+
+		std::wstring String2WString(const std::string& a_str)
+		{
+			int resultSize = MultiByteToWideChar(CP_UTF8, 0, &a_str[0], static_cast<int>(a_str.size()), nullptr, 0);
+			std::wstring wStr(resultSize, 0);
+			MultiByteToWideChar(CP_UTF8, 0, &a_str[0], static_cast<int>(a_str.size()), &wStr[0], resultSize);
+			return std::move(wStr);
+		}
 	}
 }

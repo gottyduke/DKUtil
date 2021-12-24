@@ -43,9 +43,8 @@ namespace Test::GUI
 
 	void Install()
 	{
+		DKUtil::GUI::InitD3D();
 		DKUtil::GUI::AddCallback(FUNC_INFO(SimpleWindow));
-		DKUtil::GUI::InitGUI();
-
 		INFO("GUI installed!"sv);
 	}
 
