@@ -4,12 +4,17 @@
 #include "LoggerTest.h"
 #include "UtilityTest.h"
 
+#include <atomic>
+#include <future>
+#include <chrono>
+#include <thread>
 
-#define TEST_CONFIG		0
-#define TEST_GUI		1
-#define TEST_HOOK		0
-#define TEST_LOGGER		0
-#define TEST_UTILITY	0
+
+//#define TEST_CONFIG
+#define TEST_GUI
+//#define TEST_HOOK
+//#define TEST_LOGGER
+//#define TEST_UTILITY
 
 
 #if ANNIVERSARY_EDITION
@@ -48,11 +53,39 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a
 		ERROR("Unable to load this plugin, incompatible runtime version!\nExpected: Newer than 1-5-39-0 (A.K.A Special Edition)\nDetected: {}", ver.string());
 		return false;
 	}
-
+	
 	return true;
 }
 
 #endif
+
+
+namespace
+{
+	void MsgCallback(SKSE::MessagingInterface::Message* a_msg) noexcept
+	{
+#ifdef TEST_CONFIG
+
+#endif
+
+#ifdef TEST_GUI
+		if (a_msg->type == SKSE::MessagingInterface::kPostLoadGame) {
+			Test::GUI::Start();
+		}
+#endif
+
+#ifdef TEST_HOOK
+
+#endif
+
+#ifdef TEST_LOGGER
+
+#endif
+	
+#ifdef TEST_UTILITY
+#endif
+	}
+}
 
 
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
@@ -72,28 +105,32 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 
 	SKSE::Init(a_skse);
 
-#if TEST_CONFIG
+
+	const auto* messaging = SKSE::GetMessagingInterface();
+	messaging->RegisterListener(MsgCallback);
+
+
+#ifdef TEST_CONFIG
 
 	Test::Config::Load();
 
 #endif
 
-#if TEST_GUI
+#ifdef TEST_GUI
 
 	Test::GUI::Install();
-	Test::GUI::Start();
 
 #endif
 
-#if TEST_HOOK
+#ifdef TEST_HOOK
 
 #endif
 
-#if TEST_LOGGER
+#ifdef TEST_LOGGER
 
 #endif
 
-#if TEST_UTILITY
+#ifdef TEST_UTILITY
 
 	Test::Utility::StartTest();
 

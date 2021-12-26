@@ -2,13 +2,13 @@
 
 
 /*
- * 1.9.4;
+ * 2.1.0;
  * Added virtual method table hook;
  * 
- * 1.9.3
+ * 2.0.0
  * Code partial redone; wtf are those macros;
  * Added stack buffer to help with stack unwindability;
- * Replaced old detour method ( rax call ) with ( call rip ) so DKUtil does not dirty register;
+ * Replaced old detour method ( rax call ) with ( call rip ) so DKU_H does not dirty register;
  *
  * 1.0.0 ~ 1.9.2
  * CMake integration, inter-library integration;
@@ -45,6 +45,12 @@
  * Added prototype of bool : BranchAt< a_hookFunc >( a_prePatch, a_postPatch );
  * Added prototype of InjectAt< ID, START, END >( a_hookFunc, a_prePatch, a_postPatch );
  */
+
+
+#define DKU_H_VERSION_MAJOR     2
+#define DKU_H_VERSION_MINOR     1
+#define DKU_H_VERSION_REVISION  0
+
 
 #pragma warning ( disable : 4244 )
 
@@ -88,13 +94,16 @@
 #endif
 
 
-#define FUNC_INFO(FUNC)		DKUtil::Hook::FuncInfo{reinterpret_cast<std::uintptr_t>(FUNC), DKUtil::Utility::GetFuncArgsCount(FUNC), #FUNC }
-#define MEM_FUNC_INFO(FUNC)	DKUtil::Hook::FuncInfo{reinterpret_cast<std::uintptr_t>(FUNC), DKUtil::Utility::GetMemFuncArgsCount(FUNC), #FUNC }
+#define FUNC_INFO(FUNC)		DKUtil::Hook::FuncInfo{reinterpret_cast<std::uintptr_t>(FUNC), DKUtil::Utility::function::GetFuncArgsCount(FUNC), #FUNC }
+#define MEM_FUNC_INFO(FUNC)	DKUtil::Hook::FuncInfo{reinterpret_cast<std::uintptr_t>(FUNC), DKUtil::Utility::function::GetMemFuncArgsCount(FUNC), #FUNC }
 #define DKU_H_NO_FUNC		DKUtil::Hook::FuncInfo{0, 0, ""sv}
 
 
 namespace DKUtil::Hook
 {
+	constexpr auto DKU_H_VERSION = DKU_H_VERSION_MAJOR * 10000 + DKU_H_VERSION_MINOR * 100 + DKU_H_VERSION_REVISION;
+
+
 	using REX = std::uint8_t;
 	using OpCode = std::uint8_t;
 	using ModRM = std::uint8_t;
@@ -180,6 +189,15 @@ namespace DKUtil::Hook
 	{
 		const void* Data;
 		const std::size_t Size;
+	};
+
+
+	// helper struct to describe function
+	struct FuncInfo
+	{
+		std::uintptr_t Address;
+		std::size_t ArgsCount;
+		std::string_view Name;
 	};
 
 
@@ -328,15 +346,6 @@ namespace DKUtil::Hook
 	};
 
 
-	// helper struct to describe function
-	struct FuncInfo
-	{
-		std::uintptr_t Address;
-		std::size_t ArgsCount;
-		std::string_view Name;
-	};
-
-
 	// empty a code cave in the body of target function and branch to trampoline
 	// accepts a prolog patch before invoking payload and a epilog patch after returning from payload
 	template <const std::ptrdiff_t OffsetLow, const std::ptrdiff_t OffsetHigh, const CaveReturnPoint ReturnPoint = CaveReturnPoint::kSkipOP>
@@ -388,7 +397,7 @@ namespace DKUtil::Hook
 		if (a_func.Address) {
 			const auto stackBufSize = a_func.ArgsCount * sizeof(std::uint64_t);
 			if (!stackBufSize) {
-				ERROR("DKU_H: DKUtil::Hook currently does not support function without argument!"sv);
+				ERROR("DKU_H: AddCaveHook() currently does not support function without argument!"sv);
 			}
 
 			asmSub.Size = stackBufSize;
@@ -487,9 +496,10 @@ namespace DKUtil::Hook
 			auto handle = std::make_unique<VMTHookHandle>(*reinterpret_cast<std::uintptr_t*>(a_vtbl), tramPtr, a_index);
 
 			WritePatch(tramPtr, a_prolog);
-			asmBranch.Disp -= static_cast<Disp32>(a_prolog->Size);
 
+			asmBranch.Disp -= static_cast<Disp32>(a_prolog->Size);
 			asmBranch.Disp -= static_cast<Disp32>(sizeof(asmBranch));
+
 			WriteData(tramPtr, &asmBranch, sizeof(asmBranch));
 
 			return std::move(handle);
@@ -510,6 +520,7 @@ namespace DKUtil::Hook
 namespace DKUtil::Alias
 {
 	using HookHandle = std::unique_ptr<DKUtil::Hook::HookHandle>;
+	using Patch = DKUtil::Hook::Patch;
 } // namespace DKUtil::Alias
 
 

@@ -109,4 +109,4 @@ namespace DKUtil::Logger
 	private:
 		std::map<SinkInfo, QueueOrder> sinks;
 	};
-}
+} // namespace DKUtil::Logger

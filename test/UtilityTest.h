@@ -3,19 +3,12 @@
 
 namespace Test::Utility
 {
-	void StartServer() noexcept
-	{
-
-	}
-
-
-	void StartClient() noexcept
-	{
-       
-	}
-
-
-    void StartTest() noexcept
+	void StartTest() noexcept
     {
     }
+
+	
+	void EndTest() noexcept
+	{
+	}
 }

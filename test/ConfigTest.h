@@ -6,15 +6,15 @@ namespace Test::Config
 	using namespace DKUtil::Alias;
 
 
-	static Integer iA{ "iAwesome", "Awesome" };
-	static String sA{ "sAwesome", "Awesome" };
-	static Boolean bA{ "bAwesome", "Awesome" };
+	static Integer iA{ "iAwesome" };
+	static String sA{ "sAwesome" };
+	static Boolean bA{ "bAwesome" };
 	static Double dA{ "dAwesome" };
 
 
 	void Load()
 	{
-		auto Main = COMPILE_PROXY("DKUtilDebugger.toml"sv);
+		auto Main = COMPILE_PROXY("DKUtilDebugger.ini"sv);
 
 		Main.Bind(iA, 10);
 		Main.Bind(sA, "First", "Second", "Third");
@@ -24,10 +24,9 @@ namespace Test::Config
 		Main.Load();
 
 		DEBUG("{} {} {} {}", *iA, *sA, *bA, *dA);
-		DEBUG("{} {} {}", sA[0], sA[1], sA[2]);
 
-		std::string someRandomeName = DKUtil::Config::GetPath("AnotherBiteTheConfig.ini");		
-		static auto runtime = RUNTIME_PROXY(someRandomeName);
+		//std::string someRandomeName = DKUtil::Config::GetPath("AnotherBiteTheConfig.ini");		
+		//static auto runtime = RUNTIME_PROXY(someRandomeName);
 
 		//runtimeProxy.Load();
 	}

@@ -13,6 +13,11 @@
  */
 
 
+#define DKU_C_VERSION_MAJOR     1
+#define DKU_C_VERSION_MINOR     0
+#define DKU_C_VERSION_REVISION  1
+
+
 #include <algorithm>
 #include <compare>
 #include <filesystem>
@@ -22,6 +27,12 @@
 #include <string>
 
 #include "Logger.hpp"
+
+#ifdef DKU_C_NDEBUG
+#define DKU_U_NDEBUG
+#define DEBUG(...)	void(0)
+#endif
+
 #include "Utility.hpp"
 
 #include "nlohmann/json.hpp"
@@ -43,6 +54,9 @@
 
 namespace DKUtil::Config
 {
+	constexpr auto DKU_C_VERSION = DKU_C_VERSION_MAJOR * 10000 + DKU_C_VERSION_MINOR * 100 + DKU_C_VERSION_REVISION;
+
+
 	inline auto GetPath(const std::string_view a_file) noexcept
 	{
 		std::filesystem::path pluginDir("Data\\SKSE\\Plugins\\");
@@ -655,7 +669,7 @@ namespace DKUtil::Config
 			// compile defined
 			constexpr explicit Proxy(const std::string_view a_file)
 				requires (file_type != FileType::kDynamic) :
-				_id(Utility::FNV_1A_32(a_file.data())), _loaded(false), 
+				_id(Utility::numbers::FNV_1A_32(a_file.data())), _loaded(false), 
 				_file(a_file.data()), _type(file_type), _parser(std::make_unique<parser_t>(a_file.data(), _id, _manager))
 			{
 				DEBUG("DKU_C: Proxy#{}: Compile -> {}", _id, _file);
@@ -664,7 +678,7 @@ namespace DKUtil::Config
 			// runtime defined
 			constexpr explicit Proxy(const std::string_view a_file)
 				requires (file_type == FileType::kDynamic) :
-				_id(Utility::FNV_1A_32(a_file.data())), _loaded(false),
+				_id(Utility::numbers::FNV_1A_32(a_file.data())), _loaded(false),
 				_file(a_file.data())
 			{
 				// bogus, need fixing
