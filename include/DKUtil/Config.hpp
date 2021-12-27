@@ -45,11 +45,16 @@
 #pragma warning( disable : 4244 )
 
 
-#define EVAL_HELPER(SRC)	DKUtil::Config::Proxy::EvaluateConfig([]() { return SRC; })
+#ifndef LOG_ENTRY
+#define LOG_ENTRY	"Data\\SKSE\\Plugins\\"
+#endif
+
+
+#define EVAL_HELPER(SRC)	DKUtil::Config::EvaluateConfig([]() { return SRC; })
 // compile-time evaluation
-#define COMPILE_PROXY(SRC)	DKUtil::Config::Proxy::Proxy<EVAL_HELPER(SRC)>(SRC)
+#define COMPILE_PROXY(SRC)	DKUtil::Config::Proxy<EVAL_HELPER(SRC)>(SRC)
 // runtime dynamic
-#define RUNTIME_PROXY(SRC)	DKUtil::Config::Proxy::Proxy<DKUtil::Config::Proxy::FileType::kDynamic>(SRC)
+#define RUNTIME_PROXY(SRC)	DKUtil::Config::Proxy<DKUtil::Config::FileType::kDynamic>(SRC)
 
 
 namespace DKUtil::Config
@@ -59,13 +64,13 @@ namespace DKUtil::Config
 
 	inline auto GetPath(const std::string_view a_file) noexcept
 	{
-		std::filesystem::path pluginDir("Data\\SKSE\\Plugins\\");
+		std::filesystem::path pluginDir(LOG_ENTRY);
 		std::filesystem::path file(a_file.data());
 		return std::move((pluginDir / file).string());
 	}
 
 
-	namespace Data
+	namespace detail
 	{
 		enum class DataType
 		{
@@ -100,7 +105,7 @@ namespace DKUtil::Config
 
 			constexpr AData(const AData&) noexcept = delete;
 			constexpr AData(AData&&) noexcept = delete;
-			constexpr ~AData() noexcept = default;
+			constexpr ~AData() = default;
 
 			// return the front if out of bounds
 			[[nodiscard]] auto& operator[](const std::size_t a_index) noexcept
@@ -187,19 +192,19 @@ namespace DKUtil::Config
 			[[nodiscard]] auto Visit(const std::string_view a_key) noexcept
 			{
 				if (!_managed.contains(a_key)) {
-					return Data::DataType::kError;
+					return detail::DataType::kError;
 				}
 
-				if (auto intData = dynamic_cast<Data::AData<std::int64_t>*>(_managed[a_key]); intData) {
-					return Data::DataType::kInteger;
-				} else if (auto doubleData = dynamic_cast<Data::AData<double>*>(_managed[a_key]); doubleData) {
-					return Data::DataType::kDouble;
-				} else if (auto boolData = dynamic_cast<Data::AData<bool>*>(_managed[a_key]); boolData) {
-					return Data::DataType::kBoolean;
-				} else if (auto strData = dynamic_cast<Data::AData<std::basic_string<char>>*>(_managed[a_key]); strData) {
-					return Data::DataType::kString;
+				if (auto intData = dynamic_cast<AData<std::int64_t>*>(_managed[a_key]); intData) {
+					return DataType::kInteger;
+				} else if (auto doubleData = dynamic_cast<AData<double>*>(_managed[a_key]); doubleData) {
+					return DataType::kDouble;
+				} else if (auto boolData = dynamic_cast<AData<bool>*>(_managed[a_key]); boolData) {
+					return DataType::kBoolean;
+				} else if (auto strData = dynamic_cast<AData<std::basic_string<char>>*>(_managed[a_key]); strData) {
+					return DataType::kString;
 				} else {
-					return Data::DataType::kError;
+					return DataType::kError;
 				}
 			}
 
@@ -209,11 +214,11 @@ namespace DKUtil::Config
 					return;
 				}
 
-				if (auto intData = dynamic_cast<Data::AData<std::int64_t>*>(_managed[a_key]); intData) {
+				if (auto intData = dynamic_cast<AData<std::int64_t>*>(_managed[a_key]); intData) {
 					intData->set_data({ static_cast<std::int64_t>(a_value)... });
-				} else if (auto doubleData = dynamic_cast<Data::AData<double>*>(_managed[a_key]); doubleData) {
+				} else if (auto doubleData = dynamic_cast<AData<double>*>(_managed[a_key]); doubleData) {
 					doubleData->set_data({ static_cast<double>(a_value)... });
-				} else if (auto boolData = dynamic_cast<Data::AData<bool>*>(_managed[a_key]); boolData) {
+				} else if (auto boolData = dynamic_cast<AData<bool>*>(_managed[a_key]); boolData) {
 					boolData->set_data({ static_cast<bool>(a_value)... });
 				}
 			}
@@ -225,27 +230,23 @@ namespace DKUtil::Config
 					return;
 				}
 
-				if (auto data = dynamic_cast<Data::AData<std::basic_string<char>>*>(_managed[a_key]); data) {
+				if (auto data = dynamic_cast<AData<std::basic_string<char>>*>(_managed[a_key]); data) {
 					data->set_data({ static_cast<std::basic_string<char>>(a_value)... });
 				}
 			}
 
-			void add(const std::string_view a_key, Data::IData* a_data) noexcept { _managed.try_emplace(a_key, a_data); }
+			void add(const std::string_view a_key, IData* a_data) noexcept { _managed.try_emplace(a_key, a_data); }
 			[[nodiscard]] auto size() const noexcept { return _managed.size(); }
 			[[nodiscard]] auto& get_managed() noexcept { return _managed; }
 
 		private:
-			std::unordered_map<std::string_view, Data::IData*> _managed; // key, data*
+			std::unordered_map<std::string_view, IData*> _managed; // key, data*
 		};
-	} // namespace Data
 
-
-	namespace Parser
-	{
 		class IParser
 		{
 		public:
-			explicit IParser(std::string&& a_file, const std::uint32_t a_id, Data::DataManager& a_manager) :
+			explicit IParser(std::string&& a_file, const std::uint32_t a_id, DataManager& a_manager) :
 				_file(a_file), _filePath(GetPath(a_file)), _id(a_id), _manager(a_manager)
 			{}
 
@@ -262,7 +263,7 @@ namespace DKUtil::Config
 			const std::string	_file;
 			const std::string	_filePath;
 			const std::uint32_t	_id;
-			Data::DataManager&	_manager;
+			DataManager&		_manager;
 		};
 
 
@@ -293,7 +294,7 @@ namespace DKUtil::Config
 						}
 
 						switch (_manager.Visit(key.pItem)) {
-						case Data::DataType::kInteger:
+						case DataType::kInteger:
 						{
 							try {
 								_manager.SetByKey(key.pItem, std::stoll(value));
@@ -302,7 +303,7 @@ namespace DKUtil::Config
 							}
 							break;
 						}
-						case Data::DataType::kDouble:
+						case DataType::kDouble:
 						{
 							try {
 								_manager.SetByKey(key.pItem, std::stod(value));
@@ -311,7 +312,7 @@ namespace DKUtil::Config
 							}
 							break;
 						}
-						case Data::DataType::kBoolean:
+						case DataType::kBoolean:
 						{
 							std::string raw{ value };
 							std::transform(raw.begin(), raw.end(), raw.begin(), [](unsigned char a_char) { return std::tolower(a_char); });
@@ -324,7 +325,7 @@ namespace DKUtil::Config
 							}
 							break;
 						}
-						case Data::DataType::kString:
+						case DataType::kString:
 						{
 							std::string raw{ value };
 							if (raw.front() == '"' && raw.back() == '"') {
@@ -334,7 +335,7 @@ namespace DKUtil::Config
 							_manager.SetByKey(key.pItem, raw);
 							break;
 						}
-						case Data::DataType::kError:
+						case DataType::kError:
 						default:
 							continue;
 						}
@@ -386,7 +387,7 @@ namespace DKUtil::Config
 			using IParser::IParser;
 			using json = nlohmann::json;
 
-			void Parse(const char* a_data) noexcept override 
+			void Parse(const char* a_data) noexcept override
 			{
 				if (a_data) {
 					_json = json::parse(a_data);
@@ -399,7 +400,7 @@ namespace DKUtil::Config
 					file >> _json;
 					file.close();
 				}
-				
+
 				for (auto& data : _manager.get_managed()) {
 					auto raw = _json.find(data.first.data());
 					if (raw == _json.end()) {
@@ -407,39 +408,39 @@ namespace DKUtil::Config
 					}
 
 					switch (_manager.Visit(data.first)) {
-					case Data::DataType::kInteger:
+					case DataType::kInteger:
 					{
 						if (raw->type() == json::value_t::array) {
-							dynamic_cast<Data::AData<std::int64_t>*>(data.second)->set_data(raw->get<std::vector<std::int64_t>>());
+							dynamic_cast<AData<std::int64_t>*>(data.second)->set_data(raw->get<std::vector<std::int64_t>>());
 						} else {
 							_manager.SetByKey(data.first, raw->get<std::int64_t>());
 						}
 						break;
 					}
-					case Data::DataType::kDouble:
+					case DataType::kDouble:
 					{
 						if (raw->type() == json::value_t::array) {
-							dynamic_cast<Data::AData<double>*>(data.second)->set_data(raw->get<std::vector<double>>());
+							dynamic_cast<AData<double>*>(data.second)->set_data(raw->get<std::vector<double>>());
 						} else {
 							_manager.SetByKey(data.first, raw->get<double>());
 						}
 						break;
 					}
-					case Data::DataType::kBoolean:
+					case DataType::kBoolean:
 					{
 						_manager.SetByKey(data.first, raw->get<bool>());
 						break;
 					}
-					case Data::DataType::kString:
+					case DataType::kString:
 					{
 						if (raw->type() == json::value_t::array) {
-							dynamic_cast<Data::AData<std::basic_string<char>>*>(data.second)->set_data(raw->get<std::vector<std::basic_string<char>>>());
+							dynamic_cast<AData<std::basic_string<char>>*>(data.second)->set_data(raw->get<std::vector<std::basic_string<char>>>());
 						} else {
 							_manager.SetByKey(data.first, raw->get<std::basic_string<char>>());
 						}
 						break;
 					}
-					case Data::DataType::kError:
+					case DataType::kError:
 					default:
 						continue;
 					}
@@ -480,13 +481,13 @@ namespace DKUtil::Config
 		public:
 			using IParser::IParser;
 
-			void Parse(const char* a_data) noexcept override 
+			void Parse(const char* a_data) noexcept override
 			{
 				auto result = a_data ? toml::parse(a_data) : toml::parse_file(_filePath);
 				if (!result) {
 					ERROR("DKU_C: Parser#{}: Parsing failed!\nFile: {}\nDesc: {}", _id, *result.error().source().path.get(), result.error().description());
 				}
-				
+
 				_toml = std::move(result).table();
 				for (auto& [section, table] : _toml) {
 					if (!table.is_table()) {
@@ -501,7 +502,7 @@ namespace DKUtil::Config
 							}
 
 							switch (_manager.Visit(dataKey)) {
-							case Data::DataType::kInteger:
+							case DataType::kInteger:
 							{
 								std::int64_t input;
 								if (raw->second.is_array()) {
@@ -511,7 +512,7 @@ namespace DKUtil::Config
 											array.push_back(node.as_integer()->get());
 										}
 
-										auto data = dynamic_cast<Data::AData<std::int64_t>*>(dataPtr);
+										auto data = dynamic_cast<AData<std::int64_t>*>(dataPtr);
 										data->set_data(array);
 
 										break;
@@ -524,7 +525,7 @@ namespace DKUtil::Config
 								_manager.SetByKey(dataKey, input);
 								break;
 							}
-							case Data::DataType::kDouble:
+							case DataType::kDouble:
 							{
 								double input;
 								if (raw->second.is_array()) {
@@ -534,7 +535,7 @@ namespace DKUtil::Config
 											array.push_back(node.as_floating_point()->get());
 										}
 
-										auto data = dynamic_cast<Data::AData<double>*>(dataPtr);
+										auto data = dynamic_cast<AData<double>*>(dataPtr);
 										data->set_data(array);
 
 										break;
@@ -547,12 +548,12 @@ namespace DKUtil::Config
 								_manager.SetByKey(dataKey, input);
 								break;
 							}
-							case Data::DataType::kBoolean:
+							case DataType::kBoolean:
 							{
 								_manager.SetByKey(dataKey, raw->second.as_boolean()->get());
 								break;
 							}
-							case Data::DataType::kString:
+							case DataType::kString:
 							{
 								std::basic_string<char> input;
 								if (raw->second.is_array()) {
@@ -562,7 +563,7 @@ namespace DKUtil::Config
 											array.push_back(node.as_string()->get());
 										}
 
-										auto data = dynamic_cast<Data::AData<std::basic_string<char>>*>(dataPtr);
+										auto data = dynamic_cast<AData<std::basic_string<char>>*>(dataPtr);
 										data->set_data(array);
 
 										break;
@@ -575,7 +576,7 @@ namespace DKUtil::Config
 								_manager.SetByKey(dataKey, input);
 								break;
 							}
-							case Data::DataType::kError:
+							case DataType::kError:
 							default:
 								continue;
 							}
@@ -585,7 +586,7 @@ namespace DKUtil::Config
 				DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
 			}
 
-			void WriteData(const char*& a_data) noexcept override 
+			void WriteData(const char*& a_data) noexcept override
 			{
 				_out << _toml;
 				a_data = _out.str().c_str();
@@ -607,164 +608,160 @@ namespace DKUtil::Config
 			toml::table			_toml;
 			std::stringstream	_out;
 		};
-	} // namespace Parser
+	} // namespace detail
 
 
-	namespace Proxy
+	enum class FileType
 	{
-		enum class FileType
+		kDynamic = 0,
+		kIni,
+		kJson,
+		kToml,
+
+		kError
+	};
+
+
+	// compile-time file type evaluation from literal/literal view
+	template <typename input_string_t>
+	consteval FileType EvaluateConfig(const input_string_t a_file)
+	{
+		constexpr std::basic_string_view<char> file = a_file();
+		static_assert(!file.empty(), "Empty filename passed");
+		static_assert(file.size() > 4, "Filename too short");
+
+		// where is case insensitive consteval compare?!
+		constexpr auto extension = file.substr(file.size() - 4);
+		if constexpr (extension[0] == '.' &&
+			(extension[1] == 'i' || extension[1] == 'I') &&
+			(extension[2] == 'n' || extension[2] == 'N') &&
+			(extension[3] == 'i' || extension[3] == 'I')) {
+			return FileType::kIni;
+		}
+		if constexpr ((extension[0] == 'j' || extension[0] == 'J') &&
+			(extension[1] == 's' || extension[1] == 'S') &&
+			(extension[2] == 'o' || extension[2] == 'O') &&
+			(extension[3] == 'n' || extension[3] == 'N')) {
+			return FileType::kJson;
+		}
+		if constexpr ((extension[0] == 't' || extension[0] == 'T') &&
+			(extension[1] == 'o' || extension[1] == 'O') &&
+			(extension[2] == 'm' || extension[2] == 'M') &&
+			(extension[3] == 'l' || extension[3] == 'L')) {
+			return FileType::kToml;
+		}
+
+		return FileType::kError;
+	}
+
+
+	template <const FileType ConfigFileType>
+		requires (ConfigFileType != FileType::kError)
+	class Proxy
+	{
+		using parser_t = std::conditional_t<
+			ConfigFileType == FileType::kIni, detail::Ini, std::conditional_t<
+			ConfigFileType == FileType::kJson, detail::Json, std::conditional_t<
+			ConfigFileType == FileType::kToml, detail::Toml, detail::IParser>>>;
+
+	public:
+		// compile defined
+		constexpr explicit Proxy(const std::string_view a_file) noexcept
+			requires (ConfigFileType != FileType::kDynamic) :
+			_id(Utility::numbers::FNV_1A_32(a_file.data())), _loaded(false), _file(a_file.data()),
+			_type(ConfigFileType), _parser(std::make_unique<parser_t>(a_file.data(), _id, _manager))
 		{
-			kDynamic = 0,
-			kIni,
-			kJson,
-			kToml,
+			DEBUG("DKU_C: Proxy#{}: Compile -> {}", _id, _file);
+		}
 
-			kError
-		};
-
-
-		// compile-time file type evaluation from literal/literal view
-		template <typename input_string_t>
-		consteval FileType EvaluateConfig(const input_string_t a_file)
+		// runtime defined
+		constexpr explicit Proxy(const std::string_view a_file) noexcept
+			requires (ConfigFileType == FileType::kDynamic) :
+			_id(Utility::numbers::FNV_1A_32(a_file.data())), _loaded(false), _file(a_file.data())
 		{
-			constexpr std::basic_string_view<char> file = a_file();
-			static_assert(!file.empty(), "Empty filename passed");
-			static_assert(file.size() > 4, "Filename too short");
-
-			// where is case insensitive consteval compare?!
-			constexpr auto extension = file.substr(file.size() - 4);
-			if constexpr (extension[0] == '.' && 
-				(extension[1] == 'i' || extension[1] == 'I') && 
-				(extension[2] == 'n' || extension[2] == 'N') && 
-				(extension[3] == 'i' || extension[3] == 'I')) { 
-				return FileType::kIni; 
-			}
-			if constexpr ((extension[0] == 'j' || extension[0] == 'J') && 
-				(extension[1] == 's' || extension[1] == 'S') && 
-				(extension[2] == 'o' || extension[2] == 'O') && 
+			// bogus, need fixing
+			const auto extension = a_file.substr(a_file.size() - 4);
+			if (extension[0] == '.' &&
+				(extension[1] == 'i' || extension[1] == 'I') &&
+				(extension[2] == 'n' || extension[2] == 'N') &&
+				(extension[3] == 'i' || extension[3] == 'I')) {
+				_type = FileType::kIni;
+				_parser = std::make_unique<detail::Ini>(a_file.data(), _id, _manager);
+			} else if (
+				(extension[0] == 'j' || extension[0] == 'J') &&
+				(extension[1] == 's' || extension[1] == 'S') &&
+				(extension[2] == 'o' || extension[2] == 'O') &&
 				(extension[3] == 'n' || extension[3] == 'N')) {
-				return FileType::kJson;
-			}
-			if constexpr ((extension[0] == 't' || extension[0] == 'T') && 
-				(extension[1] == 'o' || extension[1] == 'O') && 
+				_type = FileType::kJson;
+				_parser = std::make_unique<detail::Json>(a_file.data(), _id, _manager);
+			} else if (
+				(extension[0] == 't' || extension[0] == 'T') &&
+				(extension[1] == 'o' || extension[1] == 'O') &&
 				(extension[2] == 'm' || extension[2] == 'M') &&
 				(extension[3] == 'l' || extension[3] == 'L')) {
-				return FileType::kToml;
+				_type = FileType::kToml;
+				_parser = std::make_unique<detail::Toml>(a_file.data(), _id, _manager);
+			} else {
+				ERROR("DKU_C: Proxy#{}: No suitable parser found for file -> {}", _id, a_file);
 			}
-
-			return FileType::kError;
+			DEBUG("DKU_C: Proxy#{}: Runtime -> {}", _id, _file);
 		}
 
 
-		template <FileType file_type>
-			requires (file_type != FileType::kError)
-		class Proxy
+		Proxy() = default;
+		Proxy(const Proxy&) = delete;
+		Proxy(Proxy&&) = default;
+		~Proxy() = default;
+
+		Proxy& operator=(const Proxy&) = delete;
+		Proxy& operator=(Proxy&&) = default;
+
+
+		void Load(const char* a_data = nullptr)
 		{
-			using parser_t = std::conditional_t<
-				file_type == FileType::kIni, Parser::Ini, std::conditional_t<
-				file_type == FileType::kJson, Parser::Json, std::conditional_t<
-				file_type == FileType::kToml, Parser::Toml, Parser::IParser>>>;
-
-		public:
-			// compile defined
-			constexpr explicit Proxy(const std::string_view a_file)
-				requires (file_type != FileType::kDynamic) :
-				_id(Utility::numbers::FNV_1A_32(a_file.data())), _loaded(false), 
-				_file(a_file.data()), _type(file_type), _parser(std::make_unique<parser_t>(a_file.data(), _id, _manager))
-			{
-				DEBUG("DKU_C: Proxy#{}: Compile -> {}", _id, _file);
+			// File comparing to skip parsing process and use already generated cache file for faster loading
+			if (_loaded) {
+				return;
 			}
 
-			// runtime defined
-			constexpr explicit Proxy(const std::string_view a_file)
-				requires (file_type == FileType::kDynamic) :
-				_id(Utility::numbers::FNV_1A_32(a_file.data())), _loaded(false),
-				_file(a_file.data())
-			{
-				// bogus, need fixing
-				const auto extension = a_file.substr(a_file.size() - 4);
-				if (extension[0] == '.' &&
-					(extension[1] == 'i' || extension[1] == 'I') &&
-					(extension[2] == 'n' || extension[2] == 'N') &&
-					(extension[3] == 'i' || extension[3] == 'I')) {
-					_type = FileType::kIni;
-					_parser = std::make_unique<Parser::Ini>(a_file.data(), _id, _manager);
-				} else if (
-					(extension[0] == 'j' || extension[0] == 'J') &&
-					(extension[1] == 's' || extension[1] == 'S') && 
-					(extension[2] == 'o' || extension[2] == 'O') && 
-					(extension[3] == 'n' || extension[3] == 'N')) {
-					_type = FileType::kJson;
-					_parser = std::make_unique<Parser::Json>(a_file.data(), _id, _manager);
-				} else if (
-					(extension[0] == 't' || extension[0] == 'T') &&
-					(extension[1] == 'o' || extension[1] == 'O') &&
-					(extension[2] == 'm' || extension[2] == 'M') &&
-					(extension[3] == 'l' || extension[3] == 'L')) {
-					_type = FileType::kToml;
-					_parser = std::make_unique<Parser::Toml>(a_file.data(), _id, _manager);
-				} else {
-					ERROR("DKU_C: Proxy#{}: No suitable parser found for file -> {}", _id, a_file);
-				}
-				DEBUG("DKU_C: Proxy#{}: Runtime -> {}", _id, _file);
-			}
+			DEBUG("DKU_C: Proxy#{}: Loading -> {}", _id, _file);
 
+			_parser->Parse(a_data);
 
-			Proxy() = default;
-			Proxy(const Proxy&) = delete;
-			Proxy(Proxy&&) = default;
-			~Proxy() = default;
+			_loaded = true;
+		}
 
-			Proxy& operator=(const Proxy&) = delete;
-			Proxy& operator=(Proxy&&) = default;
+		template <typename data_t>
+		constexpr inline void Bind(detail::AData<data_t>& a_data, const std::convertible_to<data_t> auto&... a_value) noexcept
+		{
+			_manager.add(a_data.get_key(), std::addressof(a_data));
+			a_data.set_data({ static_cast<data_t>(a_value)... });
+		}
 
+		constexpr inline auto get_id() const noexcept { return _id; }
+		constexpr inline auto is_loaded() const noexcept { return _loaded; }
+		constexpr inline auto get_file() const noexcept { return _file; }
+		constexpr inline auto get_type() const noexcept { return _type; }
+		constexpr inline auto get_size() const noexcept { return _manager.size(); }
+		constexpr inline auto& get_manager() const noexcept { return _manager; }
 
-			void Load(const char* a_data = nullptr)
-			{
-				// File comparing to skip parsing process and use already generated cache file for faster loading
-				if (_loaded) {
-					return;
-				}
-
-				DEBUG("DKU_C: Proxy#{}: Loading -> {}", _id, _file);
-
-				_parser->Parse(a_data);
-
-				_loaded = true;
-			}
-
-			template <typename data_t>
-			constexpr inline void Bind(Data::AData<data_t>& a_data, const std::convertible_to<data_t> auto&... a_value) noexcept
-			{
-				_manager.add(a_data.get_key(), std::addressof(a_data));
-				a_data.set_data({ static_cast<data_t>(a_value)... });
-			}
-
-			constexpr inline auto get_id() const noexcept { return _id; }
-			constexpr inline auto is_loaded() const noexcept { return _loaded; }
-			constexpr inline auto get_file() const noexcept { return _file; }
-			constexpr inline auto get_type() const noexcept { return _type; }
-			constexpr inline auto get_size() const noexcept { return _manager.size(); }
-			constexpr inline auto& get_manager() const noexcept { return _manager; }
-
-		private:
-			const std::uint32_t			_id;
-			bool						_loaded;
-			const std::string			_file;
-			FileType					_type;
-			std::unique_ptr<parser_t>	_parser;
-			Data::DataManager			_manager;
-		};
-	} // namespace Proxy
+	private:
+		const std::uint32_t			_id;
+		bool						_loaded;
+		const std::string			_file;
+		FileType					_type;
+		std::unique_ptr<parser_t>	_parser;
+		detail::DataManager			_manager;
+	};
 } // namespace DKUtil::Config
 
 
 namespace DKUtil::Alias
 {
-	using Boolean = DKUtil::Config::Data::AData<bool>;
-	using Integer = DKUtil::Config::Data::AData<std::int64_t>;
-	using Double = DKUtil::Config::Data::AData<double>;
-	using String = DKUtil::Config::Data::AData<std::basic_string<char>>;
+	using Boolean = DKUtil::Config::detail::AData<bool>;
+	using Integer = DKUtil::Config::detail::AData<std::int64_t>;
+	using Double = DKUtil::Config::detail::AData<double>;
+	using String = DKUtil::Config::detail::AData<std::basic_string<char>>;
 } // namespace DKUtil::Alias
 
 

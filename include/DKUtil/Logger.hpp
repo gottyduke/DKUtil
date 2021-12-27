@@ -1,6 +1,21 @@
 #pragma once
 
 
+/*
+ * 1.1.0
+ * Visual style logging;
+ *
+ * 1.0.0
+ * Basic spdlog implementation;
+ *
+ */
+
+
+#define DKU_L_VERSION_MAJOR     1
+#define DKU_L_VERSION_MINOR     1
+#define DKU_L_VERSION_REVISION  0
+
+
 #include <filesystem>
 #include <map>
 #include <ShlObj.h>
@@ -50,6 +65,9 @@ using namespace std::literals;
 
 namespace DKUtil::Logger
 {
+	constexpr auto DKU_L_VERSION = DKU_L_VERSION_MAJOR * 10000 + DKU_L_VERSION_MINOR * 100 + DKU_L_VERSION_REVISION;
+
+
 	// From CommonLibSSE https://github.com/Ryan-rsm-McKenzie/CommonLibSSE
 	inline std::optional<std::filesystem::path> log_directory()
 	{

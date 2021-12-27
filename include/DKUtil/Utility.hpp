@@ -2,6 +2,7 @@
 
 
 #include <algorithm>
+#include <bit>
 #include <concepts>
 #include <string>
 
@@ -139,13 +140,13 @@ namespace DKUtil::Utility
 		using HostType = HostInfo::HostType;
 
 
-		template <const LRESULT QUERY_FLAG, const LRESULT RELAY_FLAG, typename payload_t, typename func_t>
+		template <const LRESULT QueryFlag, const LRESULT RelayFlag, typename payload_t>
 		inline bool TryInitHost(
 			HostInfo& a_host,
 			const char* a_desc,
 			const WNDPROC a_proc,
 			const payload_t a_payload,
-			const func_t a_func) noexcept
+			const std::predicate auto a_func) noexcept
 		{
 			if (!a_proc) {
 				return false;
@@ -184,13 +185,13 @@ namespace DKUtil::Utility
 
 				DEBUG("DKU_U_IPC: {} host complete", a_desc);
 
-				return TryInitHost<QUERY_FLAG, RELAY_FLAG>(a_host, a_desc, a_proc, a_payload, a_func);
+				return TryInitHost<QueryFlag, RelayFlag>(a_host, a_desc, a_proc, a_payload, a_func);
 			} else {
 				DEBUG("DKU_U_IPC: {} querying...", a_desc);
 
-				const auto result = SendMessageA(a_host.Window, QUERY_FLAG, std::bit_cast<std::uintptr_t>(std::addressof(a_host.Name)), std::bit_cast<std::uintptr_t>(a_payload));
+				const auto result = SendMessageA(a_host.Window, QueryFlag, std::bit_cast<std::uintptr_t>(std::addressof(a_host.Name)), std::bit_cast<std::uintptr_t>(a_payload));
 
-				if (result == RELAY_FLAG) {
+				if (result == RelayFlag) {
 					a_host.Type = HostType::kRelay;
 					DEBUG("DKU_U_IPC: {} relay available -> {}", a_desc, a_host.Name);
 					return true;
@@ -200,14 +201,23 @@ namespace DKUtil::Utility
 					a_host.WndClass = string::to_wstring(PROJECT_NAME);
 					a_host.WndTitle = string::to_wstring(PROJECT_NAME);
 
-					return TryInitHost<QUERY_FLAG, RELAY_FLAG>(a_host, a_desc, a_proc, a_payload, a_func);
+					return TryInitHost<QueryFlag, RelayFlag>(a_host, a_desc, a_proc, a_payload, a_func);
 				}
 			}
 		}
 
 
-		bool TerminateHost() noexcept
+		bool TerminateHost(HostInfo& a_host) noexcept
 		{
+			if (!a_host.Window) {
+				return false;
+			}
+
+			UnregisterClass(a_host.WndClass.c_str(), GetModuleHandleA(nullptr));
+			DestroyWindow(a_host.Window);
+
+			DEBUG("DKU_U_IPC: {} host terminated", a_host.Name);
+
 			return false;
 		}
 

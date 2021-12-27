@@ -1,6 +1,9 @@
 #pragma once
 
 
+// AdditionalInclude
+
+
 // CommonLib
 #include "RE/Skyrim.h"
 #include "SKSE/SKSE.h"
@@ -12,8 +15,7 @@ using namespace std::literals;
 
 // DKUtil
 #include "DKUtil/Logger.hpp"
-
-// Include
+#include "DKUtil/Utility.hpp"
 
 
 #define DLLEXPORT __declspec(dllexport)
