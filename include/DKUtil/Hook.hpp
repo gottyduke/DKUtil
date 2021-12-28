@@ -1,8 +1,15 @@
 #pragma once
 
 
-/*
- * 2.1.0;
+/* 
+ * 2.3.0
+ * Added assembly patch;
+ * Improved cave hook;
+ * 
+ * 2.2.0
+ * Added import address table hook;
+ * 
+ * 2.1.0
  * Added virtual method table hook;
  * 
  * 2.0.0
@@ -64,6 +71,12 @@
 
 // DKUtil
 #include "Logger.hpp"
+
+#ifdef DKU_G_NDEBUG
+#define DKU_U_NDEBUG
+#define DEBUG(...)	void(0)
+#endif
+
 #include "Utility.hpp"
 
 // Address Library
@@ -105,7 +118,6 @@
 #define FUNC_INFO(FUNC)		DKUtil::Hook::FuncInfo{reinterpret_cast<std::uintptr_t>(FUNC), DKUtil::Utility::function::GetFuncArgsCount(FUNC), #FUNC }
 #define MEM_FUNC_INFO(FUNC)	DKUtil::Hook::FuncInfo{reinterpret_cast<std::uintptr_t>(FUNC), DKUtil::Utility::function::GetMemFuncArgsCount(FUNC), #FUNC }
 #define RT_INFO(FUNC, NAME)	DKUtil::Hook::FuncInfo{FUNC, 0, NAME}
-#define DKU_H_NO_FUNC		RT_INFO(0, ""sv)
 
 
 namespace DKUtil::Hook
@@ -235,6 +247,47 @@ namespace DKUtil::Hook
 	};
 
 
+	/* Trampoline */
+	// https://stackoverflow.com/a/54732489/17295222
+	inline void* Allocate2GBRange(const std::uintptr_t a_address, const std::size_t a_size)
+	{
+		static std::uint32_t dwAllocationGranularity;
+
+		if (!dwAllocationGranularity) {
+			SYSTEM_INFO si;
+			GetSystemInfo(&si);
+			dwAllocationGranularity = si.dwAllocationGranularity;
+		}
+
+		std::uintptr_t min, max, addr, add = dwAllocationGranularity - 1, mask = ~add;
+
+		min = a_address >= 0x80000000 ? (a_address - 0x80000000 + add) & mask : 0;
+		max = a_address < (UINTPTR_MAX - 0x80000000) ? (a_address + 0x80000000) & mask : UINTPTR_MAX;
+
+		MEMORY_BASIC_INFORMATION mbi;
+		do {
+			if (!VirtualQuery(AsPointer(min), &mbi, sizeof(mbi))) {
+				return nullptr;
+			}
+
+			min = AsAddress(mbi.BaseAddress) + mbi.RegionSize;
+
+			if (mbi.State == MEM_FREE) {
+				addr = (AsAddress(mbi.BaseAddress) + add) & mask;
+
+				if (addr < min && a_size <= (min - addr)) {
+					if (addr = AsAddress(VirtualAlloc(AsPointer(addr), a_size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE))) {
+						return AsPointer(addr);
+					}
+				}
+			}
+
+		} while (min < max);
+
+		return nullptr;
+	}
+
+
 	/* Helpers */
 
 	template <typename data_t>
@@ -266,7 +319,7 @@ namespace DKUtil::Hook
 	}
 
 
-	inline void WriteData(const std::uintptr_t&& a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WriteData(const std::uintptr_t& a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = REQUEST_ALLOC) noexcept
 	{
 		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_data, a_size, NO_FORWARD, a_requestAlloc);
 	}
@@ -278,7 +331,7 @@ namespace DKUtil::Hook
 	}
 
 
-	inline void WriteImm(const std::uintptr_t&& a_dst, const dku_h_pod_t auto& a_data, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WriteImm(const std::uintptr_t& a_dst, const dku_h_pod_t auto& a_data, bool a_requestAlloc = REQUEST_ALLOC) noexcept
 	{
 		return WriteData(const_cast<std::uintptr_t&>(a_dst), std::addressof(a_data), sizeof(a_data), NO_FORWARD, a_requestAlloc);
 	}
@@ -290,7 +343,7 @@ namespace DKUtil::Hook
 	}
 
 
-	inline void WritePatch(const std::uintptr_t&& a_dst, const Patch* a_patch, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WritePatch(const std::uintptr_t& a_dst, const Patch* a_patch, bool a_requestAlloc = REQUEST_ALLOC) noexcept
 	{
 		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_patch->Data, a_patch->Size, NO_FORWARD, a_requestAlloc);
 	}
@@ -321,44 +374,141 @@ namespace DKUtil::Hook
 		return AsAddress(a_base + a_index * a_size);
 	}
 
-#pragma region CaveHook
+#pragma region ASMPatch
 
-	class CaveHookHandle : public HookHandle
+	class ASMPatchHandle : public HookHandle
 	{
 	public:
-		// execution address, trampoline address, cave low offset, cave high offset
-		CaveHookHandle(const std::uintptr_t a_address, const std::uintptr_t a_tramEntry, const std::ptrdiff_t a_offsetLow, const std::ptrdiff_t a_offsetHigh) noexcept
-			: HookHandle(a_address, a_tramEntry), OffsetLow(a_offsetLow), OffsetHigh(a_offsetHigh), CaveEntry(Address + OffsetLow), CavePtr(Address + OffsetLow)
+		// execution address
+		ASMPatchHandle(const std::uintptr_t a_address, const std::ptrdiff_t a_offsetLow, const std::ptrdiff_t a_offsetHigh) noexcept
+			: HookHandle(a_address, a_address + a_offsetLow), OffsetLow(a_offsetLow), OffsetHigh(a_offsetHigh), CaveSize(OffsetHigh - OffsetLow)
 		{
-			std::memcpy(OldBytes, AsPointer(CaveEntry), OffsetHigh - OffsetLow);
-			std::fill_n(CaveBuf, OffsetHigh - OffsetLow, detail::NOP);
+			std::memcpy(OldBytes, AsPointer(TramEntry), CaveSize);
+			std::fill_n(PatchBuf, CaveSize, detail::NOP);
 
-			DEBUG("DKU_H: Cave capacity: {} bytes\nCave Entry @ {:x} | Tram Entry @ {:x}", OffsetHigh - OffsetLow, CaveEntry, TramEntry);
+			DEBUG("DKU_H: Cave capacity: {} bytes\nCave Entry @ {:x}", CaveSize, TramEntry);
 		}
 
 
 		void Enable() noexcept override
 		{
-			WriteData(CavePtr, CaveBuf, OffsetHigh - OffsetLow, FORWARD_PTR, NO_ALLOC);
+			WriteData(TramEntry, PatchBuf, CaveSize, NO_ALLOC);
+			DEBUG("DKU_H: Enabled ASM patch"sv);
+		}
+
+
+		void Disable() noexcept override
+		{
+			WriteData(TramEntry, OldBytes, CaveSize, NO_ALLOC);
+			DEBUG("DKU_H: Disabled ASM patch"sv);
+		}
+
+
+		const std::ptrdiff_t OffsetLow;
+		const std::ptrdiff_t OffsetHigh;
+		const std::size_t CaveSize;
+
+		OpCode OldBytes[CAVE_MAXIMUM_BYTES]{};
+		OpCode PatchBuf[CAVE_MAXIMUM_BYTES]{};
+	};
+
+
+	/* Apply assembly patch in the body of execution
+	 * @param OffsetLow : Beginning offset of the cave
+	 * @param OffsetHigh : Ending offset of the cave
+	 * @param a_address : Address of the beginning at target body of execution
+	 * @param a_patch : Assembly patch
+	 * @returns ASMPatchHandle
+	 */
+	template <const std::ptrdiff_t OffsetLow, const std::ptrdiff_t OffsetHigh>
+		requires (OffsetHigh > OffsetLow)
+	inline auto AddASMPatch(
+		const std::uintptr_t a_address,
+		const Patch* a_patch,
+		const bool a_forward = true
+	) noexcept
+	{
+		using namespace detail;
+
+		if (!a_address || !a_patch) {
+			ERROR("DKU_H: Invalid ASM patch"sv);
+		}
+
+		auto handle = std::make_unique<ASMPatchHandle>(a_address, OffsetLow, OffsetHigh);
+
+		if (a_patch->Size > (OffsetHigh - OffsetLow)) {
+			DEBUG("DKU_H: ASM patch size exceeds the cave size, enabled trampoline"sv);
+
+			JmpRel asmDetour; // cave -> tram
+			JmpRel asmReturn; // tram -> cave
+
+			handle->TramPtr = TRAM_ALLOC(0);
+			DEBUG("DKU_H: ASM patch tramoline entry -> {:x}", handle->TramPtr);
+
+			asmDetour.Rel32 = static_cast<Imm32>(handle->TramPtr - handle->TramEntry - sizeof(asmDetour));
+			std::memcpy(handle->PatchBuf, &asmDetour, sizeof(asmDetour));
+
+			WritePatch(handle->TramPtr, a_patch);
+
+			if (a_forward) {
+				asmReturn.Rel32 = static_cast<Imm32>(handle->TramEntry + handle->CaveSize - handle->TramPtr - sizeof(asmReturn));
+			} else {
+				asmReturn.Rel32 = static_cast<Imm32>(handle->TramEntry + a_patch->Size - handle->TramPtr - sizeof(asmReturn));
+			}
+
+			WriteData(handle->TramPtr, &asmReturn, sizeof(asmReturn));
+		} else {
+			std::memcpy(handle->PatchBuf, a_patch->Data, a_patch->Size);
+
+			if (a_forward && handle->CaveSize > (a_patch->Size * 2 + sizeof(JmpRel))) {
+				JmpRel asmForward;
+
+				asmForward.Rel32 = static_cast<Imm32>(handle->TramEntry + handle->CaveSize - handle->TramEntry - a_patch->Size - sizeof(asmForward));
+				std::memcpy(handle->PatchBuf + a_patch->Size, &asmForward, sizeof(asmForward));
+
+				DEBUG("DKU_H: ASM patch forwarded"sv);
+			}
+		}
+
+		return std::move(handle);
+	}
+
+#pragma endregion
+
+
+#pragma region CaveHook
+
+	class CaveHookHandle : public ASMPatchHandle
+	{
+	public:
+		// execution address, trampoline address, cave low offset, cave high offset
+		CaveHookHandle(const std::uintptr_t a_address, const std::ptrdiff_t a_offsetLow, const std::ptrdiff_t a_offsetHigh) noexcept
+			: ASMPatchHandle(a_address, a_offsetLow, a_offsetHigh), CaveEntry(Address + OffsetLow), CavePtr(Address + OffsetLow)
+		{
+			std::memcpy(OldBytes, AsPointer(CaveEntry), CaveSize);
+			std::fill_n(PatchBuf, CaveSize, detail::NOP);
+
+			DEBUG("DKU_H: Cave capacity: {} bytes\nCave Entry @ {:x} | Tram Entry @ {:x}", CaveSize, CaveEntry, TramEntry);
+		}
+
+
+		void Enable() noexcept override
+		{
+			WriteData(CavePtr, PatchBuf, CaveSize, FORWARD_PTR, NO_ALLOC);
 			DEBUG("DKU_H: Enabled cave hook"sv);
 		}
 
 
 		void Disable() noexcept override
 		{
-			WriteData(CavePtr, OldBytes, OffsetHigh - OffsetLow, NO_FORWARD, NO_ALLOC);
+			WriteData(CavePtr, OldBytes, CaveSize, NO_FORWARD, NO_ALLOC);
 			DEBUG("DKU_H: Disabled cave hook"sv);
 		}
 
 
-		const std::ptrdiff_t OffsetLow;
-		const std::ptrdiff_t OffsetHigh;
 		const std::uintptr_t CaveEntry;
 
 		std::uintptr_t CavePtr{ 0x0 };
-
-		OpCode OldBytes[CAVE_MAXIMUM_BYTES]{};
-		OpCode CaveBuf[CAVE_MAXIMUM_BYTES]{};
 	};
 
 
@@ -369,7 +519,7 @@ namespace DKUtil::Hook
 	};
 
 
-	/* Empty a code cave in the body of execution and branch to target function
+	/* Branch to target function in the body of execution.
 	 * If stack manipulation is involved, add stack offset (sizeof(std::uintptr_t) * (number of target function's arguments))
 	 * @param OffsetLow : Beginning offset of the cave
 	 * @param OffsetHigh : Ending offset of the cave
@@ -383,7 +533,7 @@ namespace DKUtil::Hook
 		requires ((OffsetHigh - OffsetLow) >= CAVE_MINIMUM_BYTES)
 	inline auto AddCaveHook(
 		const std::uintptr_t a_address,
-		const FuncInfo a_funcInfo = DKU_H_NO_FUNC,
+		const FuncInfo a_funcInfo,
 		const Patch* a_prolog = nullptr,
 		const Patch* a_epilog = nullptr
 	) noexcept
@@ -407,10 +557,8 @@ namespace DKUtil::Hook
 
 		auto tramPtr = TRAM_ALLOC(0);
 
-		if (a_funcInfo.Address) {
-			WriteImm(tramPtr, a_funcInfo.Address);
-			DEBUG("DKU_H: Detour -> {} @ {}.{:x}", a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
-		}
+		WriteImm(tramPtr, a_funcInfo.Address);
+		DEBUG("DKU_H: Detour -> {} @ {}.{:x}", a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
 
 		auto handle = std::make_unique<CaveHookHandle>(a_address, tramPtr, OffsetLow, OffsetHigh);
 
@@ -422,23 +570,21 @@ namespace DKUtil::Hook
 			asmBranch.Disp -= static_cast<Disp32>(a_prolog->Size);
 		}
 
-		if (a_funcInfo.Address) {
-			const auto stackBufSize = a_funcInfo.ArgsCount * sizeof(std::uint64_t);
-			if (!stackBufSize) {
-				ERROR("DKU_H: Cave hook currently does not support function without argument!"sv);
-			}
-
-			asmSub.Size = stackBufSize;
-			asmAdd.Size = stackBufSize;
-
-			asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
-			asmBranch.Disp -= static_cast<Disp32>(sizeof(asmSub));
-			asmBranch.Disp -= static_cast<Disp32>(sizeof(asmBranch));
-
-			WriteData(handle->TramPtr, &asmSub, sizeof(asmSub));
-			WriteData(handle->TramPtr, &asmBranch, sizeof(asmBranch));
-			WriteData(handle->TramPtr, &asmAdd, sizeof(asmAdd));
+		const auto stackBufSize = a_funcInfo.ArgsCount * sizeof(std::uint64_t);
+		if (!stackBufSize) {
+			ERROR("DKU_H: Cave hook currently does not support function without argument!"sv);
 		}
+
+		asmSub.Size = stackBufSize;
+		asmAdd.Size = stackBufSize;
+
+		asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
+		asmBranch.Disp -= static_cast<Disp32>(sizeof(asmSub));
+		asmBranch.Disp -= static_cast<Disp32>(sizeof(asmBranch));
+
+		WriteData(handle->TramPtr, &asmSub, sizeof(asmSub));
+		WriteData(handle->TramPtr, &asmBranch, sizeof(asmBranch));
+		WriteData(handle->TramPtr, &asmAdd, sizeof(asmAdd));
 
 		if (a_epilog) {
 			WritePatch(handle->TramPtr, a_epilog);
@@ -449,6 +595,7 @@ namespace DKUtil::Hook
 		} else if constexpr (ReturnPoint == CaveReturnPoint::kSkipOP) {
 			asmReturn.Rel32 = static_cast<Imm32>(handle->Address + handle->OffsetHigh - handle->TramPtr - sizeof(asmReturn));
 		}
+
 		WriteData(handle->TramPtr, &asmReturn, sizeof(asmReturn));
 
 		return std::move(handle);
@@ -594,12 +741,12 @@ namespace DKUtil::Hook
 
 		auto* dosHeader = std::bit_cast<IMAGE_DOS_HEADER*>(GetModuleHandleA(a_moduleName));
 		if (!dosHeader) {
-			ERROR("DKU_H: IAT module name {} invalid!", a_moduleName ? a_moduleName : "ProcessHost");
+			ERROR("DKU_H: IAT module name {} invalid", a_moduleName ? a_moduleName : "ProcessHost");
 		}
 		
 		auto* ntHeader = std::bit_cast<IMAGE_NT_HEADERS*>(AsAddress(dosHeader) + dosHeader->e_lfanew);
 		if (!ntHeader || ntHeader->Signature != IMAGE_NT_SIGNATURE) {
-			ERROR("DKU_H: IAT NT header invalid!"sv);
+			ERROR("DKU_H: IAT NT header invalid"sv);
 		}
 
 		auto* importDesc = std::bit_cast<IMAGE_IMPORT_DESCRIPTOR*>(dosHeader + ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
@@ -652,7 +799,7 @@ namespace DKUtil::Hook
 			}
 		}
 
-		ERROR("DKU_H: IAT reached the end of table!\n\nMethod {} not found!", a_methodName);
+		ERROR("DKU_H: IAT reached the end of table\n\nMethod {} not found", a_methodName);
 	}
 #pragma endregion
 } // namespace DKUtil::Hook
@@ -660,6 +807,15 @@ namespace DKUtil::Hook
 
 namespace DKUtil::Alias
 {
+	using OpCode = std::uint8_t;
+	using Disp8 = std::int8_t;
+	using Disp16 = std::int16_t;
+	using Disp32 = std::int32_t;
+	using Imm8 = std::uint8_t;
+	using Imm16 = std::uint16_t;
+	using Imm32 = std::uint32_t;
+	using Imm64 = std::uint64_t;
+
 	using Patch = DKUtil::Hook::Patch;
 	using HookHandle = std::unique_ptr<DKUtil::Hook::HookHandle>;
 	using CaveHandle = DKUtil::Hook::CaveHookHandle;

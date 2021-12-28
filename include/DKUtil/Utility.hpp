@@ -19,25 +19,6 @@
 
 namespace DKUtil::Utility
 {
-	namespace numbers
-	{
-		inline constexpr std::uint32_t FNV_1A_32(const char* const a_str, const std::uint32_t a_value = 2166136261u) noexcept
-		{
-			return (a_str[0] == '\0')
-				? a_value
-				: FNV_1A_32(&a_str[1], (a_value ^ static_cast<std::uint32_t>(a_str[0])) * 16777619u);
-		}
-
-
-		inline constexpr std::uint64_t FNV_1A_64(const char* const a_str, const std::uint64_t a_value = 14695981039346656037u) noexcept
-		{
-			return (a_str[0] == '\0')
-				? a_value
-				: FNV_1A_64(&a_str[1], (a_value ^ static_cast<std::uint64_t>(a_str[0])) * 1099511628211u);
-		}
-	} // namespace numbers
-
-
 	namespace function
 	{
 		template <typename Func, typename... Args>
@@ -53,68 +34,6 @@ namespace DKUtil::Utility
 			return decltype(std::integral_constant<unsigned, sizeof ...(Args)>{})::value;
 		}
 	} // namespace function
-
-
-	namespace string
-	{
-		inline std::wstring to_wstring(const std::string& a_str)
-		{
-			auto resultSize = MultiByteToWideChar(CP_UTF8, 0, &a_str[0], static_cast<int>(a_str.size()), nullptr, 0);
-			std::wstring wStr(resultSize, 0);
-			MultiByteToWideChar(CP_UTF8, 0, &a_str[0], static_cast<int>(a_str.size()), &wStr[0], resultSize);
-			return std::move(wStr);
-		}
-
-
-		// https://stackoverflow.com/questions/28708497/constexpr-to-concatenate-two-or-more-char-strings
-		template<size_t S>
-		using size = std::integral_constant<size_t, S>;
-
-		template<class T, size_t N>
-		consteval size<N> length(T const(&)[N]) { return {}; }
-		template<class T, size_t N>
-		consteval size<N> length(std::array<T, N> const&) { return {}; }
-
-		template<class T>
-		using length_t = decltype(length(std::declval<T>()));
-		consteval size_t sum_string_sizes() { return 0; }
-		template<class...Ts>
-		consteval size_t sum_string_sizes(size_t i, Ts... ts)
-		{
-			return (i ? i - 1 : 0) + sum_sizes(ts...);
-		}
-
-		template<unsigned N1, unsigned N2, class... Us>
-		consteval auto concat(const char(&a1)[N1], const char(&a2)[N2], const Us&... xs) 
-			->std::array<char, sum_string_sizes(N1, N2, length_t<Us>::value...) + 1 >
-		{
-			return concat(a1, concat(a2, xs...));
-		}
-	} // namespace string
-
-
-	namespace model
-	{
-		template <class derived_t>
-		class Singleton
-		{
-		public:
-			static derived_t* GetSingleton()
-			{
-				static derived_t singleton;
-				return std::addressof(singleton);
-			}
-
-			Singleton(const Singleton&) = delete;
-			Singleton(Singleton&&) = delete;
-			Singleton& operator=(const Singleton&) = delete;
-			Singleton& operator=(Singleton&&) = delete;
-
-		protected:
-			Singleton() = default;
-			virtual ~Singleton() = default;
-		};
-	} // namespace model
 
 
 	namespace IPC
@@ -227,6 +146,87 @@ namespace DKUtil::Utility
 			return false;
 		}
 	} // namespace IPC
+
+
+	namespace model
+	{
+		template <class derived_t>
+		class Singleton
+		{
+		public:
+			static derived_t* GetSingleton()
+			{
+				static derived_t singleton;
+				return std::addressof(singleton);
+			}
+
+			Singleton(const Singleton&) = delete;
+			Singleton(Singleton&&) = delete;
+			Singleton& operator=(const Singleton&) = delete;
+			Singleton& operator=(Singleton&&) = delete;
+
+		protected:
+			Singleton() = default;
+			virtual ~Singleton() = default;
+		};
+	} // namespace model
+
+
+	namespace numbers
+	{
+		inline constexpr std::uint32_t FNV_1A_32(const char* const a_str, const std::uint32_t a_value = 2166136261u) noexcept
+		{
+			return (a_str[0] == '\0')
+				? a_value
+				: FNV_1A_32(&a_str[1], (a_value ^ static_cast<std::uint32_t>(a_str[0])) * 16777619u);
+		}
+
+
+		inline constexpr std::uint64_t FNV_1A_64(const char* const a_str, const std::uint64_t a_value = 14695981039346656037u) noexcept
+		{
+			return (a_str[0] == '\0')
+				? a_value
+				: FNV_1A_64(&a_str[1], (a_value ^ static_cast<std::uint64_t>(a_str[0])) * 1099511628211u);
+		}
+	} // namespace numbers
+
+
+	namespace string
+	{
+		inline std::wstring to_wstring(const std::string& a_str)
+		{
+			auto resultSize = MultiByteToWideChar(CP_UTF8, 0, &a_str[0], static_cast<int>(a_str.size()), nullptr, 0);
+			std::wstring wStr(resultSize, 0);
+			MultiByteToWideChar(CP_UTF8, 0, &a_str[0], static_cast<int>(a_str.size()), &wStr[0], resultSize);
+			return std::move(wStr);
+		}
+
+
+		// https://stackoverflow.com/questions/28708497/constexpr-to-concatenate-two-or-more-char-strings
+		template<size_t S>
+		using size = std::integral_constant<size_t, S>;
+
+		template<class T, size_t N>
+		consteval size<N> length(T const(&)[N]) { return {}; }
+		template<class T, size_t N>
+		consteval size<N> length(std::array<T, N> const&) { return {}; }
+
+		template<class T>
+		using length_t = decltype(length(std::declval<T>()));
+		consteval size_t sum_string_sizes() { return 0; }
+		template<class...Ts>
+		consteval size_t sum_string_sizes(size_t i, Ts... ts)
+		{
+			return (i ? i - 1 : 0) + sum_sizes(ts...);
+		}
+
+		template<unsigned N1, unsigned N2, class... Us>
+		consteval auto concat(const char(&a1)[N1], const char(&a2)[N2], const Us&... xs) 
+			->std::array<char, sum_string_sizes(N1, N2, length_t<Us>::value...) + 1 >
+		{
+			return concat(a1, concat(a2, xs...));
+		}
+	} // namespace string
 }
 
 
