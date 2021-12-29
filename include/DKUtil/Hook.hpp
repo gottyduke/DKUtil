@@ -319,7 +319,7 @@ namespace DKUtil::Hook
 	}
 
 
-	inline void WriteData(const std::uintptr_t& a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WriteData(const std::uintptr_t& a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = NO_ALLOC) noexcept
 	{
 		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_data, a_size, NO_FORWARD, a_requestAlloc);
 	}
@@ -331,7 +331,7 @@ namespace DKUtil::Hook
 	}
 
 
-	inline void WriteImm(const std::uintptr_t& a_dst, const dku_h_pod_t auto& a_data, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WriteImm(const std::uintptr_t& a_dst, const dku_h_pod_t auto& a_data, bool a_requestAlloc = NO_ALLOC) noexcept
 	{
 		return WriteData(const_cast<std::uintptr_t&>(a_dst), std::addressof(a_data), sizeof(a_data), NO_FORWARD, a_requestAlloc);
 	}
@@ -343,7 +343,7 @@ namespace DKUtil::Hook
 	}
 
 
-	inline void WritePatch(const std::uintptr_t& a_dst, const Patch* a_patch, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WritePatch(const std::uintptr_t& a_dst, const Patch* a_patch, bool a_requestAlloc = NO_ALLOC) noexcept
 	{
 		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_patch->Data, a_patch->Size, NO_FORWARD, a_requestAlloc);
 	}
@@ -361,9 +361,10 @@ namespace DKUtil::Hook
 			ERROR("Failed to resolve address by id {:x}", a_id);
 		}
 
-		db.Clear();
+		const auto base = std::bit_cast<std::uintptr_t>(GetModuleHandleA(db.GetModuleName().c_str()));
+		DEBUG("DKU_H: Resolved {:x} | Base: {:x} | RVA: {:x}", resolvedAddr, base, resolvedAddr - base);
 
-		DEBUG("Address: Resolved {:x}", resolvedAddr);
+		db.Clear();
 
 		return resolvedAddr;
 	}
@@ -392,14 +393,14 @@ namespace DKUtil::Hook
 
 		void Enable() noexcept override
 		{
-			WriteData(TramEntry, PatchBuf, CaveSize, NO_ALLOC);
+			WriteData(TramEntry, PatchBuf, CaveSize);
 			DEBUG("DKU_H: Enabled ASM patch"sv);
 		}
 
 
 		void Disable() noexcept override
 		{
-			WriteData(TramEntry, OldBytes, CaveSize, NO_ALLOC);
+			WriteData(TramEntry, OldBytes, CaveSize);
 			DEBUG("DKU_H: Disabled ASM patch"sv);
 		}
 
@@ -501,7 +502,8 @@ namespace DKUtil::Hook
 
 		void Disable() noexcept override
 		{
-			WriteData(CavePtr, OldBytes, CaveSize, NO_FORWARD, NO_ALLOC);
+			CavePtr -= CaveSize;
+			WriteData(CavePtr, OldBytes, CaveSize);
 			DEBUG("DKU_H: Disabled cave hook"sv);
 		}
 
@@ -619,14 +621,14 @@ namespace DKUtil::Hook
 
 		void Enable() noexcept override
 		{
-			WriteImm(std::uintptr_t(Address), TramEntry, NO_ALLOC);
+			WriteImm(Address, TramEntry);
 			DEBUG("DKU_H: Enabled VMT hook"sv);
 		}
 
 
 		void Disable() noexcept override
 		{
-			WriteImm(std::uintptr_t(Address), OldAddress, NO_ALLOC);
+			WriteImm(Address, OldAddress);
 			DEBUG("DKU_H: Disabled VMT hook"sv);
 		}
 
@@ -702,14 +704,14 @@ namespace DKUtil::Hook
 
 		void Enable() noexcept override
 		{
-			WriteImm(std::uintptr_t(Address), TramEntry, NO_ALLOC);
+			WriteImm(Address, TramEntry);
 			DEBUG("DKU_H: Enabled IAT hook"sv);
 		}
 
 
 		void Disable() noexcept override
 		{
-			WriteImm(std::uintptr_t(Address), OldAddress, NO_ALLOC);
+			WriteImm(Address, OldAddress);
 			DEBUG("DKU_H: Disabled IAT hook"sv);
 		}
 
