@@ -5,7 +5,7 @@ Some utilitarian headers to help with SKSE64 plugin development
 # Implementations
 [![Config](https://img.shields.io/badge/Config-1.0.1-R.svg)](#Config)
 [![GUI](https://img.shields.io/badge/GUI-1.2.1-R.svg)](#GUI)
-[![Hook](https://img.shields.io/badge/Hook-2.3.0-R.svg)](#Hook)
+[![Hook](https://img.shields.io/badge/Hook-2.3.1-R.svg)](#Hook)
 [![Logger](https://img.shields.io/badge/Logger-1.1.0-R.svg)](#Logger)
 [![Utility](https://img.shields.io/badge/Utility-untracked-R.svg)](#Utility)
 

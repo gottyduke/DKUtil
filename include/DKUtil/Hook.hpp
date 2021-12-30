@@ -1,7 +1,10 @@
 #pragma once
 
 
-/* 
+/*
+ * 2.3.1
+ * CaveHookHandle changed base class;
+ * 
  * 2.3.0
  * Added assembly patch;
  * Improved cave hook;
@@ -382,32 +385,32 @@ namespace DKUtil::Hook
 	public:
 		// execution address
 		ASMPatchHandle(const std::uintptr_t a_address, const std::ptrdiff_t a_offsetLow, const std::ptrdiff_t a_offsetHigh) noexcept
-			: HookHandle(a_address, a_address + a_offsetLow), OffsetLow(a_offsetLow), OffsetHigh(a_offsetHigh), CaveSize(OffsetHigh - OffsetLow)
+			: HookHandle(a_address, a_address + a_offsetLow), OffsetLow(a_offsetLow), OffsetHigh(a_offsetHigh), PatchSize(OffsetHigh - OffsetLow)
 		{
-			std::memcpy(OldBytes, AsPointer(TramEntry), CaveSize);
-			std::fill_n(PatchBuf, CaveSize, detail::NOP);
+			std::memcpy(OldBytes, AsPointer(TramEntry), PatchSize);
+			std::fill_n(PatchBuf, PatchSize, detail::NOP);
 
-			DEBUG("DKU_H: Cave capacity: {} bytes\nCave Entry @ {:x}", CaveSize, TramEntry);
+			DEBUG("DKU_H: Cave capacity: {} bytes\nCave Entry @ {:x}", PatchSize, TramEntry);
 		}
 
 
 		void Enable() noexcept override
 		{
-			WriteData(TramEntry, PatchBuf, CaveSize);
+			WriteData(TramEntry, PatchBuf, PatchSize);
 			DEBUG("DKU_H: Enabled ASM patch"sv);
 		}
 
 
 		void Disable() noexcept override
 		{
-			WriteData(TramEntry, OldBytes, CaveSize);
+			WriteData(TramEntry, OldBytes, PatchSize);
 			DEBUG("DKU_H: Disabled ASM patch"sv);
 		}
 
 
 		const std::ptrdiff_t OffsetLow;
 		const std::ptrdiff_t OffsetHigh;
-		const std::size_t CaveSize;
+		const std::size_t PatchSize;
 
 		OpCode OldBytes[CAVE_MAXIMUM_BYTES]{};
 		OpCode PatchBuf[CAVE_MAXIMUM_BYTES]{};
@@ -479,15 +482,15 @@ namespace DKUtil::Hook
 
 #pragma region CaveHook
 
-	class CaveHookHandle : public ASMPatchHandle
+	class CaveHookHandle : public HookHandle
 	{
 	public:
 		// execution address, trampoline address, cave low offset, cave high offset
-		CaveHookHandle(const std::uintptr_t a_address, const std::ptrdiff_t a_offsetLow, const std::ptrdiff_t a_offsetHigh) noexcept
-			: ASMPatchHandle(a_address, a_offsetLow, a_offsetHigh), CaveEntry(Address + OffsetLow), CavePtr(Address + OffsetLow)
+		CaveHookHandle(const std::uintptr_t a_address, const std::uintptr_t a_tramPtr, const std::ptrdiff_t a_offsetLow, const std::ptrdiff_t a_offsetHigh) noexcept
+			: HookHandle(a_address, a_tramPtr), OffsetLow(a_offsetLow), OffsetHigh(a_offsetHigh), CaveSize(OffsetHigh - OffsetLow), CaveEntry(Address + OffsetLow), CavePtr(Address + OffsetLow)
 		{
 			std::memcpy(OldBytes, AsPointer(CaveEntry), CaveSize);
-			std::fill_n(PatchBuf, CaveSize, detail::NOP);
+			std::fill_n(CaveBuf, CaveSize, detail::NOP);
 
 			DEBUG("DKU_H: Cave capacity: {} bytes\nCave Entry @ {:x} | Tram Entry @ {:x}", CaveSize, CaveEntry, TramEntry);
 		}
@@ -495,7 +498,7 @@ namespace DKUtil::Hook
 
 		void Enable() noexcept override
 		{
-			WriteData(CavePtr, PatchBuf, CaveSize, FORWARD_PTR, NO_ALLOC);
+			WriteData(CavePtr, CaveBuf, CaveSize, FORWARD_PTR, NO_ALLOC);
 			DEBUG("DKU_H: Enabled cave hook"sv);
 		}
 
@@ -508,9 +511,15 @@ namespace DKUtil::Hook
 		}
 
 
+		const std::ptrdiff_t OffsetLow;
+		const std::ptrdiff_t OffsetHigh;
+		const std::size_t CaveSize;
 		const std::uintptr_t CaveEntry;
 
 		std::uintptr_t CavePtr{ 0x0 };
+
+		OpCode OldBytes[CAVE_MAXIMUM_BYTES]{};
+		OpCode CaveBuf[CAVE_MAXIMUM_BYTES]{};
 	};
 
 
