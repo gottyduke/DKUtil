@@ -207,7 +207,7 @@ namespace DKUtil::Utility
 		}
 
 
-		bool TerminateHost(HostInfo& a_host) noexcept
+		inline bool TerminateHost(HostInfo& a_host) noexcept
 		{
 			if (!a_host.Window) {
 				return false;
@@ -222,7 +222,7 @@ namespace DKUtil::Utility
 		}
 
 
-		bool TransferHost() noexcept
+		inline bool TransferHost() noexcept
 		{
 			return false;
 		}
