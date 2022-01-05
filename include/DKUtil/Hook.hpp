@@ -2,6 +2,9 @@
 
 
 /*
+ * 2.3.2
+ * Minor formatting changes;
+ * 
  * 2.3.1
  * CaveHookHandle changed base class;
  * 
@@ -75,9 +78,9 @@
 // DKUtil
 #include "Logger.hpp"
 
-#ifdef DKU_G_NDEBUG
-#define DKU_U_NDEBUG
-#define DEBUG(...)	void(0)
+#ifdef DKU_G_DEBUG
+#define DKU_DEBUG
+#define DEBUG(...)	INFO(__VA_ARGS__)
 #endif
 
 #include "Utility.hpp"
@@ -118,16 +121,19 @@
 #endif
 
 
-#define FUNC_INFO(FUNC)		DKUtil::Hook::FuncInfo{reinterpret_cast<std::uintptr_t>(FUNC), DKUtil::Utility::function::GetFuncArgsCount(FUNC), #FUNC }
-#define MEM_FUNC_INFO(FUNC)	DKUtil::Hook::FuncInfo{reinterpret_cast<std::uintptr_t>(FUNC), DKUtil::Utility::function::GetMemFuncArgsCount(FUNC), #FUNC }
+#define FUNC_INFO(FUNC)		DKUtil::Hook::FuncInfo{reinterpret_cast<std::uintptr_t>(FUNC), DKUtil::function::GetFuncArgsCount(FUNC), #FUNC }
+#define MEM_FUNC_INFO(FUNC)	DKUtil::Hook::FuncInfo{reinterpret_cast<std::uintptr_t>(FUNC), DKUtil::function::GetMemFuncArgsCount(FUNC), #FUNC }
 #define RT_INFO(FUNC, NAME)	DKUtil::Hook::FuncInfo{FUNC, 0, NAME}
+
+
+namespace DKUtil
+{
+	constexpr auto DKU_H_VERSION = DKU_H_VERSION_MAJOR * 10000 + DKU_H_VERSION_MINOR * 100 + DKU_H_VERSION_REVISION;
+} // namespace DKUtil
 
 
 namespace DKUtil::Hook
 {
-	constexpr auto DKU_H_VERSION = DKU_H_VERSION_MAJOR * 10000 + DKU_H_VERSION_MINOR * 100 + DKU_H_VERSION_REVISION;
-
-
 	using REX = std::uint8_t;
 	using OpCode = std::uint8_t;
 	using ModRM = std::uint8_t;
@@ -361,11 +367,11 @@ namespace DKUtil::Hook
 
 		const auto resolvedAddr = AsAddress(db.FindAddressById(a_id));
 		if (!resolvedAddr) {
-			ERROR("Failed to resolve address by id {:x}", a_id);
+			ERROR("Failed to resolve address by id {:X}", a_id);
 		}
 
 		const auto base = std::bit_cast<std::uintptr_t>(GetModuleHandleA(db.GetModuleName().c_str()));
-		DEBUG("DKU_H: Resolved {:x} | Base: {:x} | RVA: {:x}", resolvedAddr, base, resolvedAddr - base);
+		DEBUG("DKU_H: Resolved: {:X} | Base: {:X} | RVA: {:X}", resolvedAddr, base, resolvedAddr - base);
 
 		db.Clear();
 
@@ -390,7 +396,7 @@ namespace DKUtil::Hook
 			std::memcpy(OldBytes, AsPointer(TramEntry), PatchSize);
 			std::fill_n(PatchBuf, PatchSize, detail::NOP);
 
-			DEBUG("DKU_H: Cave capacity: {} bytes\nCave Entry @ {:x}", PatchSize, TramEntry);
+			DEBUG("DKU_H: Patch capacity: {} bytes\nPatch entry @ {:X}", PatchSize, TramEntry);
 		}
 
 
@@ -441,13 +447,13 @@ namespace DKUtil::Hook
 		auto handle = std::make_unique<ASMPatchHandle>(a_address, OffsetLow, OffsetHigh);
 
 		if (a_patch->Size > (OffsetHigh - OffsetLow)) {
-			DEBUG("DKU_H: ASM patch size exceeds the cave size, enabled trampoline"sv);
+			DEBUG("DKU_H: ASM patch size exceeds the patch capacity, enabled trampoline"sv);
 
 			JmpRel asmDetour; // cave -> tram
 			JmpRel asmReturn; // tram -> cave
 
 			handle->TramPtr = TRAM_ALLOC(0);
-			DEBUG("DKU_H: ASM patch tramoline entry -> {:x}", handle->TramPtr);
+			DEBUG("DKU_H: ASM patch tramoline entry -> {:X}", handle->TramPtr);
 
 			asmDetour.Rel32 = static_cast<Imm32>(handle->TramPtr - handle->TramEntry - sizeof(asmDetour));
 			std::memcpy(handle->PatchBuf, &asmDetour, sizeof(asmDetour));
@@ -455,7 +461,7 @@ namespace DKUtil::Hook
 			WritePatch(handle->TramPtr, a_patch);
 
 			if (a_forward) {
-				asmReturn.Rel32 = static_cast<Imm32>(handle->TramEntry + handle->CaveSize - handle->TramPtr - sizeof(asmReturn));
+				asmReturn.Rel32 = static_cast<Imm32>(handle->TramEntry + handle->PatchSize - handle->TramPtr - sizeof(asmReturn));
 			} else {
 				asmReturn.Rel32 = static_cast<Imm32>(handle->TramEntry + a_patch->Size - handle->TramPtr - sizeof(asmReturn));
 			}
@@ -464,10 +470,10 @@ namespace DKUtil::Hook
 		} else {
 			std::memcpy(handle->PatchBuf, a_patch->Data, a_patch->Size);
 
-			if (a_forward && handle->CaveSize > (a_patch->Size * 2 + sizeof(JmpRel))) {
+			if (a_forward && handle->PatchSize > (a_patch->Size * 2 + sizeof(JmpRel))) {
 				JmpRel asmForward;
 
-				asmForward.Rel32 = static_cast<Imm32>(handle->TramEntry + handle->CaveSize - handle->TramEntry - a_patch->Size - sizeof(asmForward));
+				asmForward.Rel32 = static_cast<Imm32>(handle->TramEntry + handle->PatchSize - handle->TramEntry - a_patch->Size - sizeof(asmForward));
 				std::memcpy(handle->PatchBuf + a_patch->Size, &asmForward, sizeof(asmForward));
 
 				DEBUG("DKU_H: ASM patch forwarded"sv);
@@ -492,7 +498,7 @@ namespace DKUtil::Hook
 			std::memcpy(OldBytes, AsPointer(CaveEntry), CaveSize);
 			std::fill_n(CaveBuf, CaveSize, detail::NOP);
 
-			DEBUG("DKU_H: Cave capacity: {} bytes\nCave Entry @ {:x} | Tram Entry @ {:x}", CaveSize, CaveEntry, TramEntry);
+			DEBUG("DKU_H: Cave capacity: {} bytes\nCave entry @ {:X} | Tram entry @ {:X}", CaveSize, CaveEntry, TramEntry);
 		}
 
 
@@ -569,7 +575,7 @@ namespace DKUtil::Hook
 		auto tramPtr = TRAM_ALLOC(0);
 
 		WriteImm(tramPtr, a_funcInfo.Address);
-		DEBUG("DKU_H: Detour -> {} @ {}.{:x}", a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
+		DEBUG("DKU_H: Detour -> {} @ {}.{:X}", a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
 
 		auto handle = std::make_unique<CaveHookHandle>(a_address, tramPtr, OffsetLow, OffsetHigh);
 
@@ -624,7 +630,7 @@ namespace DKUtil::Hook
 		VMTHookHandle(const std::uintptr_t a_address, const std::uintptr_t a_tramEntry, const std::uint16_t a_index) noexcept
 			: HookHandle(TblToAbs(a_address, a_index), a_tramEntry), OldAddress(*std::bit_cast<std::uintptr_t*>(Address))
 		{
-			DEBUG("DKU_H: VMT @ {:x} [{}]\nOld Entry @ {:x} | New Entry @ {:x}", a_address, a_index, OldAddress, TramEntry);
+			DEBUG("DKU_H: VMT @ {:X} [{}]\nOld entry @ {:X} | New entry @ {:X}", a_address, a_index, OldAddress, TramEntry);
 		}
 
 
@@ -665,7 +671,7 @@ namespace DKUtil::Hook
 		if (!a_funcInfo.Address) {
 			ERROR("DKU_H: VMT hook must have a valid function pointer"sv);
 		}
-		DEBUG("DKU_H: Detour -> {} @ {}.{:x}", a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
+		DEBUG("DKU_H: Detour -> {} @ {}.{:X}", a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
 
 		if (a_prolog) {
 			auto tramPtr = TRAM_ALLOC(0);
@@ -707,7 +713,7 @@ namespace DKUtil::Hook
 		IATHookHandle(const std::uintptr_t a_address, const std::uintptr_t a_tramEntry, const char* a_methodName, const char* a_funcName) noexcept
 			: HookHandle(a_address, a_tramEntry), OldAddress(*std::bit_cast<std::uintptr_t*>(Address))
 		{
-			DEBUG("DKU_H: IAT @ {:x}\nOld Entry {} @ {:x} | New Entry {} @ {:x}", a_address, a_methodName, OldAddress, a_funcName, a_tramEntry);
+			DEBUG("DKU_H: IAT @ {:X}\nOld entry {} @ {:X} | New entry {} @ {:X}", a_address, a_methodName, OldAddress, a_funcName, a_tramEntry);
 		}
 
 
@@ -748,7 +754,7 @@ namespace DKUtil::Hook
 		if (!a_funcInfo.Address) {
 			ERROR("DKU_H: IAT hook must have a valid function pointer"sv);
 		}
-		DEBUG("DKU_H: Detour -> {} @ {}.{:x}", a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
+		DEBUG("DKU_H: Detour -> {} @ {}.{:X}", a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
 
 		auto* dosHeader = std::bit_cast<IMAGE_DOS_HEADER*>(GetModuleHandleA(a_moduleName));
 		if (!dosHeader) {

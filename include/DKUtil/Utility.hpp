@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <bit>
 #include <concepts>
+#include <cstdlib>
+#include <Psapi.h>
 #include <string>
 
 
@@ -11,13 +13,15 @@
 #define PROJECT_NAME	Version::PROJECT.data()
 #endif
 
+#define DKU_IPC_BASE	std::wstring(L"_DKU_IPC_BASE_") 
+#define DKU_IPC_HOST	std::wstring(L"_DKU_IPC_HOST_")
 
-#ifdef DKU_U_NDEBUG
-#define DEBUG(...)		void(0)
+#ifdef DKU_DEBUG
+#define DEBUG(...)		INFO(__VA_ARGS__)
 #endif
 
 
-namespace DKUtil::Utility
+namespace DKUtil
 {
 	namespace function
 	{
@@ -90,6 +94,16 @@ namespace DKUtil::Utility
 		}
 
 
+		inline std::string to_string(const std::wstring& a_wstr)
+		{
+			BOOL used{};
+			auto resultSize = WideCharToMultiByte(CP_UTF8, 0, &a_wstr[0], static_cast<int>(a_wstr.size()), nullptr, 0, nullptr, &used);
+			std::string str(resultSize, 0);
+			WideCharToMultiByte(CP_UTF8, 0, &a_wstr[0], static_cast<int>(a_wstr.size()), &str[0], resultSize, nullptr, &used);
+			return std::move(str);
+		}
+
+
 		// https://stackoverflow.com/questions/28708497/constexpr-to-concatenate-two-or-more-char-strings
 		template<size_t S>
 		using size = std::integral_constant<size_t, S>;
@@ -131,11 +145,11 @@ namespace DKUtil::Utility
 				kRelay
 			};
 
-			std::wstring    WndClass;
-			std::wstring    WndTitle;
-			HostType        Type = HostType::kInvalid;
-			HWND            Window = nullptr;
-			std::string     Name = PROJECT_NAME;
+			std::wstring    WndClass{ DKU_IPC_BASE };
+			std::wstring    WndTitle{ DKU_IPC_HOST };
+			HostType        Type{ HostType::kInvalid };
+			HWND            Window{ nullptr };
+			std::string     Name{ PROJECT_NAME };
 		};
 		using HostType = HostInfo::HostType;
 
@@ -146,62 +160,75 @@ namespace DKUtil::Utility
 			const char* a_desc,
 			const WNDPROC a_proc,
 			const payload_t a_payload,
-			const std::predicate auto a_func) noexcept
+			const std::predicate auto a_evalOp) noexcept
 		{
 			if (!a_proc) {
 				return false;
 			}
 
-			a_host.Window = FindWindow(a_host.WndClass.c_str(), a_host.WndTitle.c_str());
+			wchar_t moduleName[MAX_PATH];
+			GetModuleBaseNameW(GetCurrentProcess(), nullptr, moduleName, MAX_PATH);
+
+			// unique ipc window per process, per type
+			// 2022/01/05: DISABLED for GUI, until further invenstigation
+			a_host.WndClass = moduleName + DKU_IPC_BASE + string::to_wstring(a_desc) + string::to_wstring(PROJECT_NAME);
+			a_host.WndTitle = moduleName + DKU_IPC_HOST + string::to_wstring(a_desc) + string::to_wstring(PROJECT_NAME);
+
+			a_host.Window = FindWindowExW(HWND_MESSAGE, nullptr, a_host.WndClass.c_str(), a_host.WndTitle.c_str());
 
 			if (a_host.Window && a_host.Type == HostType::kSelf) {
 				return true;
 			} else if (!a_host.Window) {
-				DEBUG("DKU_U_IPC: {} hosting...", a_desc);
+				DEBUG("DKU_IPC: {} hosting...", a_desc);
 
-				WNDCLASSEX windowClass{ };
+				WNDCLASSEXW windowClass{};
 				windowClass.cbSize = sizeof(windowClass);
-				windowClass.lpfnWndProc = DefWindowProc;
+				windowClass.lpfnWndProc = DefWindowProcW;
 				windowClass.lpszClassName = a_host.WndClass.c_str();
 
-				if (!RegisterClassEx(&windowClass)) {
+				if (!RegisterClassExW(&windowClass)) {
 					return false;
 				}
 
-				a_host.Window = CreateWindow(windowClass.lpszClassName, a_host.WndTitle.c_str(), WS_CAPTION | WS_DISABLED, 0, 0, 0, 0, nullptr, nullptr, nullptr, nullptr);
+				a_host.Window = CreateWindowExW(WS_EX_NOACTIVATE, windowClass.lpszClassName, a_host.WndTitle.c_str(), WS_CAPTION | WS_DISABLED, 0, 0, 0, 0, HWND_MESSAGE, nullptr, nullptr, nullptr);
 				if (!a_host.Window) {
-					UnregisterClass(windowClass.lpszClassName, GetModuleHandle(nullptr));
+					UnregisterClassW(windowClass.lpszClassName, GetModuleHandle(nullptr));
 					return false;
 				}
 
-				SetWindowLongPtr(a_host.Window, GWLP_WNDPROC, (LONG_PTR)(a_proc));
+				SetWindowLongPtrW(a_host.Window, GWLP_WNDPROC, (LONG_PTR)(a_proc));
 
-				if (!a_func()) {
+				DEBUG("DKU_IPC: {} messaging started!", a_desc);
+
+				if (!a_evalOp()) {
 					return false;
 				}
+
+				DEBUG("DKU_IPC: {} evaluation op succeeded");
 
 				a_host.Name = PROJECT_NAME;
 				a_host.Type = HostType::kSelf;
 
-				DEBUG("DKU_U_IPC: {} host complete", a_desc);
+				DEBUG("DKU_IPC: {} host complete", a_desc);
 
-				return TryInitHost<QueryFlag, RelayFlag>(a_host, a_desc, a_proc, a_payload, a_func);
+				return true;
 			} else {
-				DEBUG("DKU_U_IPC: {} querying...", a_desc);
+				DEBUG("DKU_IPC: {} querying...", a_desc);
 
 				const auto result = SendMessageA(a_host.Window, QueryFlag, std::bit_cast<std::uintptr_t>(std::addressof(a_host.Name)), std::bit_cast<std::uintptr_t>(a_payload));
 
 				if (result == RelayFlag) {
 					a_host.Type = HostType::kRelay;
-					DEBUG("DKU_U_IPC: {} relay available -> {}", a_desc, a_host.Name);
+					DEBUG("DKU_IPC: {} relay available -> {}", a_desc, a_host.Name);
+
 					return true;
 				} else {
-					DEBUG("DKU_U_IPC: {} relay unavailable, fallback", a_desc);
+					DEBUG("DKU_IPC: {} relay unavailable, fallback", a_desc);
 
 					a_host.WndClass = string::to_wstring(PROJECT_NAME);
 					a_host.WndTitle = string::to_wstring(PROJECT_NAME);
 
-					return TryInitHost<QueryFlag, RelayFlag>(a_host, a_desc, a_proc, a_payload, a_func);
+					return TryInitHost<QueryFlag, RelayFlag>(a_host, a_desc, a_proc, a_payload, a_evalOp);
 				}
 			}
 		}
@@ -213,10 +240,10 @@ namespace DKUtil::Utility
 				return false;
 			}
 
-			UnregisterClass(a_host.WndClass.c_str(), GetModuleHandleA(nullptr));
+			UnregisterClassW(a_host.WndClass.c_str(), GetModuleHandle(nullptr));
 			DestroyWindow(a_host.Window);
 
-			DEBUG("DKU_U_IPC: {} host terminated", a_host.Name);
+			DEBUG("DKU_IPC: {} host terminated", a_host.Name);
 
 			return false;
 		}
@@ -227,12 +254,12 @@ namespace DKUtil::Utility
 			return false;
 		}
 	} // namespace IPC
-}
+} // namespace DKUtil
 
 
 namespace DKUtil::Alias
 {
-	using HostInfo = DKUtil::Utility::IPC::HostInfo;
-	using HostType = DKUtil::Utility::IPC::HostType;
-	using WndProcFunc = DKUtil::Utility::IPC::WndProcFunc;
-}
+	using HostInfo = DKUtil::IPC::HostInfo;
+	using HostType = DKUtil::IPC::HostType;
+	using WndProcFunc = DKUtil::IPC::WndProcFunc;
+} // namespace DKUtil::Alias

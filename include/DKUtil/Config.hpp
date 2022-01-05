@@ -28,9 +28,9 @@
 
 #include "Logger.hpp"
 
-#ifdef DKU_C_NDEBUG
-#define DKU_U_NDEBUG
-#define DEBUG(...)	void(0)
+#ifdef DKU_C_DEBUG
+#define DKU_DEBUG
+#define DEBUG(...)	INFO(__VA_ARGS__)
 #endif
 
 #include "Utility.hpp"
@@ -57,11 +57,14 @@
 #define RUNTIME_PROXY(SRC)	DKUtil::Config::Proxy<DKUtil::Config::FileType::kDynamic>(SRC)
 
 
-namespace DKUtil::Config
+namespace DKUtil
 {
 	constexpr auto DKU_C_VERSION = DKU_C_VERSION_MAJOR * 10000 + DKU_C_VERSION_MINOR * 100 + DKU_C_VERSION_REVISION;
+} // namespace DKUtil
 
 
+namespace DKUtil::Config
+{
 	inline auto GetPath(const std::string_view a_file) noexcept
 	{
 		std::filesystem::path pluginDir(LOG_ENTRY);
@@ -668,7 +671,7 @@ namespace DKUtil::Config
 		// compile defined
 		constexpr explicit Proxy(const std::string_view a_file) noexcept
 			requires (ConfigFileType != FileType::kDynamic) :
-			_id(Utility::numbers::FNV_1A_32(a_file.data())), _loaded(false), _file(a_file.data()),
+			_id(numbers::FNV_1A_32(a_file.data())), _loaded(false), _file(a_file.data()),
 			_type(ConfigFileType), _parser(std::make_unique<parser_t>(a_file.data(), _id, _manager))
 		{
 			DEBUG("DKU_C: Proxy#{}: Compile -> {}", _id, _file);
@@ -677,7 +680,7 @@ namespace DKUtil::Config
 		// runtime defined
 		constexpr explicit Proxy(const std::string_view a_file) noexcept
 			requires (ConfigFileType == FileType::kDynamic) :
-			_id(Utility::numbers::FNV_1A_32(a_file.data())), _loaded(false), _file(a_file.data())
+			_id(numbers::FNV_1A_32(a_file.data())), _loaded(false), _file(a_file.data())
 		{
 			// bogus, need fixing
 			const auto extension = a_file.substr(a_file.size() - 4);

@@ -106,7 +106,6 @@ namespace Test::GUI
 	void Install()
 	{
 		DKUtil::GUI::InitD3D(); 
-        DKUtil::GUI::InitImGui();
         DKUtil::GUI::AddCallback(FUNC_INFO(SimpleWindow));
 
 		INFO("GUI installed!"sv);
@@ -116,8 +115,6 @@ namespace Test::GUI
 	void Uninstall()
 	{
 		Stop();
-		DKUtil::GUI::Terminate();
-
 		INFO("GUI uninstalled!"sv);
 	}
 }

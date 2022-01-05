@@ -52,7 +52,7 @@ using namespace std::literals;
 
 
 #define ERROR(...)																\
-	const auto errormsg = "ERROR\n"s + fmt::format(__VA_ARGS__);				\
+	const auto errormsg = "ERROR\n\n"s + fmt::format(__VA_ARGS__);				\
 	spdlog::default_logger_raw()->log(spdlog::source_loc{__FILE__, __LINE__,	\
 		SPDLOG_FUNCTION}, spdlog::level::critical, __VA_ARGS__);				\
 	MessageBoxA(nullptr, errormsg.c_str(), Version::PROJECT.data(), MB_OK);		\
@@ -63,11 +63,14 @@ using namespace std::literals;
 #endif
 
 
-namespace DKUtil::Logger
+namespace DKUtil
 {
 	constexpr auto DKU_L_VERSION = DKU_L_VERSION_MAJOR * 10000 + DKU_L_VERSION_MINOR * 100 + DKU_L_VERSION_REVISION;
+} // namespace DKUtil
 
 
+namespace DKUtil::Logger
+{
 	// From CommonLibSSE https://github.com/Ryan-rsm-McKenzie/CommonLibSSE
 	inline std::optional<std::filesystem::path> log_directory()
 	{

@@ -4,7 +4,7 @@ Some utilitarian headers to help with SKSE64 plugin development
 
 # Implementations
 [![Config](https://img.shields.io/badge/Config-1.0.1-R.svg)](#Config)
-[![GUI](https://img.shields.io/badge/GUI-1.2.1-R.svg)](#GUI)
+[![GUI](https://img.shields.io/badge/GUI-1.2.2-R.svg)](#GUI)
 [![Hook](https://img.shields.io/badge/Hook-2.3.1-R.svg)](#Hook)
 [![Logger](https://img.shields.io/badge/Logger-1.1.0-R.svg)](#Logger)
 [![Utility](https://img.shields.io/badge/Utility-untracked-R.svg)](#Utility)
@@ -146,11 +146,6 @@ void Load() noexcept
 
 GUI implementation to easily inject into any process with raw D3D callback and by default providing ImGui's full potential.
 
-## Instance sharing
-Does every project using `DKUtil::GUI` instantiating their own instance of `ImGui` and hook D3D calls individually? **No**.
-
-`DKUtil::GUI` uses its own IPC method to ensure only first loaded instance will execute the initial hook & instantiation process. Subsequent processes will attempt to query the loaded host and register through the host.
-
 ## Example
 ```C++
 // define this symbol before including header will strip ImGui implementation
@@ -211,7 +206,6 @@ void Stop()
 void Install()
 {
     DKUtil::GUI::InitD3D(); 
-    DKUtil::GUI::InitImGui();
     DKUtil::GUI::AddCallback(FUNC_INFO(SimpleWindow));
 
     INFO("GUI installed!"sv);

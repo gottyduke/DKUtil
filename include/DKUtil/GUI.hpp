@@ -1,6 +1,9 @@
 #pragma once
 
 /* 
+ * 1.2.2
+ * Disabled some features until further fixing;
+ * 
  * 1.2.1
  * Minor formatting;
  * 
@@ -22,7 +25,7 @@
 
 #define DKU_G_VERSION_MAJOR     1
 #define DKU_G_VERSION_MINOR     2
-#define DKU_G_VERSION_REVISION  1
+#define DKU_G_VERSION_REVISION  2
 
 
 // AdditionalInclude
@@ -33,20 +36,18 @@
 #include <queue>
 #include <vector>
 
-#ifndef RAW_D3D
 // imgui
 #include <imgui.h>
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
-#endif
 
 // DKUtil
 #include "Hook.hpp"
 #include "Logger.hpp"
 
-#ifdef DKU_G_NDEBUG
-#define DKU_U_NDEBUG
-#define DEBUG(...)	void(0)
+#ifdef DKU_G_DEBUG
+#define DKU_DEBUG
+#define DEBUG(...)	INFO(__VA_ARGS__)
 #endif
 
 #include "Utility.hpp"
@@ -55,7 +56,7 @@
 
 
 #define VMT_PRESENT_INDEX   0x8
-#define WM_DKU_G_ADD        WM_USER + 103
+#define WM_DKU_G_ADD        WM_USER + 107
 #define WM_DKU_G_REMOVE     WM_USER + 108
 #define WM_DKU_G_QUERY_D    WM_USER + 109
 #ifndef RAW_D3D
@@ -75,15 +76,16 @@
 #define DKU_G_TARGETHWND    DKU_G(D3D11.TargetWindow)
 
 
-namespace DKUtil::GUI
+namespace DKUtil
 {
     constexpr auto DKU_G_VERSION = DKU_G_VERSION_MAJOR * 10000 + DKU_G_VERSION_MINOR * 100 + DKU_G_VERSION_REVISION;
+} // namespace DKUtil
 
 
-    extern LRESULT AddCallback(Hook::FuncInfo, const bool = false) noexcept;
-    extern LRESULT RemoveCallback(Hook::FuncInfo) noexcept;
-    extern void InitImGui() noexcept;
-
+namespace DKUtil::GUI
+{
+    extern inline LRESULT AddCallback(Hook::FuncInfo, const bool = false) noexcept;
+    extern inline LRESULT RemoveCallback(Hook::FuncInfo) noexcept;
 
     namespace detail
     {
@@ -93,12 +95,11 @@ namespace DKUtil::GUI
         using PresentFunc = std::add_pointer_t<HRESULT(IDXGISwapChain*, UINT, UINT)>;
         using CallbackFunc = std::add_pointer_t<void(IDXGISwapChain*, UINT, UINT)>;
         using CallbackQueue = std::vector<std::uintptr_t>;
-#ifndef RAW_D3D
+
         using ContextFunc = std::add_pointer_t<void(ImGuiContext*)>;
         using AllocFunc = std::add_pointer_t<void(ImGuiMemAllocFunc, ImGuiMemFreeFunc, void*)>;
         using ImGuiCallback = std::pair<std::uintptr_t, std::uintptr_t>;
         using ImGuiCallbackQueue = std::queue<ImGuiCallback>;
-#endif
 
         namespace global
         {
@@ -110,36 +111,27 @@ namespace DKUtil::GUI
                 ID3D11DeviceContext*    DeviceContext = nullptr;
                 ID3D11RenderTargetView* RenderView = nullptr;
                 HWND				    TargetWindow = nullptr;
+
+                std::uintptr_t          CtxCallback = reinterpret_cast<std::uintptr_t>(ImGui::SetCurrentContext);
+                std::uintptr_t          AllocCallback = reinterpret_cast<std::uintptr_t>(ImGui::SetAllocatorFunctions);
             };
-            static D3DState              D3D11;
+            static D3DState             D3D11;
+            static ImGuiContext*        iContext;
+            static ImGuiMemAllocFunc    iAllocFunc;
+            static ImGuiMemFreeFunc     iFreeFunc;
+            static void*                iBackend;
 
             // gui
             static PresentFunc          _Present;
             static CallbackQueue        HostQueue;
-            static CallbackQueue        LocalQueue;
+            static ImGuiCallbackQueue   ImGuiQueue;
 
             // hook
             static HookHandle           _Hook_Present;
 
-#ifndef RAW_D3D
-            struct ImGuiState
-            {
-                ImGuiContext*           Context = nullptr;
-                ImGuiMemAllocFunc       AllocFunc = nullptr;
-                ImGuiMemFreeFunc        FreeFunc = nullptr;
-                void*                   Backend = nullptr;
-
-                const std::uintptr_t    CtxCallback = reinterpret_cast<std::uintptr_t>(ImGui::SetCurrentContext);
-                const std::uintptr_t    AllocCallback = reinterpret_cast<std::uintptr_t>(ImGui::SetAllocatorFunctions);
-            };
-            static ImGuiState           ImGui;
-            static ImGuiCallbackQueue   ImGuiQueue;
-#endif
-
             // ipc
-            static HostInfo             D3DHost{ L"DKU_G_d3d_base", L"DKU_d3d_host" };
-            static HostInfo             ImGuiHost{ L"DKU_G_imgui_base", L"DKU_G_imgui_host" }; // required even if not using imgui, relay to second query
-            static const char*          LastSender = PROJECT_NAME;
+            static HostInfo             D3DHost;
+            static std::string          LastSender{ PROJECT_NAME };
         } // namespace Global
 
         
@@ -151,22 +143,10 @@ namespace DKUtil::GUI
 
 
         /* WndProc */
-
-        LRESULT __stdcall HostWndProc([[maybe_unused]] HWND a_window, UINT a_msg, WPARAM a_payload1, LPARAM a_payload2) noexcept
+        inline LRESULT __stdcall HostWndProc([[maybe_unused]] HWND a_window, UINT a_msg, WPARAM a_payload1, LPARAM a_payload2) noexcept
         {
             switch (a_msg) {
             case WM_DKU_G_ADD:
-            {
-                global::LastSender = std::bit_cast<const char*>(a_payload2);
-                auto func = std::bit_cast<Hook::FuncInfo*>(a_payload1);
-
-                if (!func) {
-                    return LR_DKU_G_FAILURE;
-                }
-
-                return AddCallback(*func);
-            }
-            case WM_DKU_G_REMOVE:
             {
                 global::LastSender = std::bit_cast<const char*>(a_payload2);
                 auto* func = std::bit_cast<Hook::FuncInfo*>(a_payload1);
@@ -175,7 +155,10 @@ namespace DKUtil::GUI
                     return LR_DKU_G_FAILURE;
                 }
 
-                return RemoveCallback(*func);
+                auto result = AddCallback(*func);
+                global::LastSender = PROJECT_NAME;
+
+                return result;
             }
             case WM_DKU_G_QUERY_D:
             {
@@ -186,25 +169,12 @@ namespace DKUtil::GUI
                     return LR_DKU_G_FAILURE;
                 }
 
+                global::ImGuiQueue.push(std::make_pair(state->CtxCallback, state->AllocCallback));
+
                 *state = global::D3D11;
 
                 return LR_DKU_G_SUCCESS;
             }
-#ifndef RAW_D3D
-            case WM_DKU_G_QUERY_I:
-            {
-                *std::bit_cast<std::string*>(a_payload1) = global::D3DHost.Name;
-                auto* state = std::bit_cast<global::ImGuiState*>(a_payload2);
-
-                if (!state) {
-                    return LR_DKU_G_FAILURE;
-                }
-
-                global::ImGuiQueue.push(std::make_pair(state->CtxCallback, state->AllocCallback));
-
-                return LR_DKU_G_SUCCESS;
-            }
-#endif
             default:
                 return LR_DKU_G_DISABLE;
             }
@@ -213,7 +183,7 @@ namespace DKUtil::GUI
 
         /* Present */
 
-        HRESULT __cdecl Hook_Present(IDXGISwapChain* a_this, UINT a_syncInterval, UINT a_flags) noexcept
+        inline HRESULT __cdecl Hook_Present(IDXGISwapChain* a_this, UINT a_syncInterval, UINT a_flags) noexcept
         {
             using namespace global;
 
@@ -232,53 +202,41 @@ namespace DKUtil::GUI
                         backBuffer->Release();
 
                         DEBUG("DKU_G: Acquired D3D runtime info"sv);
-#ifndef RAW_D3D
+
                         ImGui_ImplWin32_Init(D3D11.TargetWindow);
                         ImGui_ImplDX11_Init(D3D11.Device, D3D11.DeviceContext);
 
-                        ImGui::GetAllocatorFunctions(&ImGui.AllocFunc, &ImGui.FreeFunc, &ImGui.Backend);
+                        ImGui::GetAllocatorFunctions(&iAllocFunc, &iFreeFunc, &iBackend);
 
-                        if (!ImGui.AllocFunc || !ImGui.FreeFunc) {
+                        if (!iAllocFunc || !iFreeFunc) {
                             ERROR("DKU_G: Failed acquiring ImGui runtime info"sv);
                         }
 
                         DEBUG("DKU_G: Acquired ImGui runtime info"sv);
-#endif
                     }
                 }
             );
 
-            // host info shouldn't change within one frame
-            const auto isImGuiHost = ImGuiHost.Type == HostType::kSelf;
+            while (!global::ImGuiQueue.empty()) {
+                auto& [context, alloc] = global::ImGuiQueue.front();
 
-            if (isImGuiHost) {
-#ifndef RAW_D3D
-                while (!global::ImGuiQueue.empty()) {
-                    auto& [context, alloc] = global::ImGuiQueue.front();
+                Invocable<ContextFunc>(context)(iContext);
+                Invocable<AllocFunc>(alloc)(global::iAllocFunc, global::iFreeFunc, global::iBackend);
 
-                    Invocable<ContextFunc>(context)(global::ImGui.Context);
-                    Invocable<AllocFunc>(alloc)(global::ImGui.AllocFunc, global::ImGui.FreeFunc, global::ImGui.Backend);
-
-                    global::ImGuiQueue.pop();
-                }
-
-                ImGui_ImplDX11_NewFrame();
-                ImGui_ImplWin32_NewFrame();
-                ImGui::NewFrame();
-#endif
+                global::ImGuiQueue.pop();
             }
+
+            ImGui_ImplDX11_NewFrame();
+            ImGui_ImplWin32_NewFrame();
+            ImGui::NewFrame();
 
             for (auto& func : HostQueue) {
                 Invocable<CallbackFunc>(func)(a_this, a_syncInterval, a_flags);
             }
 
-            if (isImGuiHost) {
-#ifndef RAW_D3D
-                ImGui::EndFrame();
-                ImGui::Render();
-                ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-#endif
-            }
+            ImGui::EndFrame();
+            ImGui::Render();
+            ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
             D3D11.DeviceContext->OMSetRenderTargets(1, &D3D11.RenderView, nullptr);
 
@@ -286,8 +244,10 @@ namespace DKUtil::GUI
         }
 
 
-        bool TryAcquireD3DData() noexcept
+        inline bool TryAcquireD3DData() noexcept
         {
+            DEBUG("DKU_G: Acquiring D3D11 dll info..."sv);
+
             DXGI_SWAP_CHAIN_DESC swapChainDesc{ };
             swapChainDesc.BufferCount = 1;
             swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -303,6 +263,8 @@ namespace DKUtil::GUI
 
             const auto result = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, nullptr, 0, D3D11_SDK_VERSION, &swapChainDesc, &global::D3D11.SwapChain, &global::D3D11.Device, &featureLevel, nullptr);
 
+            DEBUG("DKU_G: D3D11 dll -> {}", result);
+
             return SUCCEEDED(result);
         }
 
@@ -312,17 +274,17 @@ namespace DKUtil::GUI
             switch (a_result) {
             case LR_DKU_G_SUCCESS:
             {
-                DEBUG("DKU_G: {} D3D11 callback succeeded -> {} @ {}.{:x}", a_action, a_payload1, global::LastSender, a_payload2);
+                DEBUG("DKU_G: {} D3D11 callback succeeded -> {} @ {}.{:X}", a_action, a_payload1, global::LastSender, a_payload2);
                 break;
             }
             case LR_DKU_G_FAILURE:
             {
-                ERROR("DKU_G: {} D3D11 callback failed\n\nHost -> {}\n\nFunction -> {}", a_action, global::LastSender, a_payload1);
+                ERROR("DKU_G: {} D3D11 callback failed\n\nHost -> {}\n\nFunction -> {}", a_action, global::D3DHost.Name, a_payload1);
                 break;
             }
             case LR_DKU_G_DISABLE:
             {
-                DEBUG("DKU_G: {} D3D11 callback disabled -> {} @ {}.{:x}", a_action, a_payload1, global::LastSender, a_payload2);
+                DEBUG("DKU_G: {} D3D11 callback disabled -> {} @ {}.{:X}", a_action, a_payload1, global::LastSender, a_payload2);
                 break;
             }
             default:
@@ -338,74 +300,52 @@ namespace DKUtil::GUI
     /* API */
 
     // Init D3D11 hook or query a loaded D3D11 host
-    void InitD3D() noexcept
+    inline void InitD3D() noexcept
     {
         using namespace detail;
         using namespace detail::global;
 
-        if (Utility::IPC::TryInitHost<WM_DKU_G_QUERY_D, LR_DKU_G_SUCCESS>(D3DHost, "D3D11", HostWndProc, &D3D11, []()
-            {
+        DEBUG("DKU_G: Version {}", DKU_G_VERSION);
+
+        if (IPC::TryInitHost<WM_DKU_G_QUERY_D, LR_DKU_G_SUCCESS>(D3DHost, "D3D11", HostWndProc, &D3D11, []()
+            {// 2022/01/05 DISABLED IPC until further investigation
                 if (TryAcquireD3DData()) {
                     _Hook_Present = Hook::AddVMTHook(D3D11.SwapChain, VMT_PRESENT_INDEX, FUNC_INFO(Hook_Present));
                     _Present = Invocable<PresentFunc>(_Hook_Present->As<VMTHandle>()->OldAddress);
                     _Hook_Present->Enable();
-                    return true;
+
+                    // Init ImGui context & allocators
+                    ImGui::CreateContext();
+                    iContext = ImGui::GetCurrentContext();
+
+                    return static_cast<bool>(iContext);
                 } else {
                     return false;
                 }
             })) {
             DEBUG("DKU_G: D3D11 init"sv);
+
         } else {
             ERROR("DKU_G: Failed initializing D3D11"sv);
         }
     }
 
 
-#ifndef RAW_D3D
-    // Init ImGui module and set the context & allocators
-    void InitImGui() noexcept
+    inline LRESULT AddCallback(Hook::FuncInfo a_func, const bool a_remove) noexcept
     {
         using namespace detail;
         using namespace detail::global;
 
-        if (Utility::IPC::TryInitHost<WM_DKU_G_QUERY_I, LR_DKU_G_SUCCESS>(ImGuiHost, "ImGui", HostWndProc, &ImGui, []()
-            {
-                ImGui::CreateContext();
-                ImGui.Context = ImGui::GetCurrentContext();
-
-                return ImGui.Context;
-            }
-            )) {
-            DEBUG("DKU_G: ImGui init"sv);
-        } else {
-            ERROR("DKU_G: Failed initializing ImGui"sv);
-        }
-    }
-#endif
-
-
-    LRESULT AddCallback(Hook::FuncInfo a_func, const bool a_remove) noexcept
-    {
-        using namespace detail;
-        using namespace detail::global;
-
+        D3DHost.Window = FindWindowExW(HWND_MESSAGE, nullptr, D3DHost.WndClass.c_str(), D3DHost.WndTitle.c_str());
         if (!D3DHost.Window) {
-            ERROR("DKU_G: Call InitD3D() before registering D3D callback"sv);
+            char moduleName[MAX_PATH];
+            GetModuleBaseNameA(GetCurrentProcess(), nullptr, moduleName, MAX_PATH);
+
+            ERROR("DKU_G: It seems like the D3D11 host has been terminated!\nThis could be caused by thread switching, e.g. the host was initiated from a different thread.\n\nPlease contact the plugin author to synchronize call of [InitD3D11] and [AddCallback].\n\nProcess name -> {}", moduleName);
         }
 
         if (!a_func.Address) {
             ERROR("DKU_G: Invalid function {}", a_func.Name.empty() ? "INVALID_NAME"sv : a_func.Name);
-        }
-
-        if (std::strcmp(LastSender, PROJECT_NAME) != 0) {
-            const auto& iter = std::find(LocalQueue.begin(), LocalQueue.end(), a_func.Address);
-
-            if (iter != LocalQueue.end() && a_remove) {
-                LocalQueue.erase(iter);
-            }
-            if (iter == LocalQueue.end()) {
-                LocalQueue.push_back(a_func.Address);
-            }
         }
 
         LRESULT result{ LR_DKU_G_SUCCESS };
@@ -421,28 +361,29 @@ namespace DKUtil::GUI
                 result = LR_DKU_G_DISABLE;
             }
         } else {
-            result = SendMessageA(D3DHost.Window, a_remove ? WM_DKU_G_REMOVE :WM_DKU_G_ADD, std::bit_cast<std::uintptr_t>(std::addressof(a_func)), std::bit_cast<std::uintptr_t>(PROJECT_NAME));
+            result = SendMessageA(D3DHost.Window, a_remove ? WM_DKU_G_REMOVE : WM_DKU_G_ADD, AsAddress(std::addressof(a_func)), AsAddress(PROJECT_NAME));
         }
-        
+
         LogResult(result, a_remove ? "Remove" : "Register", a_func.Name.data(), a_func.Address);
 
         return result;
-    }
-
-
-    LRESULT RemoveCallback(Hook::FuncInfo a_func) noexcept
+    }    
+    
+    
+    inline LRESULT RemoveCallback(Hook::FuncInfo a_func) noexcept
     {
         return AddCallback(a_func, true);
-    }
-
-
+    }    
+    
+    
     // no definitive termination if hosting
-    void Terminate() noexcept
+    inline void Terminate() noexcept
     {
         using namespace detail;
 
-        for (auto func : global::LocalQueue) {
+        for (auto func : global::HostQueue) {
             RemoveCallback(RT_INFO(func, "Termination"sv));
         }
     }
 } // namespace DKUtil::GUI
+
