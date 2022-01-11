@@ -5,7 +5,7 @@ Some utilitarian headers to help with SKSE64 plugin development
 # Implementations
 [![Config](https://img.shields.io/badge/Config-1.0.1-R.svg)](#Config)
 [![GUI](https://img.shields.io/badge/GUI-1.2.2-R.svg)](#GUI)
-[![Hook](https://img.shields.io/badge/Hook-2.3.1-R.svg)](#Hook)
+[![Hook](https://img.shields.io/badge/Hook-2.3.2-R.svg)](#Hook)
 [![Logger](https://img.shields.io/badge/Logger-1.1.0-R.svg)](#Logger)
 [![Utility](https://img.shields.io/badge/Utility-untracked-R.svg)](#Utility)
 
@@ -14,7 +14,7 @@ Some utilitarian headers to help with SKSE64 plugin development
 ## Requirement
 + [CMake](https://cmake.org)
 + [vcpkg](https://github.com/microsoft/vcpkg/releases)
-+ /std:c++20 or /std:latest
++ `/std:c++20` or `/std:latest`
     + Config
         + [tomlplusplus](https://github.com/marzer/tomlplusplus)
         + [SimpleIni](https://github.com/brofield/simpleini)
