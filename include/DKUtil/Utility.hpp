@@ -10,7 +10,7 @@
 
 
 #ifndef PROJECT_NAME
-#define PROJECT_NAME	Version::PROJECT.data()
+#define PROJECT_NAME	Plugin::NAME.data()
 #endif
 
 #define DKU_IPC_BASE	std::wstring(L"_DKU_IPC_BASE_") 

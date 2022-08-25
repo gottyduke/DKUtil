@@ -142,20 +142,13 @@
 	#include "F4SE/API.h"
 #elif defined ( SKSEAPI )
 	#include "SKSE/API.h"
-
-	// Address Library
-	#if ANNIVERSARY_EDITION
-		#include "external/versionlibdb.h"
-	#else
-		#include "external/versiondb.h"
-	#endif
 #else
 	#error "Neither CommonLib nor custom TRAMPOLINE defined"
 #endif
 
-#define TRAMPOLINE			F4SE::GetTrampoline()
+#define TRAMPOLINE			SKSE::GetTrampoline()
 #define TRAM_ALLOC(SIZE)	AsAddress((TRAMPOLINE).allocate((SIZE)))
-#define PAGE_ALLOC(SIZE)	F4SE::AllocTrampoline((SIZE))
+#define PAGE_ALLOC(SIZE)	SKSE::AllocTrampoline((SIZE))
 
 #endif
 

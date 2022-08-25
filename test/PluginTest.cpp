@@ -16,7 +16,7 @@
 
 namespace
 {
-	void MsgCallback(F4SE::MessagingInterface::Message* a_msg) noexcept
+	void MsgCallback(SKSE::MessagingInterface::Message* a_msg) noexcept
 	{
 #ifdef TEST_CONFIG
 
@@ -37,14 +37,37 @@ namespace
 }
 
 
-DLLEXPORT bool F4SEAPI F4SEPlugin_Load(const F4SE::LoadInterface* a_F4SE)
+DLLEXPORT constinit auto SKSEPlugin_Version = []() noexcept
 {
-	INFO("{} v{} loaded", Version::PROJECT, Version::NAME);
+	SKSE::PluginVersionData data{};
 
-	F4SE::Init(a_F4SE);
+	data.PluginVersion(Plugin::Version);
+	data.PluginName(Plugin::NAME);
+	data.AuthorName(Plugin::AUTHOR);
+	data.UsesAddressLibrary(true);
+
+	return data;
+}();
 
 
-	const auto* messaging = F4SE::GetMessagingInterface();
+DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface*, SKSE::PluginInfo* pluginInfo)
+{
+    pluginInfo->name = SKSEPlugin_Version.pluginName;
+    pluginInfo->infoVersion = SKSE::PluginInfo::kVersion;
+    pluginInfo->version = SKSEPlugin_Version.pluginVersion;
+
+    return true;
+}
+
+
+DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
+{
+	DKUtil::Logger::Init(Plugin::NAME, REL::Module::get().version().string());
+
+	SKSE::Init(a_skse);
+	INFO("{} v{} loaded", Plugin::NAME, Plugin::Version);
+
+	const auto* messaging = SKSE::GetMessagingInterface();
 	messaging->RegisterListener(MsgCallback);
 
 
@@ -73,6 +96,7 @@ DLLEXPORT bool F4SEAPI F4SEPlugin_Load(const F4SE::LoadInterface* a_F4SE)
 	Test::Utility::StartTest();
 
 #endif
+
 
 	return true;
 }

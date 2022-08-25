@@ -1,3 +1,5 @@
+#Requires -Version 5
+
 # args
 param (
     [Parameter(Mandatory)][ValidateSet('COPY', 'SOURCEGEN', 'DISTRIBUTE')][string]$Mode,
@@ -10,8 +12,9 @@ param (
 $ErrorActionPreference = "Stop"
 
 $Folder = $PSScriptRoot | Split-Path -Leaf
-$AcceptedExt = @('.c', '.cpp', '.cxx', '.h', '.hpp', '.hxx')
-
+$SourceExt = @('.c', '.cpp', '.cxx', '.h', '.hpp', '.hxx')
+$ConfigExt = @('.ini', '.json', '.toml')
+$env:ScriptCulture = (Get-Culture).Name -eq 'zh-CN'
 
 function Resolve-Files {
     param (
@@ -25,19 +28,29 @@ function Resolve-Files {
 
         try {
             foreach ($directory in $a_directory) {
-                Get-ChildItem "$a_parent/$directory" -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
-                    ($_.Extension -in $AcceptedExt) -and 
-                    ($_.Name -ne 'Version.h')
-                } | Resolve-Path -Relative | ForEach-Object {
-                    $_generated.Add("`n`t`"$($_.Substring(2) -replace '\\', '/')`"") | Out-Null
+                if (!$env:RebuildInvoke) {
+                    Write-Host "`t[$a_parent/$directory]"
                 }
 
-                if (!$env:RebuildInvoke) {
-                    Write-Host "`t<$a_parent/$directory>"
-                    foreach ($file in $_generated) {
-                        Write-Host "$file"
+                Get-ChildItem "$a_parent/$directory" -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
+                    ($_.Extension -in $SourceExt) -and 
+                    ($_.Name -ne 'Version.h')
+                } | Resolve-Path -Relative | ForEach-Object {
+                    if (!$env:RebuildInvoke) {
+                        Write-Host "`t`t<$_>"
                     }
+                    $_generated.Add("`n`t`"$($_.Substring(2) -replace '\\', '/')`"") | Out-Null
                 }
+            }               
+            
+            Get-ChildItem "$a_parent" -File -ErrorAction SilentlyContinue | Where-Object {
+                ($_.Extension -in $ConfigExt) -and 
+                ($_.Name -notmatch 'cmake|vcpkg')
+            } | Resolve-Path -Relative | ForEach-Object {
+                if (!$env:RebuildInvoke) {
+                    Write-Host "`t`t<$_>"
+                }
+                $_generated.Add("`n`t`"$($_.Substring(2) -replace '\\', '/')`"") | Out-Null
             }
         } finally {
             Pop-Location
@@ -55,28 +68,70 @@ Write-Host "`n`t<$Folder> [$Mode]"
 if ($Mode -eq 'COPY') {
 
     # process newly added files
-    $BuildFolder = Get-ChildItem (Get-Item $Path).Parent.Parent.FullName "$Project.sln" -Depth 2 -File -Exclude ('*CMakeFiles*', '*f4se*')
-    $NewFiles = Get-ChildItem $BuildFolder.DirectoryName -File | Where-Object {$_.Extension -in $AcceptedExt}
+    $BuildFolder = Get-ChildItem (Get-Item $Path).Parent.Parent.FullName "$Project.sln" -Depth 2 -File -Exclude ('*CMakeFiles*', '*CLib*')
+    $NewFiles = Get-ChildItem $BuildFolder.DirectoryName -File | Where-Object {$_.Extension -in $SourceExt}
     if ($NewFiles) { # trigger ZERO_CHECK
-        $NewFiles | Move-Item -($env:MO2Fallout4Path)/Data "$PSScriptRoot/src" -Force -Confirm:$false -ErrorAction:SilentlyContinue | Out-Null
+        $NewFiles | Move-Item -Destination "$PSScriptRoot/src" -Force -Confirm:$false -ErrorAction:SilentlyContinue | Out-Null
         [IO.File]::WriteAllText("$PSScriptRoot/CMakeLists.txt", [IO.File]::ReadAllText("$PSScriptRoot/CMakeLists.txt"))
     }
 
     # Build Target
     Write-Host "`t$Folder $Version"
     $vcpkg = [IO.File]::ReadAllText("$PSScriptRoot/vcpkg.json") | ConvertFrom-Json
+    $Install = $vcpkg.'features'.'mo2-install'.'description'
+    $ProjectCMake = [IO.File]::ReadAllText("$PSScriptRoot/CMakeLists.txt")
+    $OldVersion = [regex]::match($ProjectCMake, '(?s)(?:(?<=\sVERSION\s)(.*?)(?=\s+))').Groups[1].Value
 
-    $GameDir = Join-Path $env:Fallout4Path "Data"
-    $MO2Dir = Join-Path "$($env:MO2Fallout4Path)/mods" $vcpkg.'features'.'mo2-install'.'description'
 
+    function Copy-Mod {
+        param (
+            $Data
+        )
+
+        New-Item -Type Directory "$Data/SKSE/Plugins" -Force | Out-Null
+
+        # binary
+        Copy-Item "$Path/$Project.dll" "$Data/SKSE/Plugins/$Project.dll" -Force
+        $Message.Text += "`r`n- Binary files copied"
+
+        # configs
+        Get-ChildItem $PSScriptRoot | Where-Object {
+            ($_.Extension -in $ConfigExt) -and 
+            ($_.Name -notmatch 'CMake|vcpkg')
+        } | ForEach-Object {
+            Copy-Item $_.FullName "$Data/SKSE/Plugins/$($_.Name)" -Force
+            $Message.Text += "`r`n- Configuration files copied"
+        }
+
+        # shockwave
+        if (Test-Path "$PSScriptRoot/Interface/*.swf" -PathType Leaf) {
+            New-Item -Type Directory "$Data/Interface" -Force | Out-Null
+            Copy-Item "$PSScriptRoot/Interface" "$Data" -Recurse -Force
+            $Message.Text += "`r`n- Shockwave files copied"
+        }
+
+        # papyrus
+        if (Test-Path "$PSScriptRoot/Scripts/*.pex" -PathType Leaf) {
+            New-Item -Type Directory "$Data/Scripts" -Force | Out-Null
+            xcopy.exe "$PSScriptRoot/Scripts" "$Data/Scripts" /C /I /S /E /Y
+            $Message.Text += "`r`n- Papyrus scripts copied"
+        }
+        if (Test-Path "$PSScriptRoot/Scripts/Source/*.psc" -PathType Leaf) {
+            New-Item -Type Directory "$Data/Scripts/Source" -Force | Out-Null
+            xcopy.exe "$PSScriptRoot/Scripts/Source" "$Data/Scripts/Source" /C /I /S /E /Y
+            $Message.Text += "`r`n- Papyrus scripts copied"
+        }
+    }
+
+
+	Add-Type -AssemblyName Microsoft.VisualBasic
     Add-Type -AssemblyName System.Windows.Forms
     Add-Type -AssemblyName System.Drawing
 
     [System.Windows.Forms.Application]::EnableVisualStyles()
     $MsgBox = New-Object System.Windows.Forms.Form -Property @{
         TopLevel = $true
-        TopMost = $true
-        ClientSize = '350, 250'
+        ClientSize = '350, 305'
         Text = $Project
         StartPosition = 'CenterScreen'
         FormBorderStyle = 'FixedDialog'
@@ -90,146 +145,207 @@ if ($Mode -eq 'COPY') {
         Location = New-Object System.Drawing.Point(20, 20)
         Multiline = $true
         ReadOnly = $true
-        Text = "- [[ $Project ]] has been built."
+        Text = "- [$Project - $OldVersion] has been built."
         
     }
-
-    function Copy-Mod {
-        param (
-            $Data
-        )
-
-        New-Item -Type Directory "$Data/F4SE/Plugins" -Force | Out-Null
-
-        # binary
-        Copy-Item "$Path/$Project.dll" "$Data/F4SE/Plugins/$Project.dll" -Force
-        $Message.Text += "`r`n Binaries copied!"
-
-        # configs
-        Get-ChildItem $PSScriptRoot | Where-Object {
-            ($_.Extension -in '.toml', '.json', '.ini') -and 
-            ($_.Name -ne 'vcpkg.json')
-        } | ForEach-Object {
-            Copy-Item $_.FullName "$Data/F4SE/Plugins/$($_.Name)" -Force
-            $Message.Text += "`r`n Configurations copied!"
-        }
-
-        # shockwave
-        if (Test-Path "$PSScriptRoot/Interface/*.swf" -PathType Leaf) {
-            New-Item -Type Directory "$Data/Interface" -Force | Out-Null
-            Copy-Item "$PSScriptRoot/Interface" "$Data" -Recurse -Force
-            $Message.Text += "`r`n Shockwave files copied!"
-        }
-
-        # papyrus
-        if (Test-Path "$PSScriptRoot/Scripts/*.pex" -PathType Leaf) {
-            New-Item -Type Directory "$Data/Scripts" -Force | Out-Null
-            Copy-Item "$PSScriptRoot/Scripts" "$Data" -Recurse -Force
-            $Message.Text += "`r`n Papyrus scripts copied!"
-        }
-    }
-
+    
     $BtnCopyMO2 = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
         Location = New-Object System.Drawing.Point(260, 19)
-        Text = '>>MO2'
+        Text = 'Copy to MO2'
         Add_Click = {
-            Copy-Mod $MO2Dir
+            $BtnCopyMO2.Enabled = $false
+            foreach ($runtime in @("$($env:MO2SkyrimAEPath)/mods", "$($env:MO2SkyrimSEPath)/mods", "$($env:MO2SkyrimVRPath)/mods")) {
+                if (Test-Path $runtime -PathType Container) {
+                    Copy-Mod "$runtime/$Install"
+                }
+            }
+            $Message.Text += "`r`n- Copied to MO2."
+            $BtnCopyMO2.Enabled = $true
         }
     }
-
+    
     $BtnCopyData = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
         Location = New-Object System.Drawing.Point(260, 74)
-        Text = '>>Data'
+        Text = 'Copy to Data'
         Add_Click = {
-            Copy-Mod "$GameDir/Data"
+            $BtnCopyData.Enabled = $false
+            foreach ($runtime in @("$($env:SkyrimAEPath)/data", "$($env:SkyrimSEPath)/data", "$($env:SkyrimVRPath)/data")) {
+                if (Test-Path $runtime -PathType Container) {
+                    Copy-Mod "$runtime"
+                }
+            }
+            $Message.Text += "`r`n- Copied to game data."
+            $BtnCopyData.Enabled = $true
         }
     }
-
+    
+    $BtnRemoveData = New-Object System.Windows.Forms.Button -Property @{
+        ClientSize = '70, 50'
+        Text = 'Remove in Data'
+        Location = New-Object System.Drawing.Point(260, 129)
+        Add_Click = {
+            $BtnRemoveData.Enabled = $false
+            foreach ($runtime in @("$($env:SkyrimAEPath)/data", "$($env:SkyrimSEPath)/data", "$($env:SkyrimVRPath)/data")) {
+                if (Test-Path "$runtime/SKSE/Plugins/$Project.dll" -PathType Leaf) {
+                    Remove-Item "$runtime/SKSE/Plugins/$Project.dll" -Force -Confirm:$false -ErrorAction:SilentlyContinue | Out-Null
+                }
+            }
+            $Message.Text += "`r`n- Removed from game data."
+            $BtnRemoveData.Enabled = $true
+        }
+    }
+    
     $BtnOpenFolder = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'Show'
-        Location = New-Object System.Drawing.Point(260, 129)
+        Text = 'Show in Explorer'
+        Location = New-Object System.Drawing.Point(260, 185)
         Add_Click = {
             Invoke-Item $Path
         }
     }
-
-    $BtnLaunchF4SE = New-Object System.Windows.Forms.Button -Property @{
+    
+    $BtnLaunchSKSEAE = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'F4SE'
+        Text = 'SKSE (AE)'
         Location = New-Object System.Drawing.Point(20, 185)
         Add_Click = {
-            Push-Location $env:Fallout4Path
-            Start-Process ./F4SE64_loader.exe
+            $BtnLaunchSKSEAE.Enabled = $false
+
+            Push-Location $env:SkyrimAEPath
+            Start-Process ./SKSE64_loader.exe
             Pop-Location
-            $Message.Text += "`r`n F4SE Launched"
+
+            $Message.Text += "`r`n- SKSE (AE) Launched."
+            $BtnLaunchSKSEAE.Enabled = $true
         }
     }
+    if (!(Test-Path "$env:SkyrimAEPath/skse64_loader.exe" -PathType Leaf)) {
+        $BtnLaunchSKSEAE.Enabled = $false
+    }
 
-    $BtnBuildPapyrus = New-Object System.Windows.Forms.Button -Property @{
+    $BtnLaunchSKSESE = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'Papyrus'
+        Text = 'SKSE (SE)'
         Location = New-Object System.Drawing.Point(100, 185)
         Add_Click = {
-            $Message.Text += "`r`n Compiling papyrus scripts..."
-            New-Item -Type Directory "$($env:Mo2Fallout4Path)/Data/Scripts" -Force | Out-Null
-            & "$env:Fallout4Path/Papyrus Compiler/PapyrusCompiler.exe" "$PSScriptRoot/Scripts" -i="$GameDir/Data/Scripts/Source;$PSScriptRoot/Scripts;$PSScriptRoot/Scripts/Source" -o="$PSScriptRoot/Scripts" -a -op -enablecache -t="4"
+            $BtnLaunchSKSESE.Enabled = $false
+
+            Push-Location $env:SkyrimSEPath
+            Start-Process ./SKSE64_loader.exe
+            Pop-Location
+
+            $Message.Text += "`r`n- SKSE (SE) Launched."
+            $BtnLaunchSKSESE.Enabled = $true
         }
     }
-
-    $BtnRemoveData = New-Object System.Windows.Forms.Button -Property @{
+    if (!(Test-Path "$env:SkyrimSEPath/skse64_loader.exe" -PathType Leaf)) {
+        $BtnLaunchSKSESE.Enabled = $false
+    }
+ 
+    $BtnLaunchSKSEVR = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'Remove'
+        Text = 'SKSE (VR)'
         Location = New-Object System.Drawing.Point(180, 185)
         Add_Click = {
+            $BtnLaunchSKSEVR.Enabled = $false
+
+            Push-Location $env:SkyrimVRPath
+            Start-Process ./SKSE64_loader.exe
+            Pop-Location
+
+            $Message.Text += "`r`n- SKSE (VR) Launched."
+            $BtnLaunchSKSEVR.Enabled = $true
         }
     }
+    if (!(Test-Path "$env:SkyrimVRPath/skse64_loader.exe" -PathType Leaf)) {
+        $BtnLaunchSKSEVR.Enabled = $false
+    }
+    
+    $BtnBuildPapyrus = New-Object System.Windows.Forms.Button -Property @{
+        ClientSize = '70, 50'
+        Text = 'Build Papyrus'
+        Location = New-Object System.Drawing.Point(20, 240)
+        Add_Click = {
+            $BtnBuildPapyrus.Enabled = $false
+            $BtnBuildPapyrus.Text = 'Compiling...'
+            
+            $Invocation = "`"$($env:SkyrimSEPath)/Papyrus Compiler/PapyrusCompiler.exe`" `"$PSScriptRoot/Scripts/Source`" -f=`"$env:SkyrimSEPath/Papyrus Compiler/TESV_Papyrus_Flags.flg`" -i=`"$env:SkyrimSEPath/Data/Scripts/Source;$PSScriptRoot/Scripts;$PSScriptRoot/Scripts/Source`" -o=`"$PSScriptRoot/Scripts`" -a -op -enablecache -t=`"4`""
+            Start-Process cmd.exe -ArgumentList "/k $Invocation && pause && exit"
+            
+            $BtnBuildPapyrus.Text = 'Build Papyrus'
+            $BtnBuildPapyrus.Enabled = $true
+        }
+    }
+    
+    $BtnChangeVersion = New-Object System.Windows.Forms.Button -Property @{
+        ClientSize = '70, 50'
+        Text = 'Version'
+        Location = New-Object System.Drawing.Point(100, 240)
+        Add_Click = {
+            $BtnChangeVersion.Enabled = $false
+            $NewVersion = $null
+            while ($OldVersion -and !$NewVersion) {
+                $NewVersion = [Microsoft.VisualBasic.Interaction]::InputBox("Input the new versioning for $Project", 'Versioning', $OldVersion)
+            }
+            $ProjectCMake = $ProjectCMake -replace "VERSION\s$OldVersion", "VERSION $NewVersion"
+            $vcpkg.'version-string' = $NewVersion
 
+            [IO.File]::WriteAllText("$PSScriptRoot/CMakeLists.txt", $ProjectCMake)
+            $vcpkg = $vcpkg | ConvertTo-Json -Depth 9
+            [IO.File]::WriteAllText("$PSScriptRoot/vcpkg.json", $vcpkg)
+
+
+            $Message.Text += "`r`n- Version changed $OldVersion -> $NewVersion"
+            $OldVersion = $NewVersion
+
+            $BtnChangeVersion.Enabled = $true
+        }
+    }
+    
+    $BtnPublish = New-Object System.Windows.Forms.Button -Property @{
+        ClientSize = '70, 50'
+        Text = 'Publish Mod'
+        Location = New-Object System.Drawing.Point(180, 240)
+        Add_Click = {
+            $BtnPublish.Enabled = $false
+            $BtnPublish.Text = 'Zipping...'
+
+            Copy-Mod "$PSScriptRoot/Tmp/Data"
+            Compress-Archive "$PSScriptRoot/Tmp/Data/*" "$Path/$($Project)-$(($OldVersion).Replace('.', '-'))" -Force
+            Remove-Item "$PSScriptRoot/Tmp" -Recurse -Force -Confirm:$false -ErrorAction:SilentlyContinue | Out-Null
+            Invoke-Item $Path
+
+            $Message.Text += "`r`n- Mod files zipped & ready to go."
+            $BtnPublish.Text = 'Publish Mod'
+            $BtnPublish.Enabled = $true
+        }
+    }
+    
+    
     $BtnExit = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
         Text = 'Exit'
-        Location = New-Object System.Drawing.Point(260, 185)
+        Location = New-Object System.Drawing.Point(260, 240)
         Add_Click = {
             $MsgBox.Close()
         }
-    }
-
-    if (!(Test-Path "$PSScriptRoot/Scripts/*.psc" -PathType Leaf)) {
-        $BtnBuildPapyrus.Enabled = $false;
     }
                 
     $MsgBox.Controls.Add($Message)
     $MsgBox.Controls.Add($BtnCopyData)
     $MsgBox.Controls.Add($BtnCopyMO2)
-    $MsgBox.Controls.Add($BtnLaunchF4SE)
-    $MsgBox.Controls.Add($BtnOpenFolder)
-    $MsgBox.Controls.Add($BtnBuildPapyrus)
     $MsgBox.Controls.Add($BtnRemoveData)
+    $MsgBox.Controls.Add($BtnOpenFolder)
     $MsgBox.Controls.Add($BtnExit)
-
-    # Check CMake VERSION
-    $OutputVersion
-    $OriginalVersion = $vcpkg.'version-string'
-    [IO.File]::ReadAllLines("$($BuildFolder.Directory)/include/Version.h") | ForEach-Object {
-        if ($_.Trim().StartsWith('inline constexpr auto NAME = "')) {
-            $OutputVersion = $_.Trim().Substring(30, 5)
-            if ($OutputVersion -ne $vcpkg.'version-string') {
-                $Message.Text += "`r`n VersionInfo changed! Updating CMakeLists..."  
-
-                $CMakeLists = [IO.File]::ReadAllText("$PSScriptRoot/CMakeLists.txt") -replace "VERSION\s$($vcpkg.'version-string')", "VERSION $OutputVersion"
-                [IO.File]::WriteAllText("$PSScriptRoot/CMakeLists.txt", $CMakeLists)
-
-                $vcpkg.'version-string' = $OutputVersion
-                $vcpkg = $vcpkg | ConvertTo-Json -Depth 9
-                [IO.File]::WriteAllText("$PSScriptRoot/vcpkg.json", $vcpkg)
-                
-                $Message.Text += "`r`n $Project has been changed from $($OriginalVersion) to $($OutputVersion)`n`nThis update will be in effect after next successful build!"
-            }
-        }
-    }
-
+    $MsgBox.Controls.Add($BtnBuildPapyrus)
+    $MsgBox.Controls.Add($BtnChangeVersion)
+    $MsgBox.Controls.Add($BtnPublish)
+    $MsgBox.Controls.Add($BtnLaunchSKSEAE)
+    $MsgBox.Controls.Add($BtnLaunchSKSESE)
+    $MsgBox.Controls.Add($BtnLaunchSKSEVR)
+    
     $MsgBox.ShowDialog() | Out-Null
     Exit
 }
@@ -247,63 +363,19 @@ if ($Mode -eq 'SOURCEGEN') {
     }
     $generated += "`n)"
     [IO.File]::WriteAllText("$Path/sourcelist.cmake", $generated)
-
-    $Json = @'
-{
-    "name":  "",
-    "version-string":  "1.0.0",
-    "description":  "",
-    "license":  "MIT",
-    "dependencies":  [],
-    "features": {
-        "mo2-install": {
-            "description": ""
-        }
-    }
-}
-'@ | ConvertFrom-Json
-    
-    # update vcpkg.json accordinly
-    if (!(Test-Path "$PSScriptRoot/vcpkg.json")) {
-        $Json.'name' = $Folder
-        $vcpkg = $Json
-    } else {
-        $vcpkg = [IO.File]::ReadAllText("$PSScriptRoot/vcpkg.json") | ConvertFrom-Json
-        $vcpkg.'name' = $vcpkg.'name'.ToLower()
-    }
-    $vcpkg.'name' = $vcpkg.'name'.ToLower()
-    $vcpkg.'version-string' = $Version    
-    if (!($vcpkg | Get-Member features)) {
-        $features = @"
-{
-"mo2-install": {
-    "description": ""
-}
-}
-"@ | ConvertFrom-Json
-        $features.'mo2-install'.'description' = $Folder
-        $vcpkg | Add-Member -Name 'features' -Value $features -MemberType NoteProperty
-    }
-
-    # inversed version control
-    if (Test-Path "$Path/version.rc" -PathType Leaf) {
-        $VersionResource = [IO.File]::ReadAllText("$Path/version.rc") -replace "`"FileDescription`",\s`"$Folder`"",  "`"FileDescription`", `"$($vcpkg.'description')`""
-        [IO.File]::WriteAllText("$Path/version.rc", $VersionResource)
-    }
-
-    $vcpkg = $vcpkg | ConvertTo-Json -Depth 9
-    [IO.File]::WriteAllText("$PSScriptRoot/vcpkg.json", $vcpkg)
 }
 
 
 # @@DISTRIBUTE
 if ($Mode -eq 'DISTRIBUTE') { # update script to every project
     Get-ChildItem "$PSScriptRoot/*/*" -Directory | Where-Object {
-        $_.Name -notin @('vcpkg', 'Build', '.git', 'PluginTutorialCN') -and
+        $_.Name -notin @('vcpkg', 'Build', '.git', '.vs') -and
         (Test-Path "$_/CMakeLists.txt" -PathType Leaf)
     } | ForEach-Object {
-        Write-Host "`n`tUpdated <$_>"
+        Write-Host "`tUpdated <$_>"
         Robocopy.exe "$PSScriptRoot" "$_" '!Update.ps1' /MT /NJS /NFL /NDL /NJH | Out-Null
     }
 }
+
+
 

@@ -55,17 +55,15 @@ using namespace std::literals;
 	const auto errormsg = "ERROR\n\n"s + fmt::format(__VA_ARGS__);				\
 	spdlog::default_logger_raw()->log(spdlog::source_loc{__FILE__, __LINE__,	\
 		SPDLOG_FUNCTION}, spdlog::level::critical, __VA_ARGS__);				\
-	MessageBoxA(nullptr, errormsg.c_str(), Version::PROJECT.data(), MB_OK);		\
+	MessageBoxA(nullptr, errormsg.c_str(), Plugin::NAME.data(), MB_OK);		\
 	ExitProcess(114514);
 
 #ifndef LOG_PATH
 
 #if defined( F4SEAPI )
 #define LOG_PATH "My Games/Fallout4/F4SE"sv
-#elif defined ( SKSEAPI )
-#define LOG_PATH "My Games/Skyrim Special Edition/SKSE"sv
 #else
-#error "Neither CommonLib nor custom LOG_PATH defined"
+#define LOG_PATH "My Games/Skyrim Special Edition/SKSE"sv
 #endif
 
 #endif
@@ -121,17 +119,12 @@ namespace DKUtil::Logger
 #if defined( F4SEAPI )
 #define MODE	"Fallout 4"
 #elif defined ( SKSEAPI )
-#ifdef ANNIVERSARY_EDITION
-#define MODE	"Skyrim Anniversary Edition"
-#else
 #define MODE	"Skyrim Special Edition"
-#endif
 #else
 #define MODE	"DKUtil"
 #endif
 
-		DEBUG("Debug Mode - {} {}", MODE, a_version
-		);
+		DEBUG("Debug Mode - {} {}", MODE, a_version);
 	}
 
 
