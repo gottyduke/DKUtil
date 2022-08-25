@@ -1,6 +1,7 @@
 {
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
     "name":  "dkutil",
-    "version-string":  "1.9.2",
+    "version-string":  "2.0.0",
     "description":  "An utilitarian library to help with SKSE plugin development.",
     "license":  "MIT",
     "dependencies":  [
@@ -8,14 +9,7 @@
                          "simpleini",
                          "spdlog",
                          "tomlplusplus",
-                         "xbyak",
-                         {
-                             "name":  "imgui",
-                             "features":  [
-                                              "dx11-binding",
-                                              "win32-binding"
-                                          ]
-                         }
+                         "xbyak"
                      ],
     "features":  {
                      "mo2-install":  {

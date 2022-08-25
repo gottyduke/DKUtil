@@ -5,17 +5,14 @@
 
 
 // CommonLib
-#include "RE/Skyrim.h"
-#include "SKSE/SKSE.h"
+#include "RE/Fallout.h"
+#include "F4SE/F4SE.h"
 
-using namespace std::literals;
 
 // Version
+using namespace std::literals;
 #include "Version.h"
 
 // DKUtil
-#include "DKUtil/Logger.hpp"
+#include "DKUtil/Plugin.hpp"
 #include "DKUtil/Utility.hpp"
-
-
-#define DLLEXPORT __declspec(dllexport)

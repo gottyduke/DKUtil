@@ -4,7 +4,6 @@ Some utilitarian headers to help with SKSE64 plugin development
 
 # Implementations
 [![Config](https://img.shields.io/badge/Config-1.0.1-R.svg)](#Config)
-[![GUI](https://img.shields.io/badge/GUI-1.2.2-R.svg)](#GUI)
 [![Hook](https://img.shields.io/badge/Hook-2.3.2-R.svg)](#Hook)
 [![Logger](https://img.shields.io/badge/Logger-1.1.0-R.svg)](#Logger)
 [![Utility](https://img.shields.io/badge/Utility-untracked-R.svg)](#Utility)
@@ -19,8 +18,6 @@ Some utilitarian headers to help with SKSE64 plugin development
         + [tomlplusplus](https://github.com/marzer/tomlplusplus)
         + [SimpleIni](https://github.com/brofield/simpleini)
         + [nlohmann-json](https://github.com/nlohmann/json)
-    + GUI
-        + [Dear ImGui](https://github.com/ocornut/imgui)
     + Logger
         + [spdlog](https://github.com/gabime/spdlog)
 
@@ -141,86 +138,6 @@ void Load() noexcept
     auto RuntimeConfig = RUNTIME_PROXY(runtimeFile); // will be evaluated to toml proxy at runtime
 }
 ```
-
-# GUI
-
-GUI implementation to easily inject into any process with raw D3D callback and by default providing ImGui's full potential.
-
-## Example
-```C++
-// define this symbol before including header will strip ImGui implementation
-//#define RAW_D3D
-#include "DKUtil/GUI.hpp"
-
-using namespace DKUtil::Alias;
-
-// your own resource loading method
-extern bool LoadTextureFromFile(const char*, ID3D11ShaderResourceView**, int*, int*);
-
-static bool Show = false;
-
-int my_image_width = 0;
-int my_image_height = 0;
-ID3D11ShaderResourceView* my_texture = nullptr;
-
-void SimpleWindow() noexcept
-{
-    if (!Show) {
-        return;
-    }
-    
-    ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f));
-    ImGui::Begin("Unique Window Name");
-    
-    ImGui::Text("Doing ImGui Stuff");
-    ImGui::Image(std::bit_cast<void*>(my_texture), ImVec2(my_image_width, my_image_height));
-
-    ImGui::End();
-}
-
-
-void Start()
-{
-    // load resource, after game process resumed from skse
-    if (my_texture) {
-        my_texture->Release();
-    }
-
-    LoadTextureFromFile("Data\\SKSE\\Plugins\\Works.png", &my_texture, &my_image_width, &my_image_height);
-
-    Show = true;
-}
-
-
-void Stop()
-{
-    // unload resource
-    if (my_texture) {
-        my_texture->Release();
-    }
-
-    Show = false;
-}
-
-
-void Install()
-{
-    DKUtil::GUI::InitD3D(); 
-    DKUtil::GUI::AddCallback(FUNC_INFO(SimpleWindow));
-
-    INFO("GUI installed!"sv);
-}
-
-
-void Uninstall()
-{
-    Stop();
-    DKUtil::GUI::Terminate();
-
-    INFO("GUI uninstalled!"sv);
-}
-```
-Simply call `InitD3D()` and `InitImGui()` after process is loaded, then register callback with `AddCallback(FuncInfo)`.
 
 # Hook
 
@@ -471,9 +388,7 @@ Some SKSE style macro loggers with `spdlog` backend.
 ```C++
 INFO("{} {} {} {}", a, b, c, d);
 DEBUG("Important debug info that shows on debug build"sv);
-ERROR("This will abort the process!"sv);
-//TODO
-//EnableVisualStlye() using GUI header
+ERROR("This will abort the process!");
 ```
 
 # Utility

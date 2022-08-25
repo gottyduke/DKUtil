@@ -2,6 +2,9 @@
 
 
 /*
+ * 1.0.2
+ * F4SE integration;
+ *
  * 1.0.1
  * Fixed toml empty array crash;
  * Removed explicit identifier on copy constructor;
@@ -44,9 +47,16 @@
 #pragma warning( push )
 #pragma warning( disable : 4244 )
 
-
 #ifndef LOG_ENTRY
-#define LOG_ENTRY	"Data\\SKSE\\Plugins\\"
+
+#if defined( F4SEAPI )
+#define LOG_ENTRY "Data\\F4SE\\Plugins\\"
+#elif defined ( SKSEAPI )
+#define LOG_ENTRY "Data\\SKSE\\Plugins\\"
+#else
+#error "Neither CommonLib nor custom LOG_ENTRY defined"
+#endif
+
 #endif
 
 

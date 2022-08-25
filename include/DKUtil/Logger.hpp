@@ -2,9 +2,9 @@
 
 
 /*
- * 1.1.0
- * Visual style logging;
- *
+ * 1.0.1
+ * F4SE integration;
+ * 
  * 1.0.0
  * Basic spdlog implementation;
  *
@@ -59,7 +59,15 @@ using namespace std::literals;
 	ExitProcess(114514);
 
 #ifndef LOG_PATH
+
+#if defined( F4SEAPI )
+#define LOG_PATH "My Games/Fallout4/F4SE"sv
+#elif defined ( SKSEAPI )
 #define LOG_PATH "My Games/Skyrim Special Edition/SKSE"sv
+#else
+#error "Neither CommonLib nor custom LOG_PATH defined"
+#endif
+
 #endif
 
 
@@ -110,7 +118,20 @@ namespace DKUtil::Logger
 
 		set_default_logger(std::move(log));
 
-		DEBUG("Debug Mode {}"sv, ANNIVERSARY_EDITION ? "Anniversary Edition"sv : "Special Edition"sv);
+#if defined( F4SEAPI )
+#define MODE	"Fallout 4"
+#elif defined ( SKSEAPI )
+#ifdef ANNIVERSARY_EDITION
+#define MODE	"Skyrim Anniversary Edition"
+#else
+#define MODE	"Skyrim Special Edition"
+#endif
+#else
+#define MODE	"DKUtil"
+#endif
+
+		DEBUG("Debug Mode - {} {}", MODE, a_version
+		);
 	}
 
 

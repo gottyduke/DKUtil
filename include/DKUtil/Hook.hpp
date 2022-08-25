@@ -2,6 +2,10 @@
 
 
 /*
+ * 2.3.3
+ * F4SE integration;
+ * CaveHook auto patch the stolen opcodes;
+ * 
  * 2.3.2
  * Minor formatting changes;
  * 
@@ -33,18 +37,18 @@
  * - Attempt to write patches into code cave to reduce trampoline load if cave size satisfies;
  * - Attempt to skip trampoline allocation if hook function is null and cave size satisfies;
  * - Attempt to write rax-clean instructions into code cave if a_preserve and cave size satisfies;
- * Removed success checks during the writing procedure, due to SKSE64 implementation has no returning value;
+ * Removed success checks during the writing procedure, due to F4SE64 implementation has no returning value;
  * Restructured two separate implementations into conditional compilation;
  * Resolve address differently based on which implementation is used;
  * Added derived prototype of BranchToFunction<...>(...) without address library usage;
  * Added support for ( a_hookFunc = 0 ) so that patches will be applied without branching to any function;
  * Added default value for patch related parameters, if branching is done without any patches;
- * Fixed various rvalue const cast errors within SKSE64 implementation;
+ * Fixed various rvalue const cast errors within F4SE64 implementation;
  * Added prototype of GetCurrentPtr();
  * Added prototype of ResetPtr();
  * Renamed some template parameters;
  * Changed some local variables to constexpr;
- * Added SKSE64 implementation;
+ * Added F4SE64 implementation;
  * Added VERBOSE conditional to log each step for better debugging;
  * Moved predefined values into Impl namespace;
  * Changed above values from const to constexpr;
@@ -61,8 +65,8 @@
 
 
 #define DKU_H_VERSION_MAJOR     2
-#define DKU_H_VERSION_MINOR     1
-#define DKU_H_VERSION_REVISION  0
+#define DKU_H_VERSION_MINOR     3
+#define DKU_H_VERSION_REVISION  3
 
 
 #pragma warning ( disable : 4244 )
@@ -72,7 +76,49 @@
 #include <bit>
 #include <cstdint>
 #define WIN32_LEAN_AND_MEAN
+
+#define NOGDICAPMASKS
+#define NOVIRTUALKEYCODES
+//#define NOWINMESSAGES
+#define NOWINSTYLES
+#define NOSYSMETRICS
+#define NOMENUS
+#define NOICONS
+#define NOKEYSTATES
+#define NOSYSCOMMANDS
+#define NORASTEROPS
+#define NOSHOWWINDOW
+#define OEMRESOURCE
+#define NOATOM
+#define NOCLIPBOARD
+#define NOCOLOR
+//#define NOCTLMGR
+#define NODRAWTEXT
+#define NOGDI
+#define NOKERNEL
+//#define NOUSER
+#define NONLS
+//#define NOMB
+#define NOMEMMGR
+#define NOMETAFILE
+#define NOMINMAX
+//#define NOMSG
+#define NOOPENFILE
+#define NOSCROLL
+#define NOSERVICE
+#define NOSOUND
+#define NOTEXTMETRIC
+#define NOWH
+#define NOWINOFFSETS
+#define NOCOMM
+#define NOKANJI
+#define NOHELP
+#define NOPROFILER
+#define NODEFERWINDOWPOS
+#define NOMCX
+
 #include <Windows.h>
+#include <winnt.h>
 #include <xbyak/xbyak.h>
 
 // DKUtil
@@ -85,25 +131,31 @@
 
 #include "Utility.hpp"
 
-// Address Library
-#if ANNIVERSARY_EDITION
-#include "external/versionlibdb.h"
-#else
-#include "external/versiondb.h"
-#endif
-
-
 #define AsAddress(PTR)		std::bit_cast<std::uintptr_t>(PTR)
 #define AsPointer(ADDR)		std::bit_cast<void*>(ADDR)
 
 
-// CommonLib
+// CommonLib - DKUtil should only be integrated into project using the designated SKSEPlugins/F4SEPlugins workspace
 #ifndef TRAMPOLINE
-#include "SKSE/API.h"
 
-#define TRAMPOLINE			SKSE::GetTrampoline()
+#if defined( F4SEAPI )
+	#include "F4SE/API.h"
+#elif defined ( SKSEAPI )
+	#include "SKSE/API.h"
+
+	// Address Library
+	#if ANNIVERSARY_EDITION
+		#include "external/versionlibdb.h"
+	#else
+		#include "external/versiondb.h"
+	#endif
+#else
+	#error "Neither CommonLib nor custom TRAMPOLINE defined"
+#endif
+
+#define TRAMPOLINE			F4SE::GetTrampoline()
 #define TRAM_ALLOC(SIZE)	AsAddress((TRAMPOLINE).allocate((SIZE)))
-#define PAGE_ALLOC(SIZE)	SKSE::AllocTrampoline((SIZE))
+#define PAGE_ALLOC(SIZE)	F4SE::AllocTrampoline((SIZE))
 
 #endif
 
@@ -113,6 +165,8 @@
 #define FORWARD_PTR			true
 #define NO_FORWARD			false
 
+
+#define ASM_MINIMUM_SKIP	2
 
 #define CAVE_MINIMUM_BYTES	0x5
 
@@ -358,27 +412,6 @@ namespace DKUtil::Hook
 	}
 
 
-	inline std::uintptr_t IDToAbs(std::uint64_t a_id)
-	{
-		VersionDb db;
-		if (!db.Load()) {
-			ERROR("Failed to load version database!"sv);
-		}
-
-		const auto resolvedAddr = AsAddress(db.FindAddressById(a_id));
-		if (!resolvedAddr) {
-			ERROR("Failed to resolve address by id {:X}", a_id);
-		}
-
-		const auto base = std::bit_cast<std::uintptr_t>(GetModuleHandleA(db.GetModuleName().c_str()));
-		DEBUG("DKU_H: Resolved: {:X} | Base: {:X} | RVA: {:X}", resolvedAddr, base, resolvedAddr - base);
-
-		db.Clear();
-
-		return resolvedAddr;
-	}
-
-
 	inline constexpr std::uintptr_t TblToAbs(const std::uintptr_t a_base, const std::uint16_t a_index, const std::size_t a_size = sizeof(Imm64)) noexcept
 	{
 		return AsAddress(a_base + a_index * a_size);
@@ -390,8 +423,12 @@ namespace DKUtil::Hook
 	{
 	public:
 		// execution address
-		ASMPatchHandle(const std::uintptr_t a_address, const std::ptrdiff_t a_offsetLow, const std::ptrdiff_t a_offsetHigh) noexcept
-			: HookHandle(a_address, a_address + a_offsetLow), OffsetLow(a_offsetLow), OffsetHigh(a_offsetHigh), PatchSize(OffsetHigh - OffsetLow)
+		ASMPatchHandle(
+			const std::uintptr_t a_address, 
+			const std::ptrdiff_t a_offsetLow, 
+			const std::ptrdiff_t a_offsetHigh
+		) noexcept : 
+			HookHandle(a_address, a_address + a_offsetLow), OffsetLow(a_offsetLow), OffsetHigh(a_offsetHigh), PatchSize(OffsetHigh - OffsetLow)
 		{
 			std::memcpy(OldBytes, AsPointer(TramEntry), PatchSize);
 			std::fill_n(PatchBuf, PatchSize, detail::NOP);
@@ -426,8 +463,9 @@ namespace DKUtil::Hook
 	/* Apply assembly patch in the body of execution
 	 * @param OffsetLow : Beginning offset of the cave
 	 * @param OffsetHigh : Ending offset of the cave
-	 * @param a_address : Address of the beginning at target body of execution
+	 * @param a_address : Memory address of the BEGINNING of target function
 	 * @param a_patch : Assembly patch
+	 * @param a_forward : Skip the rest of NOPs until next valid opcode
 	 * @returns ASMPatchHandle
 	 */
 	template <const std::ptrdiff_t OffsetLow, const std::ptrdiff_t OffsetHigh>
@@ -470,7 +508,7 @@ namespace DKUtil::Hook
 		} else {
 			std::memcpy(handle->PatchBuf, a_patch->Data, a_patch->Size);
 
-			if (a_forward && handle->PatchSize > (a_patch->Size * 2 + sizeof(JmpRel))) {
+			if (a_forward && handle->PatchSize > (a_patch->Size * ASM_MINIMUM_SKIP + sizeof(JmpRel))) {
 				JmpRel asmForward;
 
 				asmForward.Rel32 = static_cast<Imm32>(handle->TramEntry + handle->PatchSize - handle->TramEntry - a_patch->Size - sizeof(asmForward));
@@ -492,8 +530,13 @@ namespace DKUtil::Hook
 	{
 	public:
 		// execution address, trampoline address, cave low offset, cave high offset
-		CaveHookHandle(const std::uintptr_t a_address, const std::uintptr_t a_tramPtr, const std::ptrdiff_t a_offsetLow, const std::ptrdiff_t a_offsetHigh) noexcept
-			: HookHandle(a_address, a_tramPtr), OffsetLow(a_offsetLow), OffsetHigh(a_offsetHigh), CaveSize(OffsetHigh - OffsetLow), CaveEntry(Address + OffsetLow), CavePtr(Address + OffsetLow)
+		CaveHookHandle(
+			const std::uintptr_t a_address, 
+			const std::uintptr_t a_tramPtr, 
+			const std::ptrdiff_t a_offsetLow, 
+			const std::ptrdiff_t a_offsetHigh
+		) noexcept : 
+			HookHandle(a_address, a_tramPtr), OffsetLow(a_offsetLow), OffsetHigh(a_offsetHigh), CaveSize(OffsetHigh - OffsetLow), CaveEntry(Address + OffsetLow), CavePtr(Address + OffsetLow)
 		{
 			std::memcpy(OldBytes, AsPointer(CaveEntry), CaveSize);
 			std::fill_n(CaveBuf, CaveSize, detail::NOP);
@@ -529,24 +572,30 @@ namespace DKUtil::Hook
 	};
 
 
-	enum class CaveReturnPoint : std::uint32_t
+	enum class CaveHookFlag : std::uint32_t
 	{
-		kNextOp,	// after JmpRel
-		kSkipOP		// skip NOPs
+		kNoFlag = static_cast<std::uint32_t>(-1),
+
+		kSkipOP	= 1u << 1,					// skip NOPs
+		kRestoreBeforeProlog = 1u << 2,		// apply stolens before prolog
+		kRestoreAfterProlog = 1u << 3,		// apply stolens after prolog
+		kRestoreBeforeEpilog = 1u << 4,		// apply stolens before epilog
+		kRestoreAfterEpilog = 1u << 5,		// apply stolens after epilog
 	};
+	DEFINE_ENUM_FLAG_OPERATORS(CaveHookFlag);
 
 
-	/* Branch to target function in the body of execution.
-	 * If stack manipulation is involved, add stack offset (sizeof(std::uintptr_t) * (number of target function's arguments))
+	/* Branch to hook function in the body of execution from target function.
+	 * If stack manipulation is involved in epilog patch, add stack offset (sizeof(std::uintptr_t) * (target function argument(s) count))
 	 * @param OffsetLow : Beginning offset of the cave
 	 * @param OffsetHigh : Ending offset of the cave
-	 * @param a_address : Address of the beginning at target body of execution
-	 * @param a_funcInfo : FUNC_INFO or RT_INFO wrapped function
-	 * @param a_prolog : Prolog patch before detouring to target function
-	 * @param a_epilog : Epilog patch after returning from target function
+	 * @param a_address : Memory address of the BEGINNING of target function
+	 * @param a_funcInfo : FUNC_INFO or RT_INFO wrapper of hook function
+	 * @param a_prolog : Prolog patch before detouring to hook function
+	 * @param a_epilog : Epilog patch after returning from hook function
 	 * @returns CaveHookHandle
 	 */
-	template <const std::ptrdiff_t OffsetLow, const std::ptrdiff_t OffsetHigh, const CaveReturnPoint ReturnPoint = CaveReturnPoint::kSkipOP>
+	template <const std::ptrdiff_t OffsetLow, const std::ptrdiff_t OffsetHigh, const CaveHookFlag Flag = CaveHookFlag::kSkipOP>
 		requires ((OffsetHigh - OffsetLow) >= CAVE_MINIMUM_BYTES)
 	inline auto AddCaveHook(
 		const std::uintptr_t a_address,
@@ -557,6 +606,11 @@ namespace DKUtil::Hook
 	{
 		using namespace detail;
 
+		if constexpr (OffsetHigh - OffsetLow == 5)
+		{
+			Flag |= CaveHookFlag::kSkipOP;
+		}
+
 		JmpRel asmDetour; // cave -> tram
 		JmpRel asmReturn; // tram -> cave
 		SubRsp asmSub;
@@ -565,11 +619,13 @@ namespace DKUtil::Hook
 
 		// trampoline layout
 		// [qword imm64] <- tram entry
+		// [stolen] <- if kHead
 		// [prolog] <- cave detour entry
 		// [alloc stack]
 		// [call qword ptr [rip + disp]]
 		// [dealloc stack]
 		// [epilog]
+		// [stolen] <- if kTail
 		// [jmp rel32]
 
 		auto tramPtr = TRAM_ALLOC(0);
@@ -582,34 +638,62 @@ namespace DKUtil::Hook
 		asmDetour.Rel32 = static_cast<Imm32>(handle->TramPtr - handle->CavePtr - sizeof(asmDetour));
 		std::memcpy(handle->CaveBuf, &asmDetour, sizeof(asmDetour));
 
+		if constexpr (Flag & CaveHookFlag::kRestoreBeforeProlog) {
+			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
+			asmBranch.Disp -= static_cast<Disp32>(handle->CaveSize);
+
+			Flag &= ~(CaveHookFlag::kRestoreBeforeProlog);
+		}
+
 		if (a_prolog) {
 			WritePatch(handle->TramPtr, a_prolog);
 			asmBranch.Disp -= static_cast<Disp32>(a_prolog->Size);
 		}
 
-		const auto stackBufSize = a_funcInfo.ArgsCount * sizeof(std::uint64_t);
-		if (!stackBufSize) {
-			ERROR("DKU_H: Cave hook currently does not support function without argument!"sv);
+		if (Flag & CaveHookFlag::kRestoreAfterProlog) {
+			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
+			asmBranch.Disp -= static_cast<Disp32>(handle->CaveSize);
+
+			Flag &= ~(CaveHookFlag::kRestoreBeforeEpilog);
+			Flag &= ~(CaveHookFlag::kRestoreAfterEpilog);
 		}
 
-		asmSub.Size = stackBufSize;
-		asmAdd.Size = stackBufSize;
+		const auto stackBufSize = sizeof(std::uint64_t) * a_funcInfo.ArgsCount;
+		if (stackBufSize) {
+			asmSub.Size = stackBufSize;
+			asmAdd.Size = stackBufSize;
+
+			WriteData(handle->TramPtr, &asmSub, sizeof(asmSub));
+			asmBranch.Disp -= static_cast<Disp32>(sizeof(asmSub));
+		}
 
 		asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
-		asmBranch.Disp -= static_cast<Disp32>(sizeof(asmSub));
 		asmBranch.Disp -= static_cast<Disp32>(sizeof(asmBranch));
-
-		WriteData(handle->TramPtr, &asmSub, sizeof(asmSub));
 		WriteData(handle->TramPtr, &asmBranch, sizeof(asmBranch));
-		WriteData(handle->TramPtr, &asmAdd, sizeof(asmAdd));
+
+		if (stackBufSize) {
+			WriteData(handle->TramPtr, &asmAdd, sizeof(asmAdd));
+		}
+
+		if constexpr (Flag & CaveHookFlag::kRestoreBeforeEpilog)
+		{
+			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
+
+			Flag &= ~(CaveHookFlag::kRestoreAfterEpilog);
+		}
 
 		if (a_epilog) {
 			WritePatch(handle->TramPtr, a_epilog);
 		}
 
-		if constexpr (ReturnPoint == CaveReturnPoint::kNextOp) {
+		if constexpr (Flag & CaveHookFlag::kRestoreAfterEpilog)
+		{
+			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
+		}
+
+		if constexpr (Flag & CaveHookFlag::kSkipOP) {
 			asmReturn.Rel32 = static_cast<Imm32>(handle->CavePtr - handle->TramPtr - sizeof(asmReturn));
-		} else if constexpr (ReturnPoint == CaveReturnPoint::kSkipOP) {
+		} else {
 			asmReturn.Rel32 = static_cast<Imm32>(handle->Address + handle->OffsetHigh - handle->TramPtr - sizeof(asmReturn));
 		}
 
@@ -627,7 +711,11 @@ namespace DKUtil::Hook
 	{
 	public:
 		// VTBL address, target func address, VTBL func index
-		VMTHookHandle(const std::uintptr_t a_address, const std::uintptr_t a_tramEntry, const std::uint16_t a_index) noexcept
+		VMTHookHandle(
+			const std::uintptr_t a_address, 
+			const std::uintptr_t a_tramEntry, 
+			const std::uint16_t a_index
+		) noexcept
 			: HookHandle(TblToAbs(a_address, a_index), a_tramEntry), OldAddress(*std::bit_cast<std::uintptr_t*>(Address))
 		{
 			DEBUG("DKU_H: VMT @ {:X} [{}]\nOld entry @ {:X} | New entry @ {:X}", a_address, a_index, OldAddress, TramEntry);
@@ -669,7 +757,7 @@ namespace DKUtil::Hook
 		using namespace detail;
 
 		if (!a_funcInfo.Address) {
-			ERROR("DKU_H: VMT hook must have a valid function pointer"sv);
+			ERROR("DKU_H: VMT hook must have a valid function pointer");
 		}
 		DEBUG("DKU_H: Detour -> {} @ {}.{:X}", a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
 
@@ -710,7 +798,12 @@ namespace DKUtil::Hook
 	{
 	public:
 		// IAT address, target func address, IAT func name, target func name
-		IATHookHandle(const std::uintptr_t a_address, const std::uintptr_t a_tramEntry, const char* a_methodName, const char* a_funcName) noexcept
+		IATHookHandle(
+			const std::uintptr_t a_address, 
+			const std::uintptr_t a_tramEntry, 
+			const char* a_methodName, 
+			const char* a_funcName
+		) noexcept
 			: HookHandle(a_address, a_tramEntry), OldAddress(*std::bit_cast<std::uintptr_t*>(Address))
 		{
 			DEBUG("DKU_H: IAT @ {:X}\nOld entry {} @ {:X} | New entry {} @ {:X}", a_address, a_methodName, OldAddress, a_funcName, a_tramEntry);
@@ -752,7 +845,7 @@ namespace DKUtil::Hook
 		using namespace detail;
 
 		if (!a_funcInfo.Address) {
-			ERROR("DKU_H: IAT hook must have a valid function pointer"sv);
+			ERROR("DKU_H: IAT hook must have a valid function pointer");
 		}
 		DEBUG("DKU_H: Detour -> {} @ {}.{:X}", a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
 
@@ -763,7 +856,7 @@ namespace DKUtil::Hook
 		
 		auto* ntHeader = std::bit_cast<IMAGE_NT_HEADERS*>(AsAddress(dosHeader) + dosHeader->e_lfanew);
 		if (!ntHeader || ntHeader->Signature != IMAGE_NT_SIGNATURE) {
-			ERROR("DKU_H: IAT NT header invalid"sv);
+			ERROR("DKU_H: IAT NT header invalid");
 		}
 
 		auto* importDesc = std::bit_cast<IMAGE_IMPORT_DESCRIPTOR*>(dosHeader + ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
@@ -775,7 +868,7 @@ namespace DKUtil::Hook
 			}
 
 			if (!importDesc[index].FirstThunk || !importDesc[index].OriginalFirstThunk) {
-				ERROR("DKU_H: IAT read invalid thunk pointer"sv);
+				ERROR("DKU_H: IAT read invalid thunk pointer");
 			}
 
 			auto* thunk = std::bit_cast<IMAGE_THUNK_DATA*>(dosHeader + importDesc[index].FirstThunk);
