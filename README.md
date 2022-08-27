@@ -3,9 +3,9 @@
 Some utilitarian headers to help with SKSE64 plugin development
 
 # Implementations
-[![Config](https://img.shields.io/badge/Config-1.0.1-R.svg)](#Config)
-[![Hook](https://img.shields.io/badge/Hook-2.3.2-R.svg)](#Hook)
-[![Logger](https://img.shields.io/badge/Logger-1.1.0-R.svg)](#Logger)
+[![Config](https://img.shields.io/badge/Config-1.1.0-R.svg)](#Config)
+[![Hook](https://img.shields.io/badge/Hook-2.4.1-R.svg)](#Hook)
+[![Logger](https://img.shields.io/badge/Logger-1.2.0-R.svg)](#Logger)
 [![Utility](https://img.shields.io/badge/Utility-untracked-R.svg)](#Utility)
 
 # Consumption
@@ -119,6 +119,8 @@ void Load() noexcept
     MainConfig.Bind(myStringArrayData, "First", "Second", "Third"); // string array
     MainConfig.Bind(myBoolData, true); // bool
     MainConfig.Bind(myDoubleData, 3.14154); // double
+    // or optionally, you can bind with minimal/maximal range
+    MainConfig.Bind<0, 3.3>(myDoubleData, 3.14154); // double with range of 0 ~ 3.3
 
     MainConfig.Load();
 
@@ -147,6 +149,7 @@ Some personal APIs to write hooks and memory patches with enable/disable control
 + Virtual method table hook
 + Import address table hook 
 + (todo) Thunk function hook 
++ For NG-integration, scroll below
 
 ## API
 ```C++	
@@ -158,9 +161,8 @@ Patch {
 
 
 /* Apply assembly patch in the body of execution
- * @param OffsetLow : Beginning offset of the cave
- * @param OffsetHigh : Ending offset of the cave
  * @param a_address : Address of the beginning at target body of execution
+ * @param a_offset : Offset pairs for <beginning, end> of cave entry from the head of function
  * @param a_patch : Assembly patch
  * @returns ASMPatchHandle
  */
@@ -168,26 +170,41 @@ template <const std::ptrdiff_t OffsetLow, const std::ptrdiff_t OffsetHigh>
     requires (OffsetHigh > OffsetLow)
 inline auto AddASMPatch(
     const std::uintptr_t a_address,
+    const std::pair<std::ptrdiff_t, std::ptrdiff_t> a_offset,
     const Patch* a_patch,
     const bool a_forward = true
 )
 
 
-/* Branch to target function in the body of execution.
- * If stack manipulation is involved, add stack offset (sizeof(std::uintptr_t) * (number of target function's arguments))
- * @param OffsetLow : Beginning offset of the cave
- * @param OffsetHigh : Ending offset of the cave
- * @param a_address : Address of the beginning at target body of execution
- * @param a_funcInfo : FUNC_INFO or RT_INFO wrapped function
- * @param a_prolog : Prolog patch before detouring to target function
- * @param a_epilog : Epilog patch after returning from target function
- * @returns CaveHookHandle
- */
-inline auto AddCaveHook<std::ptrdiff_t OffsetLow, std::ptrdiff_t OffsetHigh>(
+enum class CaveHookFlag : std::uint32_t
+{
+    kNoFlag = static_cast<std::uint32_t>(-1),
+
+    kSkipOP	= 1u << 1,					// skip NOPs
+    kRestoreBeforeProlog = 1u << 2,		// apply stolens before prolog
+    kRestoreAfterProlog = 1u << 3,		// apply stolens after prolog
+    kRestoreBeforeEpilog = 1u << 4,		// apply stolens before epilog
+    kRestoreAfterEpilog = 1u << 5,		// apply stolens after epilog
+};
+
+
+/* Branch to hook function in the body of execution from target function.
+    * If stack manipulation is involved in epilog patch, add stack offset (sizeof(std::uintptr_t) * (target function argument(s) count))
+    * @param a_offset : Offset pairs for <beginning, end> of cave entry from the head of function
+    * @param a_address : Memory address of the BEGINNING of target function
+    * @param a_funcInfo : FUNC_INFO or RT_INFO wrapper of hook function
+    * @param a_prolog : Prolog patch before detouring to hook function
+    * @param a_epilog : Epilog patch after returning from hook function
+    * @param a_flag : Specifies operation on cave hook
+    * @returns CaveHookHandle
+    */
+inline auto AddCaveHook(
     const std::uintptr_t a_address,
-    const FuncInfo a_func,
+    const std::pair<std::ptrdiff_t, std::ptrdiff_t> a_offset,
+    const FuncInfo a_funcInfo,
     const Patch* a_prolog = nullptr,
-    const Patch* a_epilog = nullptr
+    const Patch* a_epilog = nullptr,
+    RE::stl::enumeration<CaveHookFlag, std::uint32_t> a_flag = CaveHookFlag::kSkipOP
 )
 
 
@@ -247,7 +264,7 @@ void Install()
                 sizeof(AsmSrc)
             };
 
-            _Hook_UES = DKUtil::Hook::AddASMPatch<OffsetLow, OffsetHigh>(TargetAddr, &AsmPatch);
+            _Hook_UES = DKUtil::Hook::AddASMPatch(TargetAddr, { OffsetLow, OffsetHigh }, &AsmPatch);
         }
     );
 
@@ -283,7 +300,7 @@ void Install()
     static std::once_flag HookInit;
     std::call_once(HookInit, [&]()
         {
-            _Hook_MAF = DKUtil::Hook::AddCaveHook<OffsetLow, OffsetHigh>(TargetAddr, FUNC_INFO(Hook_MyAwesomeFunc), nullptr, &Epilog);
+            _Hook_MAF = DKUtil::Hook::AddCaveHook(TargetAddr, { OffsetLow, OffsetHigh }, FUNC_INFO(Hook_MyAwesomeFunc), nullptr, &Epilog);
         }
     );
 
@@ -382,13 +399,33 @@ void Install()
 In this example the address of function `Sleep` that resides in the import header of the process `kernel32.dll` will be replaced with our custom function `MySleep`.
 
 
+## NG integration
+To complement CommonLibSSE-NG's `REL::RelocationID()` that assigns different address depends on the current runtime, DKUtil::Hook now also offers runtime counterparts of:  
+```C++
+DKUtil::ID2Abs(std::uintptr_t AE_ID, std::uintptr_t SE_ID, std::uintptr_t Optional_VR_ID); // runtime address based on ID
+DKUtil::RuntimeOffset(
+    std::pair<std::ptrdiff_t, std::ptrdiff_t> AE_Offset_Low_High, 
+    std::pair<std::ptrdiff_t, std::ptrdiff_t> SE_Offset_Low_High,
+    std::pair<std::ptrdiff_t, std::ptrdiff_t> Optional_VR_Offset_Low_High,); // runtime offset pairs
+DKUtil::RuntimePatch(DKUtil::Patch* AE_Patch, DKUtil::Patch* SE_Patch, DKUtil::Patch* Optional_VR_Patch); // runtime memory patches
+```
+
+
 # Logger
 
 Some SKSE style macro loggers with `spdlog` backend.
 ```C++
 INFO("{} {} {} {}", a, b, c, d);
 DEBUG("Important debug info that shows on debug build"sv);
-ERROR("This will abort the process!");
+ERROR("This will abort the process with a messagebox!");
+
+ENABLE_DEBUG
+// debug logs from here will be printed
+DISABLE_DEBUG
+// debug logs from here will be omitted
+
+// or change log level manually
+DKUtil::Logger::SetLevel(spdlog::level::level_enums);
 ```
 
 # Utility

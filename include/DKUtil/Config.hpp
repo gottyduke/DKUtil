@@ -2,6 +2,11 @@
 
 
 /*
+ * 1.1.0
+ * NG-update;
+ * Added clamp range;
+ * Removed Proxy isLoaded check; 
+ *
  * 1.0.2
  * F4SE integration;
  *
@@ -17,12 +22,13 @@
 
 
 #define DKU_C_VERSION_MAJOR     1
-#define DKU_C_VERSION_MINOR     0
-#define DKU_C_VERSION_REVISION  1
+#define DKU_C_VERSION_MINOR     1
+#define DKU_C_VERSION_REVISION  0
 
 
 #include <algorithm>
 #include <compare>
+#include <concepts>
 #include <filesystem>
 #include <initializer_list>
 #include <unordered_set>
@@ -85,6 +91,20 @@ namespace DKUtil::Config
 
 	namespace detail
 	{
+		template <typename data_t>
+		concept dku_c_numeric = (
+			std::convertible_to<data_t, std::int64_t> ||
+			std::convertible_to<data_t, double>) &&
+			!std::convertible_to<data_t, std::basic_string<char>>;
+
+
+		template <typename data_t>
+		concept dku_c_trivial_t = (
+			dku_c_numeric<data_t> ||
+			std::convertible_to<data_t, bool>) &&
+			!std::convertible_to<data_t, std::basic_string<char>>;
+
+
 		enum class DataType
 		{
 			kInteger,
@@ -107,14 +127,15 @@ namespace DKUtil::Config
 		template <typename underlying_data_t>
 		class AData : public IData
 		{
-		public:
 			using collection = std::vector<underlying_data_t>;
 			using IData::IData;
 
+		public:
 			constexpr AData() noexcept = delete;
-			constexpr AData(const std::string& a_key, const std::string& a_section = "") :
+			explicit constexpr AData(const std::string& a_key, const std::string& a_section = "") :
 				_key(std::move(a_key)), _section(std::move(a_section))
 			{}
+
 
 			constexpr AData(const AData&) noexcept = delete;
 			constexpr AData(AData&&) noexcept = delete;
@@ -161,6 +182,8 @@ namespace DKUtil::Config
 				}
 
 				_data = *a_list.begin();
+
+				clamp();
 			}
 
 			constexpr void set_data(const collection& a_collection)
@@ -173,15 +196,42 @@ namespace DKUtil::Config
 				}
 
 				_data = a_collection.front();
+
+				clamp();
 			}
 
-		private:
-			const std::string			_key;
-			const std::string			_section;
+			inline constexpr void set_range(std::pair<double, double> a_range)
+			{
+				if (dku_c_numeric<underlying_data_t>) {
+					_range = a_range;
+				}
+			}
 
-			bool						_isCollection = false;
-			underlying_data_t			_data;
-			std::unique_ptr<collection>	_collection = nullptr;
+			constexpr void clamp()
+			{
+				if (!dku_c_numeric<underlying_data_t> || _range.first > _range.second) {
+					return;
+				}
+
+				if (_isCollection) {
+					std::transform(_collection->begin(), _collection->end(), _collection->begin(), [&](underlying_data_t data) -> underlying_data_t
+						{
+							return data < _range.first ? _range.first : data > _range.second ? _range.second : data;
+						});
+					_data = _collection->front();
+				} else {
+					_data = _data < _range.first ? _range.first : _data > _range.second ? _range.second : _data;
+				}
+			}
+
+
+		private:
+			const std::string								_key;
+			const std::string								_section;
+			bool											_isCollection = false;
+			underlying_data_t								_data;
+			std::pair<underlying_data_t, underlying_data_t>	_range;
+			std::unique_ptr<collection>						_collection = nullptr;
 		};
 
 
@@ -189,14 +239,6 @@ namespace DKUtil::Config
 		extern template class AData<std::int64_t>;
 		extern template class AData<double>;
 		extern template class AData<std::basic_string<char>>;
-
-
-		template <typename data_t>
-		concept dku_c_trivial_t = (
-			std::convertible_to<data_t, std::int64_t> ||
-			std::convertible_to<data_t, bool> ||
-			std::convertible_to<data_t, double>) &&
-			!std::convertible_to<data_t, std::basic_string<char>>;
 
 
 		class DataManager
@@ -221,6 +263,7 @@ namespace DKUtil::Config
 				}
 			}
 
+
 			void SetByKey(const std::string_view a_key, const dku_c_trivial_t auto&... a_value) noexcept
 			{
 				if (!_managed.contains(a_key)) {
@@ -236,6 +279,7 @@ namespace DKUtil::Config
 				}
 			}
 
+
 			// string is such a pain in the 
 			void SetByKey(const std::string_view a_key, const std::convertible_to<std::basic_string<char>> auto&... a_value) noexcept
 			{
@@ -248,13 +292,15 @@ namespace DKUtil::Config
 				}
 			}
 
-			void add(const std::string_view a_key, IData* a_data) noexcept { _managed.try_emplace(a_key, a_data); }
+
+			void Add(const std::string_view a_key, IData* a_data) noexcept { _managed.try_emplace(a_key, a_data); }
 			[[nodiscard]] auto size() const noexcept { return _managed.size(); }
 			[[nodiscard]] auto& get_managed() noexcept { return _managed; }
 
 		private:
 			std::unordered_map<std::string_view, IData*> _managed; // key, data*
 		};
+
 
 		class IParser
 		{
@@ -271,7 +317,7 @@ namespace DKUtil::Config
 
 			virtual void Parse(const char* = nullptr) noexcept = 0;
 			virtual void WriteData(const char*&) noexcept = 0;
-			virtual void WriteFile(const std::string_view = nullptr) noexcept = 0;
+			virtual void WriteFile(const std::string_view) noexcept = 0;
 		protected:
 			const std::string	_file;
 			const std::string	_filePath;
@@ -681,7 +727,7 @@ namespace DKUtil::Config
 		// compile defined
 		constexpr explicit Proxy(const std::string_view a_file) noexcept
 			requires (ConfigFileType != FileType::kDynamic) :
-			_id(numbers::FNV_1A_32(a_file.data())), _loaded(false), _file(a_file.data()),
+			_id(numbers::FNV_1A_32(a_file.data())), _file(a_file.data()),
 			_type(ConfigFileType), _parser(std::make_unique<parser_t>(a_file.data(), _id, _manager))
 		{
 			DEBUG("DKU_C: Proxy#{}: Compile -> {}", _id, _file);
@@ -690,7 +736,7 @@ namespace DKUtil::Config
 		// runtime defined
 		constexpr explicit Proxy(const std::string_view a_file) noexcept
 			requires (ConfigFileType == FileType::kDynamic) :
-			_id(numbers::FNV_1A_32(a_file.data())), _loaded(false), _file(a_file.data())
+			_id(numbers::FNV_1A_32(a_file.data())), _file(a_file.data())
 		{
 			// bogus, need fixing
 			const auto extension = a_file.substr(a_file.size() - 4);
@@ -732,27 +778,21 @@ namespace DKUtil::Config
 
 		void Load(const char* a_data = nullptr)
 		{
-			// File comparing to skip parsing process and use already generated cache file for faster loading
-			if (_loaded) {
-				return;
-			}
-
 			DEBUG("DKU_C: Proxy#{}: Loading -> {}", _id, _file);
 
 			_parser->Parse(a_data);
-
-			_loaded = true;
 		}
 
-		template <typename data_t>
+		template <const detail::dku_c_numeric auto min = 1, const detail::dku_c_numeric auto max = 0, typename data_t>
 		constexpr inline void Bind(detail::AData<data_t>& a_data, const std::convertible_to<data_t> auto&... a_value) noexcept
 		{
-			_manager.add(a_data.get_key(), std::addressof(a_data));
+			_manager.Add(a_data.get_key(), std::addressof(a_data));
+			a_data.set_range({ min, max });
 			a_data.set_data({ static_cast<data_t>(a_value)... });
 		}
 
+
 		constexpr inline auto get_id() const noexcept { return _id; }
-		constexpr inline auto is_loaded() const noexcept { return _loaded; }
 		constexpr inline auto get_file() const noexcept { return _file; }
 		constexpr inline auto get_type() const noexcept { return _type; }
 		constexpr inline auto get_size() const noexcept { return _manager.size(); }
@@ -760,7 +800,6 @@ namespace DKUtil::Config
 
 	private:
 		const std::uint32_t			_id;
-		bool						_loaded;
 		const std::string			_file;
 		FileType					_type;
 		std::unique_ptr<parser_t>	_parser;

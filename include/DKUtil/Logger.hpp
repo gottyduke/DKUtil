@@ -2,7 +2,10 @@
 
 
 /*
- * 1.0.1
+ * 1.2.0
+ * Changed log level controls;
+ * 
+ * 1.1.0
  * F4SE integration;
  * 
  * 1.0.0
@@ -12,7 +15,7 @@
 
 
 #define DKU_L_VERSION_MAJOR     1
-#define DKU_L_VERSION_MINOR     1
+#define DKU_L_VERSION_MINOR     2
 #define DKU_L_VERSION_REVISION  0
 
 
@@ -35,18 +38,18 @@
 
 #else
 
-#define INFO(...)	SPDLOG_INFO(__VA_ARGS__)
-#ifndef NDEBUG
-#define DEBUG(...)	SPDLOG_INFO(__VA_ARGS__)
-#else
-#define DEBUG(...)	void(0)
-#endif
-
-#endif
-
-
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
+
+#define INFO(...)	{std::source_location src = std::source_location::current();	\
+	spdlog::log(spdlog::source_loc{ src.file_name(), static_cast<int>(src.line()),	\
+	src.function_name() }, spdlog::level::info, __VA_ARGS__);}    
+#define DEBUG(...)	{std::source_location src = std::source_location::current();	\
+	spdlog::log(spdlog::source_loc{ src.file_name(), static_cast<int>(src.line()),	\
+	src.function_name() }, spdlog::level::debug, __VA_ARGS__);}    
+
+#endif
+
 
 using namespace std::literals;
 
@@ -57,6 +60,11 @@ using namespace std::literals;
 		SPDLOG_FUNCTION}, spdlog::level::critical, __VA_ARGS__);				\
 	MessageBoxA(nullptr, errormsg.c_str(), Plugin::NAME.data(), MB_OK);		\
 	ExitProcess(114514);
+
+
+#define ENABLE_DEBUG spdlog::default_logger()->set_level(spdlog::level::debug);
+#define DISABLE_DEBUG spdlog::default_logger()->set_level(spdlog::level::info);
+
 
 #ifndef LOG_PATH
 
@@ -101,9 +109,9 @@ namespace DKUtil::Logger
 
 		auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
 #ifndef NDEBUG
-		sink->set_pattern("[%i](%s) %v"s);
+		sink->set_pattern("[%i][%l](%s:%#) %v"s);
 #else
-		sink->set_pattern("[%T](%s): %v"s);
+		sink->set_pattern("[%D %T][%l](%s:%#) %v"s);
 #endif
 
 		auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
@@ -125,6 +133,12 @@ namespace DKUtil::Logger
 #endif
 
 		DEBUG("Debug Mode - {} {}", MODE, a_version);
+	}
+
+
+	inline void SetLevel(const spdlog::level::level_enum a_level)
+	{
+		spdlog::default_logger()->set_level(a_level);
 	}
 
 

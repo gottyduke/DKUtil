@@ -2,6 +2,12 @@
 
 
 /*
+ * 2.4.1
+ * Added runtime counterparts for NG;
+ * 
+ * 2.4.0
+ * Minor formatting and refractoring for NG;
+ *
  * 2.3.3
  * F4SE integration;
  * CaveHook auto patch the stolen opcodes;
@@ -65,8 +71,8 @@
 
 
 #define DKU_H_VERSION_MAJOR     2
-#define DKU_H_VERSION_MINOR     3
-#define DKU_H_VERSION_REVISION  3
+#define DKU_H_VERSION_MINOR     4
+#define DKU_H_VERSION_REVISION  1
 
 
 #pragma warning ( disable : 4244 )
@@ -131,6 +137,7 @@
 
 #include "Utility.hpp"
 
+
 #define AsAddress(PTR)		std::bit_cast<std::uintptr_t>(PTR)
 #define AsPointer(ADDR)		std::bit_cast<void*>(ADDR)
 
@@ -139,11 +146,16 @@
 #ifndef TRAMPOLINE
 
 #if defined( F4SEAPI )
-	#include "F4SE/API.h"
+#include "F4SE/API.h"
 #elif defined ( SKSEAPI )
-	#include "SKSE/API.h"
+#include "SKSE/API.h"
+
+#define IS_AE	REL::Module::IsAE()
+#define IS_SE	REL::Module::IsSE()
+#define IS_VR	REL::Module::IsVR()
+
 #else
-	#error "Neither CommonLib nor custom TRAMPOLINE defined"
+#error "Neither CommonLib nor custom TRAMPOLINE defined"
 #endif
 
 #define TRAMPOLINE			SKSE::GetTrampoline()
@@ -410,6 +422,67 @@ namespace DKUtil::Hook
 		return AsAddress(a_base + a_index * a_size);
 	}
 
+
+	inline std::uintptr_t IDToAbs([[maybe_unused]] std::uint64_t a_ae, [[maybe_unused]] std::uint64_t a_se, [[maybe_unused]] std::uint64_t a_vr = 0)
+	{
+		DEBUG("DKU_H: Attempt to load {} address by id {}", IS_AE ? "AE" : IS_VR? "VR" : "SE", IS_AE ? a_ae : a_vr ? a_vr : a_se);
+		std::uintptr_t resolved = a_vr ? REL::RelocationID(a_se, a_ae, a_vr).address() : REL::RelocationID(a_se, a_ae).address();
+		DEBUG("DKU_H: Resolved: {:X} | Base: {:X} | RVA: {:X}", REL::RelocationID(a_se, a_ae).address(), REL::Module::get().base(), resolved - REL::Module::get().base());
+
+		return resolved;
+	}
+
+
+	inline std::pair<std::ptrdiff_t, std::ptrdiff_t> RuntimeOffset(
+		[[maybe_unused]] const std::ptrdiff_t a_aeLow, [[maybe_unused]] const std::ptrdiff_t a_aeHigh,
+		[[maybe_unused]] const std::ptrdiff_t a_seLow, [[maybe_unused]] const std::ptrdiff_t a_seHigh,
+		[[maybe_unused]] const std::ptrdiff_t a_vrLow = -1, [[maybe_unused]] const std::ptrdiff_t a_vrHigh = -1
+	)
+	{
+		switch (REL::Module::GetRuntime()) {
+		case REL::Module::Runtime::AE:
+		{
+			return std::make_pair(a_aeLow, a_aeHigh);
+		}
+		case REL::Module::Runtime::SE:
+		{
+			return std::make_pair(a_seLow, a_seHigh);
+		}
+		case REL::Module::Runtime::VR:
+		{
+			return a_vrLow != -1 ? std::make_pair(a_vrLow, a_vrHigh) : std::make_pair(a_seLow, a_seHigh);
+		}
+		default:
+		{
+			ERROR("DKU_H: Runtime offset failed to relocate for unknown runtime!");
+		}
+		}
+	}
+
+
+	inline const Patch* RuntimePatch([[maybe_unused]] const Patch* a_ae, [[maybe_unused]] const Patch* a_se, [[maybe_unused]] const Patch* a_vr = nullptr)
+	{
+		switch (REL::Module::GetRuntime()) {
+		case REL::Module::Runtime::AE:
+		{
+			return a_ae;
+		}
+		case REL::Module::Runtime::SE:
+		{
+			return a_se;
+		}
+		case REL::Module::Runtime::VR:
+		{
+			return a_vr ? a_vr : a_se;
+		}
+		default:
+		{
+			ERROR("DKU_H: Runtime patch failed to relocate for unknown runtime!");
+		}
+		}
+	}
+
+
 #pragma region ASMPatch
 
 	class ASMPatchHandle : public HookHandle
@@ -417,11 +490,10 @@ namespace DKUtil::Hook
 	public:
 		// execution address
 		ASMPatchHandle(
-			const std::uintptr_t a_address, 
-			const std::ptrdiff_t a_offsetLow, 
-			const std::ptrdiff_t a_offsetHigh
+			const std::uintptr_t a_address,
+			const std::pair<std::ptrdiff_t, std::ptrdiff_t> a_offset
 		) noexcept : 
-			HookHandle(a_address, a_address + a_offsetLow), OffsetLow(a_offsetLow), OffsetHigh(a_offsetHigh), PatchSize(OffsetHigh - OffsetLow)
+			HookHandle(a_address, a_address + a_offset.first), Offset(a_offset), PatchSize(a_offset.second - a_offset.first)
 		{
 			std::memcpy(OldBytes, AsPointer(TramEntry), PatchSize);
 			std::fill_n(PatchBuf, PatchSize, detail::NOP);
@@ -444,8 +516,7 @@ namespace DKUtil::Hook
 		}
 
 
-		const std::ptrdiff_t OffsetLow;
-		const std::ptrdiff_t OffsetHigh;
+		const std::pair<std::ptrdiff_t, std::ptrdiff_t> Offset;
 		const std::size_t PatchSize;
 
 		OpCode OldBytes[CAVE_MAXIMUM_BYTES]{};
@@ -454,17 +525,15 @@ namespace DKUtil::Hook
 
 
 	/* Apply assembly patch in the body of execution
-	 * @param OffsetLow : Beginning offset of the cave
-	 * @param OffsetHigh : Ending offset of the cave
+	 * @param a_offset : Offset pairs for <beginning, end> of cave entry from the head of function
 	 * @param a_address : Memory address of the BEGINNING of target function
 	 * @param a_patch : Assembly patch
 	 * @param a_forward : Skip the rest of NOPs until next valid opcode
 	 * @returns ASMPatchHandle
 	 */
-	template <const std::ptrdiff_t OffsetLow, const std::ptrdiff_t OffsetHigh>
-		requires (OffsetHigh > OffsetLow)
 	inline auto AddASMPatch(
 		const std::uintptr_t a_address,
+		const std::pair<std::ptrdiff_t, std::ptrdiff_t> a_offset,
 		const Patch* a_patch,
 		const bool a_forward = true
 	) noexcept
@@ -472,12 +541,12 @@ namespace DKUtil::Hook
 		using namespace detail;
 
 		if (!a_address || !a_patch) {
-			ERROR("DKU_H: Invalid ASM patch"sv);
+			ERROR("DKU_H: Invalid ASM patch");
 		}
 
-		auto handle = std::make_unique<ASMPatchHandle>(a_address, OffsetLow, OffsetHigh);
+		auto handle = std::make_unique<ASMPatchHandle>(a_address, a_offset);
 
-		if (a_patch->Size > (OffsetHigh - OffsetLow)) {
+		if (a_patch->Size > (a_offset.second - a_offset.first)) {
 			DEBUG("DKU_H: ASM patch size exceeds the patch capacity, enabled trampoline"sv);
 
 			JmpRel asmDetour; // cave -> tram
@@ -525,11 +594,10 @@ namespace DKUtil::Hook
 		// execution address, trampoline address, cave low offset, cave high offset
 		CaveHookHandle(
 			const std::uintptr_t a_address, 
-			const std::uintptr_t a_tramPtr, 
-			const std::ptrdiff_t a_offsetLow, 
-			const std::ptrdiff_t a_offsetHigh
+			const std::uintptr_t a_tramPtr,
+			const std::pair<std::ptrdiff_t, std::ptrdiff_t> a_offset
 		) noexcept : 
-			HookHandle(a_address, a_tramPtr), OffsetLow(a_offsetLow), OffsetHigh(a_offsetHigh), CaveSize(OffsetHigh - OffsetLow), CaveEntry(Address + OffsetLow), CavePtr(Address + OffsetLow)
+			HookHandle(a_address, a_tramPtr), Offset(a_offset), CaveSize(a_offset.second - a_offset.first), CaveEntry(Address + a_offset.first), CavePtr(Address + a_offset.first)
 		{
 			std::memcpy(OldBytes, AsPointer(CaveEntry), CaveSize);
 			std::fill_n(CaveBuf, CaveSize, detail::NOP);
@@ -553,8 +621,7 @@ namespace DKUtil::Hook
 		}
 
 
-		const std::ptrdiff_t OffsetLow;
-		const std::ptrdiff_t OffsetHigh;
+		const std::pair<std::ptrdiff_t, std::ptrdiff_t> Offset;
 		const std::size_t CaveSize;
 		const std::uintptr_t CaveEntry;
 
@@ -575,33 +642,32 @@ namespace DKUtil::Hook
 		kRestoreBeforeEpilog = 1u << 4,		// apply stolens before epilog
 		kRestoreAfterEpilog = 1u << 5,		// apply stolens after epilog
 	};
-	DEFINE_ENUM_FLAG_OPERATORS(CaveHookFlag);
 
 
 	/* Branch to hook function in the body of execution from target function.
 	 * If stack manipulation is involved in epilog patch, add stack offset (sizeof(std::uintptr_t) * (target function argument(s) count))
-	 * @param OffsetLow : Beginning offset of the cave
-	 * @param OffsetHigh : Ending offset of the cave
+	 * @param a_offset : Offset pairs for <beginning, end> of cave entry from the head of function
 	 * @param a_address : Memory address of the BEGINNING of target function
 	 * @param a_funcInfo : FUNC_INFO or RT_INFO wrapper of hook function
 	 * @param a_prolog : Prolog patch before detouring to hook function
 	 * @param a_epilog : Epilog patch after returning from hook function
+	 * @param a_flag : Specifies operation on cave hook
 	 * @returns CaveHookHandle
 	 */
-	template <const std::ptrdiff_t OffsetLow, const std::ptrdiff_t OffsetHigh, const CaveHookFlag Flag = CaveHookFlag::kSkipOP>
-		requires ((OffsetHigh - OffsetLow) >= CAVE_MINIMUM_BYTES)
 	inline auto AddCaveHook(
 		const std::uintptr_t a_address,
+		const std::pair<std::ptrdiff_t, std::ptrdiff_t> a_offset,
 		const FuncInfo a_funcInfo,
 		const Patch* a_prolog = nullptr,
-		const Patch* a_epilog = nullptr
+		const Patch* a_epilog = nullptr,
+		RE::stl::enumeration<CaveHookFlag, std::uint32_t> a_flag = CaveHookFlag::kSkipOP
 	) noexcept
 	{
 		using namespace detail;
 
-		if constexpr (OffsetHigh - OffsetLow == 5)
+		if (a_offset.second - a_offset.first == 5)
 		{
-			Flag |= CaveHookFlag::kSkipOP;
+			a_flag.reset(CaveHookFlag::kSkipOP);
 		}
 
 		JmpRel asmDetour; // cave -> tram
@@ -626,16 +692,16 @@ namespace DKUtil::Hook
 		WriteImm(tramPtr, a_funcInfo.Address);
 		DEBUG("DKU_H: Detour -> {} @ {}.{:X}", a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
 
-		auto handle = std::make_unique<CaveHookHandle>(a_address, tramPtr, OffsetLow, OffsetHigh);
+		auto handle = std::make_unique<CaveHookHandle>(a_address, tramPtr, a_offset);
 
 		asmDetour.Rel32 = static_cast<Imm32>(handle->TramPtr - handle->CavePtr - sizeof(asmDetour));
 		std::memcpy(handle->CaveBuf, &asmDetour, sizeof(asmDetour));
 
-		if constexpr (Flag & CaveHookFlag::kRestoreBeforeProlog) {
+		if (a_flag.any(CaveHookFlag::kRestoreBeforeProlog)) {
 			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
 			asmBranch.Disp -= static_cast<Disp32>(handle->CaveSize);
 
-			Flag &= ~(CaveHookFlag::kRestoreBeforeProlog);
+			a_flag.reset(CaveHookFlag::kRestoreBeforeProlog);
 		}
 
 		if (a_prolog) {
@@ -643,12 +709,11 @@ namespace DKUtil::Hook
 			asmBranch.Disp -= static_cast<Disp32>(a_prolog->Size);
 		}
 
-		if (Flag & CaveHookFlag::kRestoreAfterProlog) {
+		if (a_flag.any(CaveHookFlag::kRestoreAfterProlog)) {
 			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
 			asmBranch.Disp -= static_cast<Disp32>(handle->CaveSize);
 
-			Flag &= ~(CaveHookFlag::kRestoreBeforeEpilog);
-			Flag &= ~(CaveHookFlag::kRestoreAfterEpilog);
+			a_flag.reset(CaveHookFlag::kRestoreBeforeEpilog, CaveHookFlag::kRestoreAfterEpilog);
 		}
 
 		const auto stackBufSize = sizeof(std::uint64_t) * a_funcInfo.ArgsCount;
@@ -668,26 +733,26 @@ namespace DKUtil::Hook
 			WriteData(handle->TramPtr, &asmAdd, sizeof(asmAdd));
 		}
 
-		if constexpr (Flag & CaveHookFlag::kRestoreBeforeEpilog)
+		if (a_flag.any(CaveHookFlag::kRestoreBeforeEpilog))
 		{
 			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
 
-			Flag &= ~(CaveHookFlag::kRestoreAfterEpilog);
+			a_flag.reset(CaveHookFlag::kRestoreAfterEpilog);
 		}
 
 		if (a_epilog) {
 			WritePatch(handle->TramPtr, a_epilog);
 		}
 
-		if constexpr (Flag & CaveHookFlag::kRestoreAfterEpilog)
+		if (a_flag.any(CaveHookFlag::kRestoreAfterEpilog))
 		{
 			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
 		}
 
-		if constexpr (Flag & CaveHookFlag::kSkipOP) {
+		if (a_flag.any(CaveHookFlag::kSkipOP)) {
 			asmReturn.Rel32 = static_cast<Imm32>(handle->CavePtr - handle->TramPtr - sizeof(asmReturn));
 		} else {
-			asmReturn.Rel32 = static_cast<Imm32>(handle->Address + handle->OffsetHigh - handle->TramPtr - sizeof(asmReturn));
+			asmReturn.Rel32 = static_cast<Imm32>(handle->Address + handle->Offset.second - handle->TramPtr - sizeof(asmReturn));
 		}
 
 		WriteData(handle->TramPtr, &asmReturn, sizeof(asmReturn));
