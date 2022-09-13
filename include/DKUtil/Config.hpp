@@ -2,6 +2,13 @@
 
 
 /*
+ * 1.1.2
+ * constexpr specifiers;
+ * 
+ * 1.1.1
+ * Added alias for config proxies;
+ * Minor logging practices;
+ * 
  * 1.1.0
  * NG-update;
  * Added clamp range;
@@ -23,7 +30,7 @@
 
 #define DKU_C_VERSION_MAJOR     1
 #define DKU_C_VERSION_MINOR     1
-#define DKU_C_VERSION_REVISION  0
+#define DKU_C_VERSION_REVISION  2
 
 
 #include <algorithm>
@@ -38,8 +45,9 @@
 #include "Logger.hpp"
 
 #ifdef DKU_C_DEBUG
-#define DKU_DEBUG
-#define DEBUG(...)	INFO(__VA_ARGS__)
+#define DKU_DEBUG(...)	DEBUG(__VA_ARGS__)
+#else
+#define DKU_DEBUG(...)	void(0)
 #endif
 
 #include "Utility.hpp"
@@ -53,12 +61,12 @@
 #pragma warning( push )
 #pragma warning( disable : 4244 )
 
-#ifndef LOG_ENTRY
+#ifndef CONFIG_ENTRY
 
 #if defined( F4SEAPI )
-#define LOG_ENTRY "Data\\F4SE\\Plugins\\"
+#define CONFIG_ENTRY "Data\\F4SE\\Plugins\\"
 #elif defined ( SKSEAPI )
-#define LOG_ENTRY "Data\\SKSE\\Plugins\\"
+#define CONFIG_ENTRY "Data\\SKSE\\Plugins\\"
 #else
 #error "Neither CommonLib nor custom LOG_ENTRY defined"
 #endif
@@ -83,7 +91,7 @@ namespace DKUtil::Config
 {
 	inline auto GetPath(const std::string_view a_file) noexcept
 	{
-		std::filesystem::path pluginDir(LOG_ENTRY);
+		std::filesystem::path pluginDir(CONFIG_ENTRY);
 		std::filesystem::path file(a_file.data());
 		return std::move((pluginDir / file).string());
 	}
@@ -151,17 +159,17 @@ namespace DKUtil::Config
 					return _data;
 				}
 			}
-			[[nodiscard]] auto& operator*() noexcept { return _data; }
-			[[nodiscard]] auto	operator<=>(const std::three_way_comparable<underlying_data_t> auto& a_rhs) const noexcept { return _data <=> a_rhs; }
-			[[nodiscard]] auto	operator<=>(const AData<underlying_data_t>& a_rhs) const noexcept { return _data <=> a_rhs._data; }
-			[[nodiscard]] auto	operator==(const AData<underlying_data_t>& a_rhs) const noexcept { return _data == a_rhs._data; }
-			[[nodiscard]] auto	operator!=(const AData<underlying_data_t>& a_rhs) const noexcept { return _data != a_rhs._data; }
+			[[nodiscard]] constexpr auto& operator*() noexcept { return _data; }
+			[[nodiscard]] constexpr auto operator<=>(const std::three_way_comparable<underlying_data_t> auto& a_rhs) const noexcept { return _data <=> a_rhs; }
+			[[nodiscard]] constexpr auto operator<=>(const AData<underlying_data_t>& a_rhs) const noexcept { return _data <=> a_rhs._data; }
+			[[nodiscard]] constexpr auto operator==(const AData<underlying_data_t>& a_rhs) const noexcept { return _data == a_rhs._data; }
+			[[nodiscard]] constexpr auto operator!=(const AData<underlying_data_t>& a_rhs) const noexcept { return _data != a_rhs._data; }
 
 			[[nodiscard]] constexpr auto get_key() const noexcept { return _key.c_str(); }
 			[[nodiscard]] constexpr auto get_section() const noexcept { return _section.c_str(); }
 			[[nodiscard]] constexpr auto is_collection() const noexcept { return _isCollection; }
 
-			[[nodiscard]] constexpr const auto& get_data() const noexcept { return _data; }
+			[[nodiscard]] constexpr const auto get_data() const noexcept { return _data; }
 			[[nodiscard]] constexpr auto& get_collection() noexcept 
 			{
 				if (_isCollection) {
@@ -177,13 +185,23 @@ namespace DKUtil::Config
 				_collection.reset();
 
 				_isCollection = (a_list.size() > 1);
-				if (_isCollection) {
+				[[unlikely]] if (_isCollection) {
 					_collection = std::make_unique<collection>(a_list);
+
 				}
 
 				_data = *a_list.begin();
 
-				clamp();
+				clamp(); 
+				
+				[[unlikely]] if (_isCollection) {
+					std::for_each(_collection->begin(), _collection->end(), [&](underlying_data_t val)
+						{
+							DKU_DEBUG("Setting collection value [{}] to [{}]", val, _key);
+						});
+				} else {
+					DKU_DEBUG("Setting value [{}] to [{}]", _data, _key);
+				}
 			}
 
 			constexpr void set_data(const collection& a_collection)
@@ -191,16 +209,23 @@ namespace DKUtil::Config
 				_collection.reset();
 
 				_isCollection = (a_collection.size() > 1);
-				if (_isCollection) {
+				[[likely]] if (_isCollection) {
 					_collection = std::make_unique<collection>(std::move(a_collection));
+					_data = a_collection.front();
+					clamp();
 				}
 
-				_data = a_collection.front();
-
-				clamp();
+				[[likely]] if (_isCollection) {
+					std::for_each(_collection->begin(), _collection->end(), [&](underlying_data_t val)
+						{
+							DKU_DEBUG("Setting collection value [{}] to [{}]", val, _key);
+						});
+				} else {
+					DKU_DEBUG("Setting value [{}] to [{}]", _data, _key);
+				}
 			}
 
-			inline constexpr void set_range(std::pair<double, double> a_range)
+			constexpr void set_range(std::pair<double, double> a_range)
 			{
 				if (dku_c_numeric<underlying_data_t>) {
 					_range = a_range;
@@ -213,7 +238,7 @@ namespace DKUtil::Config
 					return;
 				}
 
-				if (_isCollection) {
+				[[unlikely]] if (_isCollection) {
 					std::transform(_collection->begin(), _collection->end(), _collection->begin(), [&](underlying_data_t data) -> underlying_data_t
 						{
 							return data < _range.first ? _range.first : data > _range.second ? _range.second : data;
@@ -550,7 +575,7 @@ namespace DKUtil::Config
 				_toml = std::move(result).table();
 				for (auto& [section, table] : _toml) {
 					if (!table.is_table()) {
-						INFO("DKU_C: WARNING\nParser#{}: Sectionless configuration present and skipped\nPossible inappropriate formatting", _id);
+						INFO("DKU_C: WARNING\nParser#{}: Sectionless configuration present and skipped.\nPossible inappropriate formatting at [{}]", _id, section.str());
 						continue;
 					} else {
 						for (auto& [dataKey, dataPtr] : _manager.get_managed()) {
@@ -805,6 +830,13 @@ namespace DKUtil::Config
 		std::unique_ptr<parser_t>	_parser;
 		detail::DataManager			_manager;
 	};
+
+
+	// set of config files at runtime with custom string format parsing
+	namespace Set
+	{
+
+	} // namespace format
 } // namespace DKUtil::Config
 
 
@@ -814,7 +846,16 @@ namespace DKUtil::Alias
 	using Integer = DKUtil::Config::detail::AData<std::int64_t>;
 	using Double = DKUtil::Config::detail::AData<double>;
 	using String = DKUtil::Config::detail::AData<std::basic_string<char>>;
+
+	using IniConfig = DKUtil::Config::Proxy<DKUtil::Config::FileType::kIni>;
+	using JsonConfig = DKUtil::Config::Proxy<DKUtil::Config::FileType::kJson>;
+	using TomlConfig = DKUtil::Config::Proxy<DKUtil::Config::FileType::kToml>;
 } // namespace DKUtil::Alias
 
 
 #pragma warning( pop )
+
+
+#ifdef DKU_C_DEBUG
+#undef DKU_DEBUG
+#endif

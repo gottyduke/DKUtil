@@ -3,7 +3,7 @@
 Some utilitarian headers to help with SKSE64 plugin development
 
 # Implementations
-[![Config](https://img.shields.io/badge/Config-1.1.0-R.svg)](#Config)
+[![Config](https://img.shields.io/badge/Config-1.1.1-R.svg)](#Config)
 [![Hook](https://img.shields.io/badge/Hook-2.4.1-R.svg)](#Hook)
 [![Logger](https://img.shields.io/badge/Logger-1.2.0-R.svg)](#Logger)
 [![Utility](https://img.shields.io/badge/Utility-untracked-R.svg)](#Utility)

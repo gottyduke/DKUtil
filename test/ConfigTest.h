@@ -30,4 +30,4 @@ namespace Test::Config
 
 		//runtimeProxy.Load();
 	}
-}
+} // namespace Test::Config

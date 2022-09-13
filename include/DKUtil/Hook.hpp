@@ -2,6 +2,12 @@
 
 
 /*
+ * 2.5.0
+ * Added new assembly structs;
+ * Removed redundant structs;
+ * Removed CAVE_MAXIMUM_BYTES;
+ * Added register preserve functions;
+ * 
  * 2.4.1
  * Added runtime counterparts for NG;
  * 
@@ -71,8 +77,8 @@
 
 
 #define DKU_H_VERSION_MAJOR     2
-#define DKU_H_VERSION_MINOR     4
-#define DKU_H_VERSION_REVISION  1
+#define DKU_H_VERSION_MINOR     5
+#define DKU_H_VERSION_REVISION  0
 
 
 #pragma warning ( disable : 4244 )
@@ -80,6 +86,7 @@
 
  // AdditionalInclude
 #include <bit>
+#include <cstddef>
 #include <cstdint>
 #define WIN32_LEAN_AND_MEAN
 
@@ -130,9 +137,10 @@
 // DKUtil
 #include "Logger.hpp"
 
-#ifdef DKU_G_DEBUG
-#define DKU_DEBUG
-#define DEBUG(...)	INFO(__VA_ARGS__)
+#ifdef DKU_H_DEBUG
+#define DKU_DEBUG(...)		DEBUG(__VA_ARGS__)
+#else
+#define DKU_DEBUG(...)		void(0)
 #endif
 
 #include "Utility.hpp"
@@ -175,8 +183,8 @@
 
 #define CAVE_MINIMUM_BYTES	0x5
 
-#ifndef CAVE_MAXIMUM_BYTES
-#define CAVE_MAXIMUM_BYTES	0x80
+#ifndef CAVE_BUF_SIZE		1 << 7
+#define CAVE_BUF_SIZE		1 << 7
 #endif
 
 
@@ -193,6 +201,9 @@ namespace DKUtil
 
 namespace DKUtil::Hook
 {
+	using namespace DKUtil::Alias;
+
+
 	using REX = std::uint8_t;
 	using OpCode = std::uint8_t;
 	using ModRM = std::uint8_t;
@@ -211,65 +222,160 @@ namespace DKUtil::Hook
 		constexpr OpCode INT3 = 0xCC;
 		constexpr OpCode RET = 0xC3;
 
+		enum class Register : std::uint32_t
+		{
+			NONE = 0u,
+
+			RAX = 1u << 0,
+			RCX = 1u << 1,
+			RDX = 1u << 2,
+			RBX = 1u << 3,
+			RSP = 1u << 4,
+			RBP = 1u << 5,
+			RSI = 1u << 6,
+			RDI = 1u << 7,
+
+			RF = 1u << 8,
+
+			R8 = 1u << 9,
+			R9 = 1u << 10,
+			R10 = 1u << 11,
+			R11 = 1u << 12,
+			R12 = 1u << 13,
+			R13 = 1u << 14,
+			R14 = 1u << 15,
+			R15 = 1u << 16,
+		};
 
 #pragma pack ( push, 1 )
+#define DEF_ASM                                                                 \
+	constexpr auto* data() noexcept { return std::bit_cast<std::byte*>(this); } \
+	constexpr auto size() noexcept { return sizeof(*this); }
+
 		struct JmpRel
 		{
+			constexpr JmpRel(Disp32 disp = 0) :
+				Disp(disp)
+			{}
+
+			DEF_ASM
+
 			OpCode Jmp = 0xE9; // cd
-			Imm32 Rel32 = 0x00000000;
+			Disp32 Disp = 0x00000000;
 		};
 		static_assert(sizeof(JmpRel) == 0x5);
 
 
+		template <bool RETN = false>
 		struct JmpRip
 		{
-			OpCode Jmp = 0xFF; // 4
+			constexpr JmpRip(Disp32 disp = 0) :
+				Rip(RETN ? 0x15 : 0x25), Disp(disp)
+			{}
+
+			DEF_ASM
+
+			OpCode Jmp = 0xFF; // 2 | 4
 			ModRM Rip = 0x25; // 1 0 1
 			Disp32 Disp = 0x00000000;
 		};
-		static_assert(sizeof(JmpRip) == 0x6);
-
-
-		struct CallRip
-		{
-			OpCode Call = 0xFF; // 2
-			ModRM Rip = 0x15; // 1 0 1
-			Disp32 Disp = 0x00000000;
-		};
-		static_assert(sizeof(CallRip) == 0x6);
+		static_assert(sizeof(JmpRip<true>) == 0x6);
+		static_assert(sizeof(JmpRip<false>) == 0x6);
+		using CallRip = JmpRip<true>;
 
 
 		struct PushImm64
 		{
-			OpCode Push = 0x68; // id
-			Imm32 Low = 0x00000000; // >> 32
-			OpCode Mov = 0xC7; // 0 id
-			ModRM Sib = 0x44; // 1 0 0
+			constexpr PushImm64(Imm64 addr = 0) :
+				Low(addr >> 32), High(addr & 0xFFFFFFFFLL)
+			{}
+
+			DEF_ASM
+
+			constexpr auto full() noexcept { return static_cast<Imm64>(Low) << 32 | High; }
+
+			OpCode Push = 0x68;  // id
+			Imm32 Low = 0x00000000u;
+			OpCode Mov = 0xC7;  // 0 id
+			ModRM Sib = 0x44;   // 1 0 0
 			SIndex Rsp = 0x24;
 			Disp8 Disp = sizeof(Imm32);
-			Imm32 High = 0x00000000; // & 0xFFFFFFFFLL
+			Imm32 High = 0x00000000u;
 		};
 		static_assert(sizeof(PushImm64) == 0xD);
 
 
+		template <bool ADD = false>
 		struct SubRsp
 		{
+			constexpr SubRsp(Imm8 s = 0) :
+				Rsp(ADD ? 0xC4 : 0xEC), Size(s)
+			{}
+
+			DEF_ASM
+
 			REX W = 0x48;
-			OpCode Sub = 0x83; // 5 ib
+			OpCode Sub = 0x83; // 0 | 5 ib
 			ModRM Rsp = 0xEC; // 1 0 0
 			Imm8 Size = 0x00;
 		};
-		static_assert(sizeof(SubRsp) == 0x4);
+		static_assert(sizeof(SubRsp<true>) == 0x4);
+		static_assert(sizeof(SubRsp<false>) == 0x4);
+		using AddRsp = SubRsp<true>;
 
 
-		struct AddRsp
+		template <bool POP = false>
+		struct PushR64
 		{
-			REX W = 0x48;
-			OpCode Add = 0x83; // 0 ib
-			ModRM Rsp = 0xC4; // 1 0 0
-			Imm8 Size = 0x00;
+			constexpr PushR64(model::enumeration<Register> reg = Register::RAX)
+			{
+				if constexpr (POP) {
+					Push += ((reg == Register::RF) ? 0x1 : 0x8);
+				}
+
+				auto rm = std::bit_cast<std::uint32_t>(reg);
+				if (rm > 0xEC) {
+					ERROR("Use PushR64W for REX.B operations (2 byte opcode)");
+				}
+
+				Push += rm;
+			}
+
+			DEF_ASM
+
+			OpCode Push = 0x50; // id
 		};
-		static_assert(sizeof(AddRsp) == 0x4);
+		static_assert(sizeof(PushR64<true>) == 0x1);
+		static_assert(sizeof(PushR64<false>) == 0x1);
+		using PopR64 = PushR64<true>;
+
+		
+		template <bool POP = false>
+		struct PushR64W
+		{
+			constexpr PushR64W(model::enumeration<Register> reg = Register::RAX)
+			{
+				if constexpr (POP) {
+					Push += 0x8;
+				}
+
+				auto rm = std::bit_cast<std::uint32_t>(reg);
+				if (rm <= 0xEC) {
+					ERROR("Use PushR64 for base operations (1 byte opcode)");
+				}
+
+				Push += rm;
+			}
+
+			DEF_ASM
+
+			REX B = 0x41;
+			OpCode Push = 0x50; // id
+		};
+		static_assert(sizeof(PushR64W<true>) == 0x2);
+		static_assert(sizeof(PushR64W<false>) == 0x2);
+		using PopR64W = PushR64W<true>;
+
 #pragma pack ( pop )
 	} // namespace detail
 
@@ -417,6 +523,19 @@ namespace DKUtil::Hook
 	}
 
 
+	inline std::string_view GetProcessName(HMODULE a_handle = 0) noexcept
+	{
+		static std::string fileName(MAX_PATH + 1, ' ');
+		auto res = GetModuleBaseNameA(GetCurrentProcess(), a_handle, fileName.data(), MAX_PATH + 1);
+		if (res == 0) {
+			fileName = "[ProcessHost]";
+			res = 13;
+		}
+
+		return { fileName.c_str(), res };
+	}
+
+
 	inline constexpr std::uintptr_t TblToAbs(const std::uintptr_t a_base, const std::uint16_t a_index, const std::size_t a_size = sizeof(Imm64)) noexcept
 	{
 		return AsAddress(a_base + a_index * a_size);
@@ -488,7 +607,7 @@ namespace DKUtil::Hook
 	class ASMPatchHandle : public HookHandle
 	{
 	public:
-		// execution address
+		// execution address, <cave low offset, cave high offset>
 		ASMPatchHandle(
 			const std::uintptr_t a_address,
 			const std::pair<std::ptrdiff_t, std::ptrdiff_t> a_offset
@@ -519,8 +638,8 @@ namespace DKUtil::Hook
 		const std::pair<std::ptrdiff_t, std::ptrdiff_t> Offset;
 		const std::size_t PatchSize;
 
-		OpCode OldBytes[CAVE_MAXIMUM_BYTES]{};
-		OpCode PatchBuf[CAVE_MAXIMUM_BYTES]{};
+		OpCode OldBytes[CAVE_BUF_SIZE]{};
+		OpCode PatchBuf[CAVE_BUF_SIZE]{};
 	};
 
 
@@ -555,26 +674,26 @@ namespace DKUtil::Hook
 			handle->TramPtr = TRAM_ALLOC(0);
 			DEBUG("DKU_H: ASM patch tramoline entry -> {:X}", handle->TramPtr);
 
-			asmDetour.Rel32 = static_cast<Imm32>(handle->TramPtr - handle->TramEntry - sizeof(asmDetour));
-			std::memcpy(handle->PatchBuf, &asmDetour, sizeof(asmDetour));
+			asmDetour.Disp = static_cast<Imm32>(handle->TramPtr - handle->TramEntry - asmDetour.size());
+			std::memcpy(handle->PatchBuf, asmDetour.data(), asmDetour.size());
 
 			WritePatch(handle->TramPtr, a_patch);
 
 			if (a_forward) {
-				asmReturn.Rel32 = static_cast<Imm32>(handle->TramEntry + handle->PatchSize - handle->TramPtr - sizeof(asmReturn));
+				asmReturn.Disp = static_cast<Disp32>(handle->TramEntry + handle->PatchSize - handle->TramPtr - asmReturn.size());
 			} else {
-				asmReturn.Rel32 = static_cast<Imm32>(handle->TramEntry + a_patch->Size - handle->TramPtr - sizeof(asmReturn));
+				asmReturn.Disp = static_cast<Disp32>(handle->TramEntry + a_patch->Size - handle->TramPtr - asmReturn.size());
 			}
 
-			WriteData(handle->TramPtr, &asmReturn, sizeof(asmReturn));
+			WriteData(handle->TramPtr, asmReturn.data(), asmReturn.size());
 		} else {
 			std::memcpy(handle->PatchBuf, a_patch->Data, a_patch->Size);
 
 			if (a_forward && handle->PatchSize > (a_patch->Size * ASM_MINIMUM_SKIP + sizeof(JmpRel))) {
 				JmpRel asmForward;
 
-				asmForward.Rel32 = static_cast<Imm32>(handle->TramEntry + handle->PatchSize - handle->TramEntry - a_patch->Size - sizeof(asmForward));
-				std::memcpy(handle->PatchBuf + a_patch->Size, &asmForward, sizeof(asmForward));
+				asmForward.Disp = static_cast<Disp32>(handle->TramEntry + handle->PatchSize - handle->TramEntry - a_patch->Size - asmForward.size());
+				std::memcpy(handle->PatchBuf + a_patch->Size, asmForward.data(), asmForward.size());
 
 				DEBUG("DKU_H: ASM patch forwarded"sv);
 			}
@@ -591,13 +710,13 @@ namespace DKUtil::Hook
 	class CaveHookHandle : public HookHandle
 	{
 	public:
-		// execution address, trampoline address, cave low offset, cave high offset
+		// execution address, trampoline address, <cave low offset, cave high offset>
 		CaveHookHandle(
-			const std::uintptr_t a_address, 
+			const std::uintptr_t a_address,
 			const std::uintptr_t a_tramPtr,
-			const std::pair<std::ptrdiff_t, std::ptrdiff_t> a_offset
-		) noexcept : 
-			HookHandle(a_address, a_tramPtr), Offset(a_offset), CaveSize(a_offset.second - a_offset.first), CaveEntry(Address + a_offset.first), CavePtr(Address + a_offset.first)
+			const std::pair<std::ptrdiff_t, std::ptrdiff_t> a_offset) noexcept :
+			HookHandle(a_address, a_tramPtr),
+			Offset(a_offset), CaveSize(a_offset.second - a_offset.first), CaveEntry(Address + a_offset.first), CavePtr(Address + a_offset.first)
 		{
 			std::memcpy(OldBytes, AsPointer(CaveEntry), CaveSize);
 			std::fill_n(CaveBuf, CaveSize, detail::NOP);
@@ -627,8 +746,8 @@ namespace DKUtil::Hook
 
 		std::uintptr_t CavePtr{ 0x0 };
 
-		OpCode OldBytes[CAVE_MAXIMUM_BYTES]{};
-		OpCode CaveBuf[CAVE_MAXIMUM_BYTES]{};
+		OpCode OldBytes[CAVE_BUF_SIZE]{};
+		OpCode CaveBuf[CAVE_BUF_SIZE]{};
 	};
 
 
@@ -660,7 +779,7 @@ namespace DKUtil::Hook
 		const FuncInfo a_funcInfo,
 		const Patch* a_prolog = nullptr,
 		const Patch* a_epilog = nullptr,
-		RE::stl::enumeration<CaveHookFlag, std::uint32_t> a_flag = CaveHookFlag::kSkipOP
+		model::enumeration<CaveHookFlag> a_flag = CaveHookFlag::kSkipOP
 	) noexcept
 	{
 		using namespace detail;
@@ -677,25 +796,27 @@ namespace DKUtil::Hook
 		CallRip asmBranch;
 
 		// trampoline layout
-		// [qword imm64] <- tram entry
-		// [stolen] <- if kHead
+		// [qword imm64] <- tram entry after this
+		// [stolen] <- kRestoreBeforeProlog
 		// [prolog] <- cave detour entry
+		// [stolen] <- kRestoreAfterProlog
 		// [alloc stack]
 		// [call qword ptr [rip + disp]]
 		// [dealloc stack]
+		// [stolen] <- kRestoreBeforeEpilog
 		// [epilog]
-		// [stolen] <- if kTail
+		// [stolen] <- kRestoreAfterEpilog
 		// [jmp rel32]
 
 		auto tramPtr = TRAM_ALLOC(0);
 
 		WriteImm(tramPtr, a_funcInfo.Address);
-		DEBUG("DKU_H: Detour -> {} @ {}.{:X}", a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
+		DEBUG("DKU_H: Detour {}.{:X} -> {} @ {}.{:X}", GetProcessName(), a_address + a_offset.first, a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
 
 		auto handle = std::make_unique<CaveHookHandle>(a_address, tramPtr, a_offset);
 
-		asmDetour.Rel32 = static_cast<Imm32>(handle->TramPtr - handle->CavePtr - sizeof(asmDetour));
-		std::memcpy(handle->CaveBuf, &asmDetour, sizeof(asmDetour));
+		asmDetour.Disp = static_cast<Disp32>(handle->TramPtr - handle->CavePtr - asmDetour.size());
+		std::memcpy(handle->CaveBuf, asmDetour.data(), asmDetour.size());
 
 		if (a_flag.any(CaveHookFlag::kRestoreBeforeProlog)) {
 			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
@@ -721,16 +842,16 @@ namespace DKUtil::Hook
 			asmSub.Size = stackBufSize;
 			asmAdd.Size = stackBufSize;
 
-			WriteData(handle->TramPtr, &asmSub, sizeof(asmSub));
-			asmBranch.Disp -= static_cast<Disp32>(sizeof(asmSub));
+			WriteData(handle->TramPtr, asmSub.data(), asmSub.size());
+			asmBranch.Disp -= static_cast<Disp32>(asmSub.size());
 		}
 
 		asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
-		asmBranch.Disp -= static_cast<Disp32>(sizeof(asmBranch));
-		WriteData(handle->TramPtr, &asmBranch, sizeof(asmBranch));
+		asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
+		WriteData(handle->TramPtr, asmBranch.data(), asmBranch.size());
 
 		if (stackBufSize) {
-			WriteData(handle->TramPtr, &asmAdd, sizeof(asmAdd));
+			WriteData(handle->TramPtr, asmAdd.data(), asmAdd.size());
 		}
 
 		if (a_flag.any(CaveHookFlag::kRestoreBeforeEpilog))
@@ -750,12 +871,12 @@ namespace DKUtil::Hook
 		}
 
 		if (a_flag.any(CaveHookFlag::kSkipOP)) {
-			asmReturn.Rel32 = static_cast<Imm32>(handle->CavePtr - handle->TramPtr - sizeof(asmReturn));
+			asmReturn.Disp = static_cast<Disp32>(handle->CavePtr - handle->TramPtr - asmReturn.size());
 		} else {
-			asmReturn.Rel32 = static_cast<Imm32>(handle->Address + handle->Offset.second - handle->TramPtr - sizeof(asmReturn));
+			asmReturn.Disp = static_cast<Disp32>(handle->Address + handle->Offset.second - handle->TramPtr - asmReturn.size());
 		}
 
-		WriteData(handle->TramPtr, &asmReturn, sizeof(asmReturn));
+		WriteData(handle->TramPtr, asmReturn.data(), asmReturn.size());
 
 		return std::move(handle);
 	}
@@ -832,8 +953,8 @@ namespace DKUtil::Hook
 			WritePatch(tramPtr, a_prolog);
 			asmBranch.Disp -= static_cast<Disp32>(a_prolog->Size);
 
-			asmBranch.Disp -= static_cast<Disp32>(sizeof(asmBranch));
-			WriteData(tramPtr, &asmBranch, sizeof(asmBranch));
+			asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
+			WriteData(tramPtr, asmBranch.data(), asmBranch.size());
 
 			return std::move(handle);
 		} else {
@@ -864,7 +985,7 @@ namespace DKUtil::Hook
 		) noexcept
 			: HookHandle(a_address, a_tramEntry), OldAddress(*std::bit_cast<std::uintptr_t*>(Address))
 		{
-			DEBUG("DKU_H: IAT @ {:X}\nOld entry {} @ {:X} | New entry {} @ {:X}", a_address, a_methodName, OldAddress, a_funcName, a_tramEntry);
+			DEBUG("DKU_H: IAT @ {:X}\nOld entry {} @ {:X} | New entry {} @ {}.{:X}", a_address, a_methodName, OldAddress, a_funcName, PROJECT_NAME, a_tramEntry);
 		}
 
 
@@ -902,14 +1023,18 @@ namespace DKUtil::Hook
 	{
 		using namespace detail;
 
+		if (!a_moduleName || !a_methodName) {
+			ERROR("DKU_H: IAT hook must have valid module name & method name\nConsider using GetProcessName([Opt]HMODULE)");
+		}
+
 		if (!a_funcInfo.Address) {
 			ERROR("DKU_H: IAT hook must have a valid function pointer");
 		}
-		DEBUG("DKU_H: Detour -> {} @ {}.{:X}", a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
+		DEBUG("DKU_H: Detour {} @ {} -> {} @ {}.{:X}", a_methodName, a_moduleName, a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
 
 		auto* dosHeader = std::bit_cast<IMAGE_DOS_HEADER*>(GetModuleHandleA(a_moduleName));
 		if (!dosHeader) {
-			ERROR("DKU_H: IAT module name {} invalid", a_moduleName ? a_moduleName : "ProcessHost");
+			ERROR("DKU_H: IAT module name {} invalid", a_moduleName);
 		}
 		
 		auto* ntHeader = std::bit_cast<IMAGE_NT_HEADERS*>(AsAddress(dosHeader) + dosHeader->e_lfanew);
@@ -921,7 +1046,7 @@ namespace DKUtil::Hook
 
 		for (auto index = 0; importDesc[index].Characteristics != 0; ++index) {
 			const char* moduleName = std::bit_cast<const char*>(dosHeader + importDesc[index].Name);
-			if (_strcmpi(a_moduleName, moduleName) != 0) {
+			if (!string::iequals(a_moduleName, moduleName)) {
 				continue;
 			}
 
@@ -939,7 +1064,7 @@ namespace DKUtil::Hook
 
 				auto* tbl = std::bit_cast<IMAGE_IMPORT_BY_NAME*>(dosHeader + oldThunk->u1.AddressOfData);
 
-				if (_strcmpi(a_methodName, std::bit_cast<const char*>(std::addressof(tbl->Name[0]))) != 0) {
+				if (!string::iequals(a_methodName, std::bit_cast<const char*>(std::addressof(tbl->Name[0])))) {
 					continue;
 				}
 
@@ -956,8 +1081,8 @@ namespace DKUtil::Hook
 					WritePatch(tramPtr, a_prolog);
 					asmBranch.Disp -= static_cast<Disp32>(a_prolog->Size);
 
-					asmBranch.Disp -= static_cast<Disp32>(sizeof(asmBranch));
-					WriteData(tramPtr, &asmBranch, sizeof(asmBranch));
+					asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
+					WriteData(tramPtr, asmBranch.data(), asmBranch.size());
 
 					return std::move(handle);
 				} else {
@@ -989,7 +1114,15 @@ namespace DKUtil::Alias
 	using CaveHandle = DKUtil::Hook::CaveHookHandle;
 	using VMTHandle = DKUtil::Hook::VMTHookHandle;
 	using IATHandle = DKUtil::Hook::IATHookHandle;
+
+	using RegFlag = DKUtil::Hook::detail::Register;
+	using CaveFlag = DKUtil::Hook::CaveHookFlag;
 } // namespace DKUtil::Alias
 
 
 #pragma warning ( default : 4244 )
+
+
+#ifdef DKU_H_DEBUG
+#undef DKU_DEBUG
+#endif

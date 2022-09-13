@@ -41,6 +41,10 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
+
+using namespace std::literals;
+
+
 #define INFO(...)	{std::source_location src = std::source_location::current();	\
 	spdlog::log(spdlog::source_loc{ src.file_name(), static_cast<int>(src.line()),	\
 	src.function_name() }, spdlog::level::info, __VA_ARGS__);}    
@@ -50,16 +54,12 @@
 
 #endif
 
-
-using namespace std::literals;
-
-
-#define ERROR(...)																\
-	const auto errormsg = "ERROR\n\n"s + fmt::format(__VA_ARGS__);				\
-	spdlog::default_logger_raw()->log(spdlog::source_loc{__FILE__, __LINE__,	\
-		SPDLOG_FUNCTION}, spdlog::level::critical, __VA_ARGS__);				\
+#define ERROR(...)															\
+	{const auto errormsg = "ERROR\n\n"s + fmt::format(__VA_ARGS__);			\
+	spdlog::default_logger_raw()->log(spdlog::source_loc{__FILE__, __LINE__,\
+		SPDLOG_FUNCTION}, spdlog::level::critical, __VA_ARGS__);			\
 	MessageBoxA(nullptr, errormsg.c_str(), Plugin::NAME.data(), MB_OK);		\
-	ExitProcess(114514);
+	ExitProcess(-1);}
 
 
 #define ENABLE_DEBUG spdlog::default_logger()->set_level(spdlog::level::debug);
@@ -69,9 +69,9 @@ using namespace std::literals;
 #ifndef LOG_PATH
 
 #if defined( F4SEAPI )
-#define LOG_PATH "My Games/Fallout4/F4SE"sv
+#define LOG_PATH "My Games\\Fallout4\\F4SE"sv
 #else
-#define LOG_PATH "My Games/Skyrim Special Edition/SKSE"sv
+#define LOG_PATH "My Games\\Skyrim Special Edition\\SKSE"sv
 #endif
 
 #endif
