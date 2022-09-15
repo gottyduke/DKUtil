@@ -51,7 +51,10 @@ using namespace std::literals;
 #define DEBUG(...)	{std::source_location src = std::source_location::current();	\
 	spdlog::log(spdlog::source_loc{ src.file_name(), static_cast<int>(src.line()),	\
 	src.function_name() }, spdlog::level::debug, __VA_ARGS__);}    
+#endif
 
+#ifdef DKUTIL_TEST_RUN
+#define DEBUG(...) INFO(__VA_ARGS__)
 #endif
 
 #define ERROR(...)															\
@@ -108,6 +111,7 @@ namespace DKUtil::Logger
 		*path += ".log"sv;
 
 		auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
+
 #ifndef NDEBUG
 		sink->set_pattern("[%i][%l](%s:%#) %v"s);
 #else
@@ -115,6 +119,7 @@ namespace DKUtil::Logger
 #endif
 
 		auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
+
 #ifndef NDEBUG
 		log->set_level(spdlog::level::debug);
 #else

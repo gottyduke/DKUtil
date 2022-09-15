@@ -1,0 +1,37 @@
+﻿#pragma once
+
+
+namespace Plugin
+{
+	inline constexpr auto NAME = "@PROJECT_NAME@"sv;
+	inline constexpr auto AUTHOR = "@SKSEPluginAuthor@"sv;
+	inline constexpr REL::Version Version
+	{
+		@PROJECT_VERSION_MAJOR@u,
+		@PROJECT_VERSION_MINOR@u,
+		@PROJECT_VERSION_PATCH@u
+	};
+}
+
+
+DLLEXPORT constinit auto SKSEPlugin_Version = []() noexcept
+{
+	SKSE::PluginVersionData data{};
+
+	data.PluginVersion(Plugin::Version);
+	data.PluginName(Plugin::NAME);
+	data.AuthorName(Plugin::AUTHOR);
+	data.UsesAddressLibrary(true);
+
+	return data;
+}();
+
+
+DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface*, SKSE::PluginInfo* pluginInfo)
+{
+    pluginInfo->name = SKSEPlugin_Version.pluginName;
+    pluginInfo->infoVersion = SKSE::PluginInfo::kVersion;
+    pluginInfo->version = SKSEPlugin_Version.pluginVersion;
+
+    return true;
+}

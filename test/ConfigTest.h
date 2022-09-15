@@ -12,22 +12,26 @@ namespace Test::Config
 	static Double dA{ "dAwesome" };
 
 
-	void Load()
+	void Run()
 	{
-		auto Main = COMPILE_PROXY("DKUtilDebugger.ini"sv);
+		auto MainIni = COMPILE_PROXY("DKUtilDebugger.ini"sv);
+		auto MainJson = COMPILE_PROXY("DKUtilDebugger.json"sv);
+		auto MainToml = COMPILE_PROXY("DKUtilDebugger.toml"sv);
 
-		Main.Bind(iA, 10);
-		Main.Bind(sA, "First", "Second", "Third");
-		Main.Bind(bA, true);
-		Main.Bind(dA, 114.514);
+		MainIni.Bind(iA, 10);
+		MainIni.Bind(sA, "First", "Second", "Third");
+		MainIni.Bind(bA, true);
+		MainIni.Bind(dA, 114.514);
 
-		Main.Load();
+		MainIni.Load();
+		MainJson.Load();
+		MainToml.Load();
 
 		DEBUG("{} {} {} {}", *iA, *sA, *bA, *dA);
 
-		//std::string someRandomeName = DKUtil::Config::GetPath("AnotherBiteTheConfig.ini");		
-		//static auto runtime = RUNTIME_PROXY(someRandomeName);
+		std::string someRandomeName = DKUtil::Config::GetPath("AnotherBiteTheConfig.ini");		
+		static auto runtime = RUNTIME_PROXY(someRandomeName);
 
-		//runtimeProxy.Load();
+		runtime.Load();
 	}
 } // namespace Test::Config

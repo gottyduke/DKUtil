@@ -74,9 +74,9 @@
 #endif
 
 
-#define EVAL_HELPER(SRC)	DKUtil::Config::EvaluateConfig([]() { return SRC; })
+#define __eval_helper(SRC)	DKUtil::Config::EvaluateConfig([]() { return SRC; })
 // compile-time evaluation
-#define COMPILE_PROXY(SRC)	DKUtil::Config::Proxy<EVAL_HELPER(SRC)>(SRC)
+#define COMPILE_PROXY(SRC)	DKUtil::Config::Proxy<__eval_helper(SRC)>(SRC)
 // runtime dynamic
 #define RUNTIME_PROXY(SRC)	DKUtil::Config::Proxy<DKUtil::Config::FileType::kDynamic>(SRC)
 

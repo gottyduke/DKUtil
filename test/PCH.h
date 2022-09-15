@@ -110,11 +110,21 @@
 using namespace std::literals;
 using namespace REL::literals;
 
-// Version
-#include "Version.h"
+#define DLLEXPORT extern "C" [[maybe_unused]] __declspec(dllexport)
+
+// Plugin
+#include "Plugin.h"
 
 // DKUtil
 #include "DKUtil/Logger.hpp"
 
 
-#define DLLEXPORT extern "C" [[maybe_unused]] __declspec(dllexport)
+#define __do_test_run(HEADER)                                    \
+	{                                                            \
+		INFO("++++++ Running library: {}", #HEADER);             \
+		auto start = std::chrono::steady_clock::now();           \
+		Test::HEADER::Run();                                     \
+		auto end = std::chrono::steady_clock::now();             \
+		std::chrono::duration<double> elapsed = end - start;     \
+		INFO("++++++ Testing complete in {}s", elapsed.count()); \
+	}

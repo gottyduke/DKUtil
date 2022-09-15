@@ -96,8 +96,8 @@ endif()
 
 # in-place configuration
 configure_file(
-	${CMAKE_CURRENT_SOURCE_DIR}/cmake/Version.h.in
-	${CMAKE_CURRENT_BINARY_DIR}/include/Version.h
+	${CMAKE_CURRENT_SOURCE_DIR}/cmake/Plugin.h.in
+	${CMAKE_CURRENT_BINARY_DIR}/include/Plugin.h
 	@ONLY
 )
 
@@ -111,15 +111,13 @@ configure_file(
 execute_process(COMMAND powershell -ExecutionPolicy Bypass -File "${CMAKE_CURRENT_SOURCE_DIR}/!Update.ps1" "SOURCEGEN" "${PROJECT_VERSION}" "${CMAKE_CURRENT_BINARY_DIR}")
 include(${CMAKE_CURRENT_BINARY_DIR}/sourcelist.cmake)
 source_group(
-	TREE 
-		${CMAKE_CURRENT_SOURCE_DIR}
-	FILES 
-		${SOURCES}
+	TREE ${CMAKE_CURRENT_SOURCE_DIR}
+	FILES ${SOURCES}
 )
 
 source_group(
 	TREE ${CMAKE_CURRENT_BINARY_DIR}
-	FILES ${CMAKE_CURRENT_BINARY_DIR}/include/Version.h
+	FILES ${CMAKE_CURRENT_BINARY_DIR}/include/Plugin.h
 )
 
 # dependencies
@@ -130,14 +128,26 @@ find_package(tomlplusplus CONFIG REQUIRED)
 find_package(xbyak CONFIG REQUIRED)
 
 # runtime
+if(DKUTIL_TEST_RUN)
+add_executable(
+	${PROJECT_NAME}
+	${SOURCES}
+	${CMAKE_CURRENT_BINARY_DIR}/include/Plugin.h
+	${CMAKE_CURRENT_BINARY_DIR}/version.rc
+	.clang-format
+	vcpkg.json
+)
+else()
 add_library(
 	${PROJECT_NAME}
 	SHARED
 		${SOURCES}
-		${CMAKE_CURRENT_BINARY_DIR}/include/Version.h
+		${CMAKE_CURRENT_BINARY_DIR}/include/Plugin.h
 		${CMAKE_CURRENT_BINARY_DIR}/version.rc
+		.clang-format
 		vcpkg.json
 )
+endif()
 
 # include dir
 target_include_directories(
@@ -162,6 +172,14 @@ target_link_libraries(
 # compiler def
 if (MSVC)
 	add_compile_definitions(_UNICODE)
+
+	if (DKUTIL_TEST_RUN)
+	target_compile_definitions(
+		${PROJECT_NAME}
+		PUBLIC
+		"DKUTIL_TEST_RUN=1"
+	)
+	endif()
 
 	target_compile_options(
 		${PROJECT_NAME}
@@ -201,6 +219,7 @@ target_precompile_headers(
 		test/PCH.h
 )
 
+if(NOT DKUTIL_TEST_RUN)
 # post build event
 add_custom_command(
 	TARGET 
@@ -211,6 +230,7 @@ add_custom_command(
 		COMMENT 
 			"Updating project :))"
 )
+endif()
 
 # called via !Rebuild.ps1
 if(DEFINED GROUP)

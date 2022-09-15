@@ -2,22 +2,18 @@
 #include "HookTest.h"
 #include "LoggerTest.h"
 #include "UtilityTest.h"
-#include "DKUtil/Extra.hpp"
-
-#include <atomic>
-#include <chrono>
-#include <future>
-#include <thread>
 
 
 //#define TEST_CONFIG
 //#define TEST_HOOK
 //#define TEST_LOGGER
 #define TEST_UTILITY
+//#define TEST_CUSTOM
+#define TEST_AND_EXIT
 
-/**/
 namespace
 {
+#ifdef TEST_CUSTOM
 	namespace IconExtender
 	{
 		enum class ColorCode
@@ -52,12 +48,13 @@ namespace
 			kMISC_LEATHER,
 			kMISC_LEATHERSTRIPS,
 			kMISC_CHILDRENSCLOTHES,
-
-			kDEFAULT
+			kDEFAULT,
+			// add after
+			kTorch,
 		};
 
 
-		constexpr std::pair<std::uint32_t, std::uint32_t> ColorTbl[31] = {
+		constexpr std::pair<std::uint32_t, std::uint32_t> ColorTbl[] = {
 			{ 13055542u, 10027059u },
 			{ 16776960u, 16776960u },
 			{ 2096127u, 24495u },
@@ -87,30 +84,30 @@ namespace
 			{ 13421619u, 16766720u },
 			{ 12225827u, 4284041241u },
 			{ 12225827u, 4284041241u },
-			{ 15587975u, 2763306u }, 
+			{ 15587975u, 2763306u },
 			{ 0u, 0u },
+			// add after
+			{ 7694847u, 24495u },
 		};
 
-#define ICON_EXTEND_INVOKE(Category) Process##Category
-#define ICON_EXTEND(Category, Item)                                                \
-	{                                                                              \
-		DEBUG("!Processing [{}] {}({}) | {:X}", #Category, a_item->data.GetName(), \
-			a_item->data.GetCount(), a_item->data.objDesc->object->GetFormID());   \
-		itemName = a_item->data.GetName();                                         \
-		ICON_EXTEND_INVOKE(Category)                                               \
-		(Item);                                                                    \
-		Item->obj.SetMember("text", { itemName });                                 \
-		Item->obj.SetMember("iconLabel", { iconLabel });                           \
-		if (iconColor) {                                                           \
-			Item->obj.SetMember("iconColor", { iconColor });                       \
-		}                                                                          \
-		itemName.clear();                                                          \
-		iconLabel = "default_misc";                                                \
-		iconColor = 0x0;                                                           \
-		DEBUG("+Processed [{}] {}({}) | {:X}", #Category, a_item->data.GetName(),  \
-			a_item->data.GetCount(), a_item->data.objDesc->object->GetFormID());   \
-	}
-#define CastAs(var, type) auto* var = std::bit_cast<RE::type*>(a_item->data.objDesc->object)
+#	define ICON_EXTEND_INVOKE(Category) Process##Category
+#	define ICON_EXTEND(Category, Item)                                                                                       \
+		{                                                                                                                     \
+			itemName = a_item->data.GetName();                                                                                \
+			ICON_EXTEND_INVOKE(Category)                                                                                      \
+			(Item);                                                                                                           \
+			Item->obj.SetMember("text", { itemName });                                                                        \
+			Item->obj.SetMember("iconLabel", { iconLabel });                                                                  \
+			if (iconColor) {                                                                                                  \
+				Item->obj.SetMember("iconColor", { iconColor });                                                              \
+			}                                                                                                                 \
+			itemName.clear();                                                                                                 \
+			iconLabel = "default_misc";                                                                                       \
+			iconColor = 0x0;                                                                                                  \
+			DEBUG("+Processed [{}] {}({}) | {:X} | {:X}", #Category, a_item->data.GetName(),                                  \
+				a_item->data.GetCount(), a_item->data.objDesc->object->GetFormID(), AsAddress(a_item->data.objDesc->object)); \
+		}
+#	define CastAs(var, type) auto* var = std::bit_cast<RE::type*>(a_item->data.objDesc->object)
 
 		// update this from mcm
 		static bool UseDearDiaryWhiteMode = false;
@@ -175,7 +172,6 @@ namespace
 			iconLabel = WEAPTYPE_ICON[idx];
 			iconColor = Color(ColorCode::kWeapon);
 
-			CONSOLE("{}", WEAPTYPE_ICON[idx]);
 			//
 		}
 
@@ -245,7 +241,7 @@ namespace
 
 			//
 		}
-
+		
 		void ProcessMisc(RE::ItemList::Item* a_item)
 		{
 			static constexpr const std::pair<const char* const,
@@ -345,6 +341,7 @@ namespace
 			CastAs(light, TESObjectLIGH);
 
 			iconLabel = "misc_torch";
+			iconColor = Color(ColorCode::kTorch);
 
 			//
 		}
@@ -433,21 +430,24 @@ namespace
 
 			auto set = false;
 			for (const ARMO slot : slots.flag_range(ARMO::kHead, ARMO::kEars)) {
-				if (slots.any(slot) && !set) {
-					if (slots.any(ARMO::kAmulet, ARMO::kRing, ARMO::kCirclet)) {
-						iconLabel = "armor_";
-					}
+				if (slots.any(slot)) {
 					iconLabel += ARMOSLOT_ICON[slots.index_of(slot)];
 					set = true;
 					break;
 				}
 			}
 
+			if (slots.any(ARMO::kAmulet, ARMO::kRing, ARMO::kAmulet)) {
+				RE::stl::string::replace_first_instance(iconLabel, "light", "");
+				RE::stl::string::replace_first_instance(iconLabel, "clothing", "armor");
+				set = true;
+			}
+
 			if (!set) {
 				iconLabel = "default_armor";
 			}
 
-			// 
+			//
 		}
 
 		void ProcessAmmo(RE::ItemList::Item* a_item)
@@ -603,59 +603,102 @@ namespace
 				break;
 			}
 		}
-	}  // namespace IconExtender
 
 
-	class MenuOpenHandler final :
-		public DKUtil::model::Singleton<MenuOpenHandler>,
-		public RE::BSTEventSink<RE::MenuOpenCloseEvent>
-	{
-	public:
-		using EventResult = RE::BSEventNotifyControl;
-
-		EventResult ProcessEvent(const RE::MenuOpenCloseEvent* a_event, [[maybe_unused]] RE::BSTEventSource<RE::MenuOpenCloseEvent>* a_eventSource) override
+		class MenuOpenHandler final :
+			public DKUtil::model::Singleton<MenuOpenHandler>,
+			public RE::BSTEventSink<RE::MenuOpenCloseEvent>
 		{
-			if (!a_event || !a_event->opening) {
+		public:
+			using EventResult = RE::BSEventNotifyControl;
+
+			EventResult ProcessEvent(const RE::MenuOpenCloseEvent* a_event, [[maybe_unused]] RE::BSTEventSource<RE::MenuOpenCloseEvent>* a_eventSource) override
+			{
+				if (!a_event || !a_event->opening) {
+					return EventResult::kContinue;
+				}
+
+				auto* const ui = RE::UI::GetSingleton();
+				auto* const intfcStr = RE::InterfaceStrings::GetSingleton();
+				RE::GFxValue nullIconSetter{};
+				RE::ItemList* itemList{ nullptr };
+
+				if (a_event->menuName == intfcStr->barterMenu) {
+					if (const auto* menu = static_cast<RE::BarterMenu*>(ui->GetMenu(a_event->menuName).get())) {
+						menu->uiMovie->SetVariable("InventoryIconSetter", &nullIconSetter);
+						itemList = menu->itemList;
+					}
+				} else if (a_event->menuName == intfcStr->containerMenu) {
+					if (const auto* menu = static_cast<RE::ContainerMenu*>(ui->GetMenu(a_event->menuName).get())) {
+						menu->uiMovie->SetVariable("InventoryIconSetter", &nullIconSetter);
+						itemList = menu->itemList;
+					}
+				} else if (a_event->menuName == intfcStr->giftMenu) {
+					if (const auto* menu = static_cast<RE::GiftMenu*>(ui->GetMenu(a_event->menuName).get())) {
+						menu->uiMovie->SetVariable("InventoryIconSetter", &nullIconSetter);
+						itemList = menu->itemList;
+					}
+				} else if (a_event->menuName == intfcStr->inventoryMenu) {
+					if (const auto* menu = static_cast<RE::InventoryMenu*>(ui->GetMenu(a_event->menuName).get())) {
+						menu->uiMovie->SetVariable("InventoryIconSetter", &nullIconSetter);
+						itemList = menu->itemList;
+					}
+				}
+
+				if (itemList) {
+					DEBUG("{:X} Opening {}", AsAddress(RE::PlayerCharacter::GetSingleton()), a_event->menuName.c_str());
+					for (auto* item : itemList->items) {
+						IconExtender::ProcessEntry(item);
+					}
+				}
+
 				return EventResult::kContinue;
 			}
+		};
+	}  // namespace IconExtender
+#endif
 
-			auto* const ui = RE::UI::GetSingleton();
-			auto* const intfcStr = RE::InterfaceStrings::GetSingleton();
-			RE::GFxValue nullIconSetter{};
-			RE::ItemList* itemList{ nullptr };
+	/**
+	extern void InventoryUpdate(void*, void*, void*, void*);
+	static REL::Relocation<decltype(InventoryUpdate)> _OnAttemptEquip;
 
-			if (a_event->menuName == intfcStr->barterMenu) {
-				if (const auto* menu = static_cast<RE::BarterMenu*>(ui->GetMenu(a_event->menuName).get())) {
-					menu->uiMovie->SetVariable("InventoryIconSetter", &nullIconSetter);
-					itemList = menu->itemList;
-				}
-			} else if (a_event->menuName == intfcStr->containerMenu) {
-				if (const auto* menu = static_cast<RE::ContainerMenu*>(ui->GetMenu(a_event->menuName).get())) {
-					menu->uiMovie->SetVariable("InventoryIconSetter", &nullIconSetter);
-					itemList = menu->itemList;
-				}
-			} else if (a_event->menuName == intfcStr->giftMenu) {
-				if (const auto* menu = static_cast<RE::GiftMenu*>(ui->GetMenu(a_event->menuName).get())) {
-					menu->uiMovie->SetVariable("InventoryIconSetter", &nullIconSetter);
-					itemList = menu->itemList;
-				}
-			} else if (a_event->menuName == intfcStr->inventoryMenu) {
-				if (const auto* menu = static_cast<RE::InventoryMenu*>(ui->GetMenu(a_event->menuName).get())) {
-					menu->uiMovie->SetVariable("InventoryIconSetter", &nullIconSetter);
-					itemList = menu->itemList;
-				}
-			}
-
-			if (itemList) {
-				DEBUG("Opening {}", a_event->menuName.c_str());
-				for (auto* item : itemList->items) {
-					IconExtender::ProcessEntry(item);
-				}
-			}
-
-			return EventResult::kContinue;
+	static void InventoryUpdate(void* a1, void* a2, void* a3, void* a4)
+	{
+		auto* const ui = RE::UI::GetSingleton();
+		auto* const intfcStr = RE::InterfaceStrings::GetSingleton();
+		RE::ItemList::Item* item{ nullptr };
+		RE::GPtr<RE::GFxMovieView> view{ nullptr };
+		if (!ui || !intfcStr) {
+			return;
 		}
-	};
+
+		if (const auto* menu = static_cast<RE::BarterMenu*>(ui->GetMenu(intfcStr->barterMenu).get())) {
+			item = menu->itemList->GetSelectedItem();
+			view = menu->uiMovie;
+		} else if (const auto* menu = static_cast<RE::ContainerMenu*>(ui->GetMenu(intfcStr->containerMenu).get())) {
+			item = menu->itemList->GetSelectedItem();
+			view = menu->uiMovie;
+		} else if (const auto* menu = static_cast<RE::GiftMenu*>(ui->GetMenu(intfcStr->giftMenu).get())) {
+			item = menu->itemList->GetSelectedItem();
+			view = menu->uiMovie;
+		} else if (const auto* menu = static_cast<RE::InventoryMenu*>(ui->GetMenu(intfcStr->inventoryMenu).get())) {
+			item = menu->itemList->GetSelectedItem();
+			view = menu->uiMovie;
+		} else {
+			return;
+		}
+
+		if (item) {
+			DEBUG("Updating:");
+			IconExtender::ProcessEntry(item);
+			view->InvokeNoReturn("_level0.Menu_mc.inventoryLists.showItemList", nullptr, 0);
+		}
+
+		_OnAttemptEquip(a1, a2, a3, a4);
+
+		return;
+	}
+	/**/
 
 
 	void MsgCallback(SKSE::MessagingInterface::Message* a_msg) noexcept
@@ -675,35 +718,51 @@ namespace
 #ifdef TEST_UTILITY
 
 #endif
+
+#ifdef TEST_CUSTOM
 		if (a_msg->type == SKSE::MessagingInterface::kDataLoaded) {
 			auto* ui = RE::UI::GetSingleton();
 			ui->AddEventSink(MenuOpenHandler::GetSingleton());
 
 			INFO("MenuOpenHandler registered");
+
+			SKSE::AllocTrampoline(1 << 10);
+			auto& tram = SKSE::GetTrampoline();
+			
+			_OnAttemptEquip = tram.write_call<5>(REL::Module::get().base() + 0x8D5710 + 0xE6, InventoryUpdate);
+			DEBUG("HOOKS INSTALLED");
 		}
+#endif
 	}
 }
 /**/
 
-DLLEXPORT constinit auto SKSEPlugin_Version = []() noexcept {
-	SKSE::PluginVersionData data{};
 
-	data.PluginVersion(Plugin::Version);
-	data.PluginName(Plugin::NAME);
-	data.AuthorName(Plugin::AUTHOR);
-	data.UsesAddressLibrary(true);
-
-	return data;
-}();
-
-
-DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface*, SKSE::PluginInfo* pluginInfo)
+int main()
 {
-	pluginInfo->name = SKSEPlugin_Version.pluginName;
-	pluginInfo->infoVersion = SKSE::PluginInfo::kVersion;
-	pluginInfo->version = SKSEPlugin_Version.pluginVersion;
+#ifdef TEST_CONFIG
+	__do_test_run(Config);
+#endif
 
-	return true;
+#ifdef TEST_HOOK
+	__do_test_run(Hook);
+#endif
+
+#ifdef TEST_LOGGER
+	__do_test_run(Logger);
+#endif
+
+#ifdef TEST_UTILITY
+	__do_test_run(Utility);
+#endif
+
+#ifdef TEST_CUSTOM
+
+#endif
+
+#ifdef TEST_AND_EXIT
+	std::exit('EXIT');
+#endif
 }
 
 
@@ -716,33 +775,8 @@ DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 
 	SKSE::GetMessagingInterface()->RegisterListener(MsgCallback);
 
-
-#ifdef TEST_CONFIG
-
-	Test::Config::Load();
-
-#endif
-
-#ifdef TEST_GUI
-
-	Test::GUI::Install();
-
-#endif
-
-#ifdef TEST_HOOK
-
-	Test::Hook::Install();
-
-#endif
-
-#ifdef TEST_LOGGER
-
-#endif
-
-#ifdef TEST_UTILITY
-
-	Test::Utility::StartTest();
-
+#ifdef DKUTIL_TEST_RUN
+	main();
 #endif
 
 	return true;
