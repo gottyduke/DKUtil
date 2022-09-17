@@ -2,6 +2,9 @@
 
 
 /*
+ * 1.2.1
+ * Macro expansion;
+ * 
  * 1.2.0
  * Changed log level controls;
  * 
@@ -16,8 +19,7 @@
 
 #define DKU_L_VERSION_MAJOR     1
 #define DKU_L_VERSION_MINOR     2
-#define DKU_L_VERSION_REVISION  0
-
+#define DKU_L_VERSION_REVISION  1
 
 #include <filesystem>
 #include <map>
@@ -44,25 +46,28 @@
 
 using namespace std::literals;
 
-
+#define __SHORTF__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 #define INFO(...)	{std::source_location src = std::source_location::current();	\
 	spdlog::log(spdlog::source_loc{ src.file_name(), static_cast<int>(src.line()),	\
-	src.function_name() }, spdlog::level::info, __VA_ARGS__);}    
+	src.function_name() }, spdlog::level::info, __VA_ARGS__);}
 #define DEBUG(...)	{std::source_location src = std::source_location::current();	\
 	spdlog::log(spdlog::source_loc{ src.file_name(), static_cast<int>(src.line()),	\
 	src.function_name() }, spdlog::level::debug, __VA_ARGS__);}    
 #endif
 
-#ifdef DKUTIL_TEST_RUN
-#define DEBUG(...) INFO(__VA_ARGS__)
+#ifdef DKU_CONSOLE
+#define DEBUG(...)	INFO(__VA_ARGS__)
 #endif
 
-#define ERROR(...)															\
-	{const auto errormsg = "ERROR\n\n"s + fmt::format(__VA_ARGS__);			\
-	spdlog::default_logger_raw()->log(spdlog::source_loc{__FILE__, __LINE__,\
-		SPDLOG_FUNCTION}, spdlog::level::critical, __VA_ARGS__);			\
-	MessageBoxA(nullptr, errormsg.c_str(), Plugin::NAME.data(), MB_OK);		\
-	ExitProcess(-1);}
+#define ERROR(...)	{std::source_location src = std::source_location::current();		\
+	const auto msg = fmt::format(__VA_ARGS__);											\
+	const auto error = fmt::format("Error occured at code -> [{}:{}]\n{}\n{}\n",		\
+		__SHORTF__, src.line(), __FUNCTION__, msg);										\
+	spdlog::default_logger_raw()->log(													\
+		spdlog::source_loc{ src.file_name(), static_cast<int>(src.line()),				\
+		src.function_name() }, spdlog::level::critical, __VA_ARGS__);					\
+	MessageBoxA(nullptr, error.c_str(), Plugin::NAME.data(), MB_OK|MB_ICONEXCLAMATION);	\
+	ExitProcess('EXIT');}
 
 
 #define ENABLE_DEBUG spdlog::default_logger()->set_level(spdlog::level::debug);

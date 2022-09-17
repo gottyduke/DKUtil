@@ -2,6 +2,9 @@
 
 
 /*
+ * 1.1.3
+ * out-of-bound adjusts;
+ *
  * 1.1.2
  * constexpr specifiers;
  * 
@@ -30,7 +33,7 @@
 
 #define DKU_C_VERSION_MAJOR     1
 #define DKU_C_VERSION_MINOR     1
-#define DKU_C_VERSION_REVISION  2
+#define DKU_C_VERSION_REVISION  3
 
 
 #include <algorithm>
@@ -153,8 +156,8 @@ namespace DKUtil::Config
 			[[nodiscard]] auto& operator[](const std::size_t a_index) noexcept
 				requires (!std::is_same_v<underlying_data_t, bool>)
 			{ 
-				if (_isCollection && a_index < _collection->size()) {
-					return _collection->at(a_index);
+				if (_isCollection) {
+					return a_index < _collection->size() ? _collection->at(a_index) : *_collection->end();
 				} else {
 					return _data;
 				}
@@ -178,7 +181,8 @@ namespace DKUtil::Config
 					ERROR(".get_collection is called on config value {} while it holds singular data!\n\nCheck .is_collection before accessing collcetion!", _key);
 				}
 			}
-			[[nodiscard]] constexpr auto& get_type() const noexcept { return typeid(underlying_data_t); }
+			[[nodiscard]] constexpr auto get_size() const noexcept { return _isCollection ? _collection->size() : 0; }
+			[[nodiscard]] constexpr auto get_type() const noexcept { return typeid(underlying_data_t).name(); }
 
 			constexpr void set_data(const std::initializer_list<underlying_data_t>& a_list)
 			{
@@ -809,7 +813,7 @@ namespace DKUtil::Config
 		}
 
 		template <const detail::dku_c_numeric auto min = 1, const detail::dku_c_numeric auto max = 0, typename data_t>
-		constexpr inline void Bind(detail::AData<data_t>& a_data, const std::convertible_to<data_t> auto&... a_value) noexcept
+		inline constexpr void Bind(detail::AData<data_t>& a_data, const std::convertible_to<data_t> auto&... a_value) noexcept
 		{
 			_manager.Add(a_data.get_key(), std::addressof(a_data));
 			a_data.set_range({ min, max });
@@ -817,11 +821,11 @@ namespace DKUtil::Config
 		}
 
 
-		constexpr inline auto get_id() const noexcept { return _id; }
-		constexpr inline auto get_file() const noexcept { return _file; }
-		constexpr inline auto get_type() const noexcept { return _type; }
-		constexpr inline auto get_size() const noexcept { return _manager.size(); }
-		constexpr inline auto& get_manager() const noexcept { return _manager; }
+		inline constexpr auto get_id() const noexcept { return _id; }
+		inline constexpr auto get_file() const noexcept { return _file; }
+		inline constexpr auto get_type() const noexcept { return _type; }
+		inline constexpr auto get_size() const noexcept { return _manager.size(); }
+		inline constexpr auto& get_manager() const noexcept { return _manager; }
 
 	private:
 		const std::uint32_t			_id;
