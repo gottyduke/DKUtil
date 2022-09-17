@@ -128,7 +128,7 @@ find_package(tomlplusplus CONFIG REQUIRED)
 find_package(xbyak CONFIG REQUIRED)
 
 # runtime
-if(DKUTIL_TEST_RUN)
+if(DKU_CONSOLE)
 add_executable(
 	${PROJECT_NAME}
 	${SOURCES}
@@ -219,7 +219,7 @@ target_precompile_headers(
 		test/PCH.h
 )
 
-if(NOT DKUTIL_TEST_RUN)
+if(NOT DKU_CONSOLE)
 # post build event
 add_custom_command(
 	TARGET 

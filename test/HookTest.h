@@ -77,7 +77,7 @@ namespace Test::Hook
 					FUNC_INFO(RecalculateCombatRadius),
 					&RadiusPatch,
 					&Epilog,
-					CaveFlag::kRestoreBeforeProlog);
+					{ HookFlag::kRestoreBeforeProlog, HookFlag::kSkipNOP });
 
 				Hook_SetRadius->Enable();
 
@@ -87,7 +87,7 @@ namespace Test::Hook
 					FUNC_INFO(RecalculateCombatRadius),
 					&MedianPatch,
 					&Epilog,
-					CaveFlag::kRestoreBeforeProlog);
+					{ HookFlag::kRestoreBeforeProlog, HookFlag::kSkipNOP });
 
 				// recalculate displacement
 				Disp32 disp = *std::bit_cast<Disp32*>(AsPointer(Hook_SetMedian->TramEntry + 0x4));
@@ -133,11 +133,14 @@ namespace Test::Hook
 				SKSE::AllocTrampoline(1 << 4);
 				auto& trampoline = SKSE::GetTrampoline();
 
-				REL::Relocation<std::uintptr_t> AttackDistanceBase{ REL::RelocationID(49720, 50647) };
-				const auto _originalFunc = *std::bit_cast<std::uintptr_t*>(AttackDistanceBase.address() + 0x23);
+				std::array<std::uint8_t, 5> P{ 0x48, 0x8B, 0x4C, 0x24, 0x20 };
 
-				auto handle = DKUtil::Hook::AddASMPatch(AttackDistanceBase.address(), { 0x22, 0x2C }, &RelocatePointer);
+				REL::Relocation<std::uintptr_t> AttackDistanceBase{ REL::RelocationID(49720, 50647) };
+				auto handle = DKUtil::Hook::AddASMPatch(AttackDistanceBase.address(), { 0x22, 0x2C }, { "\x4C\x8B\x4C\x24\xB8"
+																										"\xE9\x89\xFC\xFF\xFF",
+																										  P.size() });
 				// recalculate displacement
+				const auto _originalFunc = *std::bit_cast<std::uintptr_t*>(AttackDistanceBase.address() + 0x23);
 				DKUtil::Hook::WriteImm(handle->TramEntry + 0x6, _originalFunc + 0x5);
 				handle->Enable();
 

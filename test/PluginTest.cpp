@@ -115,7 +115,7 @@ namespace
 		static std::string iconLabel{ "default_misc" };
 		static std::uint32_t iconColor{ 0 };
 
-		constexpr inline std::uint32_t Color(ColorCode a_color)
+		inline constexpr std::uint32_t Color(ColorCode a_color)
 		{
 			return UseDearDiaryWhiteMode ? ColorTbl[std::to_underlying(a_color)].second : ColorTbl[std::to_underlying(a_color)].first;
 		}
@@ -775,9 +775,7 @@ DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 
 	SKSE::GetMessagingInterface()->RegisterListener(MsgCallback);
 
-#ifdef DKUTIL_TEST_RUN
 	main();
-#endif
 
 	return true;
 }
