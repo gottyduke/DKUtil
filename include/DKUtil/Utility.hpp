@@ -571,8 +571,10 @@ namespace DKUtil
 
 
 			constexpr enumeration() noexcept = default;
-			constexpr enumeration(const enumeration& a_rhs) noexcept = default;
-			constexpr enumeration(enumeration&& a_rhs) noexcept = default;
+			constexpr enumeration(const enumeration& a_rhs) noexcept :
+				_impl(a_rhs._impl), _reflection(a_rhs._reflection)
+			{}
+			constexpr enumeration(enumeration&&) noexcept = default;
 
 			template <class U2>  // NOLINTNEXTLINE(google-explicit-constructor)
 			constexpr enumeration(enumeration<Enum, U2> a_rhs) noexcept :
@@ -722,6 +724,8 @@ namespace DKUtil
 				       std::views::transform([](auto i) { auto bit = (!i ? 0 : (1 << i));
 						   return std::bit_cast<enum_type>(static_cast<underlying_type>(bit)); });
 			}
+
+			[[nodiscard]] constexpr underlying_type index_of(enum_type a_enum) const noexcept { return std::bit_width<underlying_type>(std::to_underlying(a_enum)); }
 
 		private:
 			template <enum_type E>

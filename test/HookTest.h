@@ -148,12 +148,64 @@ namespace Test::Hook
 				INFO("Hook RescaleCircleChance!");
 			}
 		};
+
+
+		class FallbackDistanceHook
+		{
+			static float RecalculateFallbackDistance(RE::Character* a_me, RE::Character* a_he)
+			{
+				if (!a_me || !a_he) {
+					return 0.f;
+				}
+
+				DEBUG("ME: {}|0x{:08X} <-> HE: {}|0x{:08X}", a_me->GetName(), a_me->GetFormID(), a_he->GetName(), a_he->GetFormID());
+
+				return 256.f;
+			}
+
+
+			static constexpr std::uintptr_t FuncID = 0x7D7740;
+			static constexpr std::ptrdiff_t OffsetL = 0x246;
+			static constexpr std::ptrdiff_t OffsetH = 0x24E;
+
+			static constexpr Patch RelocateReturn{
+				// addss xmm6, xmm0
+				"\xF3\x0F\x58\xF0",
+				4
+			};
+
+		public:
+			static void InstallHook()
+			{
+				SKSE::AllocTrampoline(1 << 6);
+
+				auto funcAddr = REL::Module::get().base() + FuncID;
+				Patch RelocatePointer{
+					AsPointer(funcAddr + OffsetL + 0x10),
+					6
+				};
+
+
+				auto handle = DKUtil::Hook::AddCaveHook(
+					funcAddr, 
+					{ OffsetL, OffsetH },
+					FUNC_INFO(RecalculateFallbackDistance), 
+					&RelocatePointer, 
+					&RelocateReturn, 
+					HookFlag::kNoFlag);
+
+				handle->Enable();
+
+				INFO("Installed FallbackDistanceHook");
+			}
+		};
 	}  // namespace Impl
 
 
 	void Run()
 	{
-		Impl::RecalculateCombatRadiusHook::InstallHook();
-		Impl::RescaleCircleChanceHook::InstallHook();
+		//Impl::RecalculateCombatRadiusHook::InstallHook();
+		//Impl::RescaleCircleChanceHook::InstallHook();
+		Impl::FallbackDistanceHook::InstallHook();
 	}
 }

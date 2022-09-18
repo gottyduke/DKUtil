@@ -2,6 +2,10 @@
 
 
 /*
+ * 2.5.1
+ * Fixed the issue where CavePtr hasn't been forwarded but calculation is done;
+ * Fixed the issue kSkipNOP not actually working;
+ * 
  * 2.5.0
  * Added new assembly structs;
  * Removed redundant structs;
@@ -205,9 +209,6 @@ namespace DKUtil
 
 namespace DKUtil::Hook
 {
-	using namespace DKUtil::Alias;
-
-
 	using REX = std::uint8_t;
 	using OpCode = std::uint8_t;
 	using ModRM = std::uint8_t;
@@ -420,11 +421,11 @@ namespace DKUtil::Hook
 	{
 		kNoFlag = 0,
 
-		kSkipNOP = 1u << 1,              // skip NOPs
-		kRestoreBeforeProlog = 1u << 2,  // apply stolens before prolog
-		kRestoreAfterProlog = 1u << 3,   // apply stolens after prolog
-		kRestoreBeforeEpilog = 1u << 4,  // apply stolens before epilog
-		kRestoreAfterEpilog = 1u << 5,   // apply stolens after epilog
+		kSkipNOP = 1u << 0,              // skip NOPs
+		kRestoreBeforeProlog = 1u << 1,  // apply stolens before prolog
+		kRestoreAfterProlog = 1u << 2,   // apply stolens after prolog
+		kRestoreBeforeEpilog = 1u << 3,  // apply stolens before epilog
+		kRestoreAfterEpilog = 1u << 4,   // apply stolens after epilog
 	};
 
 
@@ -898,9 +899,9 @@ namespace DKUtil::Hook
 		}
 
 		if (a_flag.any(HookFlag::kSkipNOP)) {
-			asmReturn.Disp = static_cast<Disp32>(handle->CavePtr - handle->TramPtr - asmReturn.size());
-		} else {
 			asmReturn.Disp = static_cast<Disp32>(handle->Address + handle->Offset.second - handle->TramPtr - asmReturn.size());
+		} else {
+			asmReturn.Disp = static_cast<Disp32>(handle->CavePtr + asmDetour.size() - handle->TramPtr - asmReturn.size());
 		}
 
 		WriteData(handle->TramPtr, asmReturn.data(), asmReturn.size());
