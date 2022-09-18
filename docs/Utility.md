@@ -28,7 +28,7 @@ On the basis of original `stl::enumeration`, `DKUtil::enumeration` adds the foll
 ```C++
 namespace Enum
 {
-    enum class ContiguousFlag ENUM_TYPE
+    enum class ContiguousFlag
     {
         NONE = 0u,
 
@@ -51,7 +51,7 @@ namespace Enum
         R15 = 1u << 16,
     };
 
-    enum class SparseFlag ENUM_TYPE
+    enum class SparseFlag
     {
         NONE = 0u,
 
@@ -74,7 +74,7 @@ namespace Enum
         R15 = 1u << 16,
     };
 
-    enum class ContiguousValue ENUM_TYPE
+    enum class ContiguousValue
     {
         NONE = 0u,
 
@@ -97,7 +97,7 @@ namespace Enum
         R15 = 17,
     };
 
-    enum class SparseValue ENUM_TYPE
+    enum class SparseValue
     {
         NONE = 0u,
 
@@ -127,10 +127,10 @@ void TestEnum() noexcept
     using namespace Enum;
 
     // concept-restraint auto ctor
-    DKUtil::enumeration<ContiguousValue UNDERLYING> cValues{ 0, 2, 4, 5, 9, 15 };
-    DKUtil::enumeration<SparseValue UNDERLYING> sValues{ 0, 2, 4, 5, 9, 15 };
-    DKUtil::enumeration<ContiguousFlag UNDERLYING> cFlags{ 0, 2, 4, 5, 9, 15 };
-    DKUtil::enumeration<SparseFlag UNDERLYING> sFlags{ SparseFlag::NONE, SparseFlag::RCX, SparseFlag::RBX, SparseFlag::RSI, SparseFlag::R9, SparseFlag::R14 };
+    DKUtil::enumeration<ContiguousValue> cValues{ 0, 2, 4, 5, 9, 15 };
+    DKUtil::enumeration<SparseValue> sValues{ 0, 2, 4, 5, 9, 15 };
+    DKUtil::enumeration<ContiguousFlag> cFlags{ 0, 2, 4, 5, 9, 15 };
+    DKUtil::enumeration<SparseFlag> sFlags{ SparseFlag::NONE, SparseFlag::RCX, SparseFlag::RBX, SparseFlag::RSI, SparseFlag::R9, SparseFlag::R14 };
 
     /* static reflections */
     // 1) check for value-type enum reflection
