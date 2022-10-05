@@ -121,24 +121,19 @@ namespace Test::Hook
 			static inline REL::Relocation<decltype(RescaleCircleChance)> _RescaleCircleChance;
 
 		public:
-			static constexpr Patch RelocatePointer{
-				"\x4C\x8B\x4C\x24\xB8"
-				"\xE9\x89\xFC\xFF\xFF",
-				10
-			};
-
-
 			static void InstallHook()
 			{
-				SKSE::AllocTrampoline(1 << 4);
+				SKSE::AllocTrampoline(static_cast<size_t>(1) << 4);
 				auto& trampoline = SKSE::GetTrampoline();
 
 				std::array<std::uint8_t, 5> P{ 0x48, 0x8B, 0x4C, 0x24, 0x20 };
 
 				REL::Relocation<std::uintptr_t> AttackDistanceBase{ REL::RelocationID(49720, 50647) };
-				auto handle = DKUtil::Hook::AddASMPatch(AttackDistanceBase.address(), { 0x22, 0x2C }, { "\x4C\x8B\x4C\x24\xB8"
-																										"\xE9\x89\xFC\xFF\xFF",
-																										  P.size() });
+				auto handle = DKUtil::Hook::AddASMPatch(
+					AttackDistanceBase.address(), 
+					{ 0x22, 0x2C }, 
+					{ "\x4C\x8B\x4C\x24\xB8""\xE9\x89\xFC\xFF\xFF", 10 });
+
 				// recalculate displacement
 				const auto _originalFunc = *std::bit_cast<std::uintptr_t*>(AttackDistanceBase.address() + 0x23);
 				DKUtil::Hook::WriteImm(handle->TramEntry + 0x6, _originalFunc + 0x5);
@@ -204,8 +199,8 @@ namespace Test::Hook
 
 	void Run()
 	{
-		//Impl::RecalculateCombatRadiusHook::InstallHook();
-		//Impl::RescaleCircleChanceHook::InstallHook();
+		Impl::RecalculateCombatRadiusHook::InstallHook();
+		Impl::RescaleCircleChanceHook::InstallHook();
 		Impl::FallbackDistanceHook::InstallHook();
 	}
 }

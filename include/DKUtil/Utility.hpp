@@ -1,15 +1,20 @@
 #pragma once
 
-#include <algorithm>
-#include <bit>
-#include <cassert>
-#include <concepts>
-#include <cstdlib>
-#include <limits>
-#include <ranges>
-#include <regex>
-#include <string>
-#include <string_view>
+
+/*
+ * 1.0.0
+ * Adaptation of file structural changes;
+ * 
+ */
+
+
+#define DKU_U_VERSION_MAJOR 1
+#define DKU_U_VERSION_MINOR 0
+#define DKU_U_VERSION_REVISION 0
+
+
+#include "Impl/PCH.hpp"
+#include "Logger.hpp"
 
 
 /* Bunch of stuff taken from CommonLibSSE-Util */
@@ -20,18 +25,14 @@
 #	define PROJECT_NAME Plugin::NAME.data()
 #endif
 
-#ifdef DKU_DEBUG
-#	define DKU_DEBUG(...) DEBUG(__VA_ARGS__)
-#else
-#	define DKU_DEBUG(...) void(0)
-#endif
-
-
 #define DROP_LAST(N) std::views::reverse | std::views::drop(N) | std::views::reverse;
 
 
 namespace DKUtil
 {
+	constexpr auto DKU_U_VERSION = DKU_U_VERSION_MAJOR * 10000 + DKU_U_VERSION_MINOR * 100 + DKU_U_VERSION_REVISION;
+
+
 	namespace function
 	{
 		template <typename Func, typename... Args>
