@@ -75,31 +75,25 @@ namespace DKUtil::Config::detail
 			DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
 		}
 
-		void WriteData(const char*& a_data) noexcept override
+		void Write(const std::string_view a_filePath) noexcept override
 		{
-			_out = _json.dump();
-
-			if (_out.empty()) {
-				ERROR("DKU_C: Parser#{}: Saving data failed!", _id);
-			}
-
-			a_data = _out.c_str();
-		}
-
-		void WriteFile(const std::string_view a_filePath) noexcept override
-		{
-			auto filePath = a_filePath.empty() ? _filePath.c_str() : a_filePath.data();
-			std::basic_ofstream<char> file(filePath);
+			auto* filePath = a_filePath.empty() ? _filePath.data() : a_filePath.data();
+			std::basic_ofstream<char> file{ filePath };
 			if (!file.is_open()) {
-				ERROR("DKU_C: Parser#{}: Saving file failed! -> {}", _id, filePath);
+				ERROR("DKU_C: Parser#{}: Writing file failed! -> {}\nofstream cannot be opened", _id, filePath);
 			}
 
 			file << _json;
 			file.close();
 		}
 
+		const void* Data() noexcept override
+		{
+			_out = std::move(_json.dump());
+			return _out.data();
+		}
+
 	private:
 		json _json;
-		std::string _out;
 	};
 }  // namespace DKUtil::Config

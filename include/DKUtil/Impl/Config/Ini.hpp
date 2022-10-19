@@ -85,40 +85,39 @@ namespace DKUtil::Config::detail
 			DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
 		}
 
-		void WriteFile(const std::string_view a_filePath) noexcept override
+		void Write(const std::string_view a_filePath) noexcept override
 		{
 			auto result = a_filePath.empty() ? _ini.SaveFile(_filePath.c_str()) : _ini.SaveFile(a_filePath.data());
 			if (result < 0) {
-				ERROR("DKU_C: Parser#{}: Saving file failed!\n{}", _id, err_getmsg());
+				ERROR("DKU_C: Parser#{}: Writing file failed!\n{}", _id, err_getmsg());
 			}
 		}
 
-		void WriteData(const char*& a_data) noexcept override
+		const void* Data() noexcept override
 		{
 			auto result = _ini.Save(_out);
 			if (result < 0) {
 				ERROR("DKU_C: Parser#{}: Saving data failed!\n{}", _id, err_getmsg());
 			}
 
-			a_data = _out.c_str();
+			return _out.data();
 		}
 
 	private:
-		inline auto err_getmsg() noexcept -> const char*
+		const char* err_getmsg() noexcept
 		{
-			memset(errmsg, 0, sizeof(errmsg));
+			std::ranges::fill(errmsg, 0);
 			strerror_s(errmsg, errno);
 			return errmsg;
 		}
 
-		inline void err_mismatch(const char* a_key, const char* a_type, const char* a_value) noexcept
+		void err_mismatch(const char* a_key, const char* a_type, const char* a_value) noexcept
 		{
 			ERROR("DKU_C: Parser#{}: Value type mismatch!\nFile: {}\nKey: {}, Expected: {}, Value: {}", _id, _filePath.c_str(), a_key, a_type, a_value);
 		}
 
 
 		CSimpleIniA _ini;
-		std::string _out;
-		char errmsg[36];
+		char errmsg[72];
 	};
 }  // namespace DKUtil::Config

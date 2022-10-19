@@ -382,18 +382,13 @@ namespace DKUtil
 			}
 		}
 
-		inline std::vector<std::string> split(const std::string& a_str, const std::string& a_deliminator)
+		inline std::vector<std::string> split(const std::string_view a_str, const std::string_view a_deliminator)
 		{
 			std::vector<std::string> list;
-			std::string strCopy = a_str;
-			size_t pos = 0;
-			std::string token;
-			while ((pos = strCopy.find(a_deliminator)) != std::string::npos) {
-				token = strCopy.substr(0, pos);
-				list.push_back(token);
-				strCopy.erase(0, pos + a_deliminator.length());
+			for (const auto& token : std::views::split(a_str, a_deliminator)) {
+				list.emplace_back(token.begin(), token.end());
 			}
-			list.push_back(strCopy);
+
 			return list;
 		}
 	}  // namespace string
@@ -732,7 +727,7 @@ namespace DKUtil
 			template <enum_type E>
 			constexpr const char* cache() const noexcept
 			{
-				static std::regex r{ "::cache<(.*?)>" };
+				static std::regex r("::cache<(.*?)>");
 				std::cmatch m;
 				std::regex_search(__FUNCSIG__, m, r);
 

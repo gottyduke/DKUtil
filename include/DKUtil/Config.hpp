@@ -53,7 +53,7 @@
 #	elif defined(SKSEAPI)
 #		define CONFIG_ENTRY "Data\\SKSE\\Plugins\\"
 #	else
-#		error "Neither F4SE nor SKSE mode enabled, and CONFIG_ENTRY is undefined!"
+#		define CONFIG_ENTRY ""
 #	endif
 
 #endif
@@ -87,6 +87,8 @@ namespace DKUtil::Alias
 	using IniConfig = DKUtil::Config::Proxy<DKUtil::Config::FileType::kIni>;
 	using JsonConfig = DKUtil::Config::Proxy<DKUtil::Config::FileType::kJson>;
 	using TomlConfig = DKUtil::Config::Proxy<DKUtil::Config::FileType::kToml>;
+	using SchemaConfig = DKUtil::Config::Proxy<DKUtil::Config::FileType::kSchema>;
+	using DynamicConfig = DKUtil::Config::Proxy<DKUtil::Config::FileType::kDynamic>;
 }  // namespace DKUtil::Alias
 
 

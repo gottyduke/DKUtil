@@ -1,3 +1,4 @@
+#define CONFIG_ENTRY "D:\\WorkSpace\\SKSEPlugins\\Build\\bin\\Debug"
 #include "DKUtil/Config.hpp"
 
 
@@ -27,11 +28,13 @@ namespace Test::Config
 		MainJson.Load();
 		MainToml.Load();
 
-		DEBUG("{} {} {} {}", *iA, *sA, *bA, *dA);
+		INFO("{} {} {} {}", *iA, *sA, *bA, *dA);
 
 		std::string someRandomeName = DKUtil::Config::GetPath("AnotherBiteTheConfig.ini");		
 		static auto runtime = RUNTIME_PROXY(someRandomeName);
 
 		runtime.Load();
+
+		INFO("ini#{} json#{} toml#{} runtime#{}", MainIni.get_id(), MainJson.get_id(), MainToml.get_id(), runtime.get_id());
 	}
 } // namespace Test::Config

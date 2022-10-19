@@ -38,7 +38,7 @@ namespace DKUtil::Hook
 	};
 
 
-	void WriteData(std::uintptr_t& a_dst, const void* a_data, const std::size_t a_size, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WriteData(std::uintptr_t& a_dst, const void* a_data, const std::size_t a_size, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
 	{
 		if (a_requestAlloc) {
 			void(TRAM_ALLOC(a_size));
@@ -59,47 +59,47 @@ namespace DKUtil::Hook
 		}
 	}
 
-	void WriteData(const std::uintptr_t& a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = NO_ALLOC) noexcept
+	inline void WriteData(const std::uintptr_t& a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = NO_ALLOC) noexcept
 	{
 		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_data, a_size, NO_FORWARD, a_requestAlloc);
 	}
 
-	void WriteImm(std::uintptr_t& a_dst, const dku_h_pod_t auto& a_data, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WriteImm(std::uintptr_t& a_dst, const dku_h_pod_t auto& a_data, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
 	{
 		return WriteData(a_dst, std::addressof(a_data), sizeof(a_data), a_forwardPtr, a_requestAlloc);
 	}
 
-	void WriteImm(const std::uintptr_t& a_dst, const dku_h_pod_t auto& a_data, bool a_requestAlloc = NO_ALLOC) noexcept
+	inline void WriteImm(const std::uintptr_t& a_dst, const dku_h_pod_t auto& a_data, bool a_requestAlloc = NO_ALLOC) noexcept
 	{
 		return WriteData(const_cast<std::uintptr_t&>(a_dst), std::addressof(a_data), sizeof(a_data), NO_FORWARD, a_requestAlloc);
 	}
 
-	void WritePatch(std::uintptr_t& a_dst, const unpacked_data a_patch, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WritePatch(std::uintptr_t& a_dst, const unpacked_data a_patch, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
 	{
 		return WriteData(a_dst, a_patch.first, a_patch.second, a_forwardPtr, a_requestAlloc);
 	}
 
-	void WritePatch(const std::uintptr_t& a_dst, const unpacked_data a_patch, bool a_requestAlloc = NO_ALLOC) noexcept
+	inline void WritePatch(const std::uintptr_t& a_dst, const unpacked_data a_patch, bool a_requestAlloc = NO_ALLOC) noexcept
 	{
 		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_patch.first, a_patch.second, NO_FORWARD, a_requestAlloc);
 	}
 
-	void WritePatch(std::uintptr_t& a_dst, const Xbyak::CodeGenerator* a_patch, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WritePatch(std::uintptr_t& a_dst, const Xbyak::CodeGenerator* a_patch, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
 	{
 		return WriteData(a_dst, a_patch->getCode(), a_patch->getSize(), a_forwardPtr, a_requestAlloc);
 	}
 
-	void WritePatch(const std::uintptr_t& a_dst, const Xbyak::CodeGenerator* a_patch, bool a_requestAlloc = NO_ALLOC) noexcept
+	inline void WritePatch(const std::uintptr_t& a_dst, const Xbyak::CodeGenerator* a_patch, bool a_requestAlloc = NO_ALLOC) noexcept
 	{
 		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_patch->getCode(), a_patch->getSize(), NO_FORWARD, a_requestAlloc);
 	}
 
-	void WritePatch(std::uintptr_t& a_dst, const Patch* a_patch, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+	inline void WritePatch(std::uintptr_t& a_dst, const Patch* a_patch, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
 	{
 		return WriteData(a_dst, a_patch->Data, a_patch->Size, a_forwardPtr, a_requestAlloc);
 	}
 
-	void WritePatch(const std::uintptr_t& a_dst, const Patch* a_patch, bool a_requestAlloc = NO_ALLOC) noexcept
+	inline inline void WritePatch(const std::uintptr_t& a_dst, const Patch* a_patch, bool a_requestAlloc = NO_ALLOC) noexcept
 	{
 		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_patch->Data, a_patch->Size, NO_FORWARD, a_requestAlloc);
 	}
@@ -118,13 +118,13 @@ namespace DKUtil::Hook
 	}
 
 
-	constexpr std::uintptr_t TblToAbs(const std::uintptr_t a_base, const std::uint16_t a_index, const std::size_t a_size = sizeof(Imm64)) noexcept
+	inline constexpr std::uintptr_t TblToAbs(const std::uintptr_t a_base, const std::uint16_t a_index, const std::size_t a_size = sizeof(Imm64)) noexcept
 	{
 		return AsAddress(a_base + a_index * a_size);
 	}
 
 
-	std::uintptr_t IDToAbs([[maybe_unused]] std::uint64_t a_ae, [[maybe_unused]] std::uint64_t a_se, [[maybe_unused]] std::uint64_t a_vr = 0)
+	inline std::uintptr_t IDToAbs([[maybe_unused]] std::uint64_t a_ae, [[maybe_unused]] std::uint64_t a_se, [[maybe_unused]] std::uint64_t a_vr = 0)
 	{
 		DEBUG("DKU_H: Attempt to load {} address by id {}", IS_AE ? "AE" : IS_VR ? "VR" :
 																				   "SE",
@@ -137,7 +137,7 @@ namespace DKUtil::Hook
 	}
 
 
-	offset_pair RuntimeOffset(
+	inline offset_pair RuntimeOffset(
 		[[maybe_unused]] const std::ptrdiff_t a_aeLow, [[maybe_unused]] const std::ptrdiff_t a_aeHigh,
 		[[maybe_unused]] const std::ptrdiff_t a_seLow, [[maybe_unused]] const std::ptrdiff_t a_seHigh,
 		[[maybe_unused]] const std::ptrdiff_t a_vrLow = -1, [[maybe_unused]] const std::ptrdiff_t a_vrHigh = -1)
@@ -163,7 +163,7 @@ namespace DKUtil::Hook
 	}
 
 
-	const unpacked_data RuntimePatch(
+	inline const unpacked_data RuntimePatch(
 		[[maybe_unused]] const unpacked_data a_ae, 
 		[[maybe_unused]] const unpacked_data a_se, 
 		[[maybe_unused]] const unpacked_data a_vr = { nullptr, 0 }) noexcept
@@ -235,7 +235,7 @@ namespace DKUtil::Hook
 	 * @param a_forward : Skip the rest of NOPs until next valid opcode
 	 * @returns ASMPatchHandle
 	 */
-	auto AddASMPatch(
+	inline auto AddASMPatch(
 		const std::uintptr_t a_address,
 		const offset_pair a_offset,
 		const unpacked_data a_patch,
@@ -341,7 +341,7 @@ namespace DKUtil::Hook
 	 * @param a_flag : Specifies operation on cave hook
 	 * @returns CaveHookHandle
 	 */
-	auto AddCaveHook(
+	inline auto AddCaveHook(
 		const std::uintptr_t a_address,
 		const offset_pair a_offset,
 		const FuncInfo a_funcInfo,
@@ -483,7 +483,7 @@ namespace DKUtil::Hook
 	 * @param a_patch : Prolog patch before detouring to target function
 	 * @return VMTHookHandle
 	 */
-	auto AddVMTHook(
+	inline auto AddVMTHook(
 		const void* a_vtbl,
 		const std::uint16_t a_index,
 		const FuncInfo a_funcInfo,
@@ -558,7 +558,7 @@ namespace DKUtil::Hook
 	 * @param a_patch : Prolog patch before detouring to target function
 	 * @return IATHookHandle
 	 */
-	auto AddIATHook(
+	inline auto AddIATHook(
 		const char* a_moduleName,
 		const char* a_methodName,
 		const FuncInfo a_funcInfo,

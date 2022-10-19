@@ -67,12 +67,14 @@
 
 #	ifndef LOG_PATH
 
+#		define PLUGIN_MODE
 #		if defined(F4SEAPI)
 #			define LOG_PATH "My Games\\Fallout4\\F4SE"sv
 #		elif defined(SKSEAPI)
 #			define LOG_PATH "My Games\\Skyrim Special Edition\\SKSE"sv
 #		else
-#			error "Neither F4SE nor SKSE mode enabled, and LOG_PATH is undefined!"
+#			define LOG_PATH ""sv
+#			undef PLUGIN_MODE
 #		endif
 
 #	endif
@@ -98,31 +100,29 @@ namespace DKUtil
 namespace DKUtil::Logger
 {
 	// From CommonLibSSE https://github.com/Ryan-rsm-McKenzie/CommonLibSSE
-	inline std::optional<std::filesystem::path> log_directory()
+	inline std::filesystem::path docs_directory()
 	{
 		wchar_t* buffer{ nullptr };
 		const auto result = SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, nullptr, std::addressof(buffer));
-		std::unique_ptr<wchar_t[], decltype(&CoTaskMemFree)> knownPath(buffer, CoTaskMemFree);
-		if (!knownPath || result != S_OK) {
-			return std::nullopt;
-		}
+		std::unique_ptr<wchar_t[], decltype(&CoTaskMemFree)> knownPath{ buffer, CoTaskMemFree };
 
-		std::filesystem::path path = knownPath.get();
-		path /= LOG_PATH;
-
-		return path;
+		return (!knownPath || result != S_OK) ? std::filesystem::path{} : std::filesystem::path{ knownPath.get() };
 	}
 
 
 #ifndef DKU_DISABLE_LOGGING
 	inline void Init(const std::string_view a_name, const std::string_view a_version)
 	{
-		auto path = log_directory();
+		std::filesystem::path path;
+#	ifdef PLUGIN_MODE
+		path = std::move(docs_directory());
+#	endif
 
-		*path /= a_name;
-		*path += ".log"sv;
+		path /= LOG_PATH;
+		path /= a_name;
+		path += ".log"sv;
 
-		auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
+		auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path.string(), true);
 
 #	ifndef NDEBUG
 		sink->set_pattern("[%i][%l](%s:%#) %v"s);

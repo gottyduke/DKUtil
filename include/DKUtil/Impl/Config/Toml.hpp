@@ -119,26 +119,28 @@ namespace DKUtil::Config::detail
 			DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
 		}
 
-		void WriteData(const char*& a_data) noexcept override
-		{
-			_out << _toml;
-			a_data = _out.str().c_str();
-		}
-
-		void WriteFile(const std::string_view a_filePath) noexcept override
+		void Write(const std::string_view a_filePath) noexcept override
 		{
 			auto filePath = a_filePath.empty() ? _filePath.c_str() : a_filePath.data();
-			std::basic_ofstream<char> file(filePath);
+			std::basic_ofstream<char> file{ filePath };
 			if (!file.is_open()) {
-				ERROR("DKU_C: Parser#{}: Saving file failed! -> {}", _id, filePath);
+				ERROR("DKU_C: Parser#{}: Writing file failed! -> {}\nofstream cannot be opened", _id, filePath);
 			}
 
 			file << _toml;
 			file.close();
 		}
 
+		const void* Data() noexcept override
+		{
+			std::stringstream os{};
+			os << _toml;
+			_out = std::move(os.str());
+
+			return _out.data();
+		}
+
 	private:
 		toml::table _toml;
-		std::stringstream _out;
 	};
 }  // namespace detail

@@ -128,7 +128,12 @@ namespace Test::Utility
 
 	void TestString() noexcept
 	{
+		constexpr std::string_view words{ "DKUtil|TestUsage|Schema|String 002| That " };
+		auto token = DKUtil::string::split(words, "|");
 
+		for (auto& t : token) {
+			INFO(t);
+		}
 	}
 
 
