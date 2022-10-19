@@ -27,7 +27,7 @@ void WriteImm(std::uintptr_t& a_dst, const dku_h_pod_t auto& a_data, bool a_forw
 void WritePatch(std::uintptr_t& a_dst, const Patch* a_patch, bool a_forwardPtr = false, bool a_requestAlloc = false) noexcept;
 ```
 `forwardPtr` parameter will adjust the destination address by size of memory written, default is `false`. 
-`requestAlloc` parameter will request allocation from trampoline, ehis is meant to increase the internal trampoline pointer of next operable assembly space.
+`requestAlloc` parameter will request allocation from trampoline, this is meant to increase the internal trampoline pointer of next operable assembly space.
 
 ### HookHandle
 `HookHandle` class is the result object of a succesful hook operation. `HookHandle` is used to access the hook related data and enable/disable the hook that created it.
@@ -40,7 +40,7 @@ handle->Disable();
 ```
 
 ---
-### Memory Patch
+### Memory Structure
 `DKUtil::Hook` supports a few ways of passing memory patches/data to the hook. Using example of `mov rcx, qword ptr [rsp+0x20]`:
 ```C++
 struct XbyakPatch : Xbyak::CodeGenerator
@@ -52,7 +52,7 @@ struct XbyakPatch : Xbyak::CodeGenerator
 };
 
 DKUtil::Patch DKUPatch {
-    "\x48\x8B\x4C\x24\x20"; // data
+    "\x48\x8B\x4C\x24\x20"; // data pointer
     5, // size
 };
 
@@ -63,9 +63,9 @@ The `DKUtil::Hook` functions are overloaded to accept above memory structure poi
 ---
 ### ASM Patch
 Apply assembly patch in the body of execution
-- `address` : memory address of the BEGINNING of target function
+- `address` : memory address of the **BEGINNING** of target function
 - `offsets` : pair containing the offsets of the begining and the end of operable assembly
-- `patch` : pointer to the memory patch data structure, it ultimatiely unpacks into `std::pair<const void*, std::size_t>`
+- `patch` : pointer to the memory patch data structure, it ultimately unpacks into `std::pair<const void*, std::size_t>`
 - `forward` : bool value indicating skipping the rest of `NOP` space
 ```C++
 /* API */
@@ -111,7 +111,7 @@ The bool paramter `forward` indicates whether to skip the rest of `NOP` after ap
 ---
 ### Cave Hook
 Branch to hook function in the body of execution from target function.
-* `address` : memory address of the BEGINNING of target function
+* `address` : memory address of the **BEGINNING** of target function
 * `offsets` : pair containing the offsets of the begining and the end of operable assembly
 * `funcInfo` : FUNC_INFO or RT_INFO wrapper of hook function
 * `prolog` : memory patch **before** detouring to hook function
