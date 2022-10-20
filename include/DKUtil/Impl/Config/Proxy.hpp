@@ -65,9 +65,9 @@ namespace DKUtil::Config
 	{
 		using parser_t =
 			std::conditional_t<ConfigFileType == FileType::kIni, detail::Ini,
-			std::conditional_t<ConfigFileType == FileType::kJson, detail::Json,
-			std::conditional_t<ConfigFileType == FileType::kToml, detail::Toml,
-			std::conditional_t<ConfigFileType == FileType::kSchema, detail::Schema, detail::IParser>>>>;
+				std::conditional_t<ConfigFileType == FileType::kJson, detail::Json,
+					std::conditional_t<ConfigFileType == FileType::kToml, detail::Toml,
+						std::conditional_t<ConfigFileType == FileType::kSchema, detail::Schema, detail::IParser>>>>;
 
 	public:
 		// compile defined

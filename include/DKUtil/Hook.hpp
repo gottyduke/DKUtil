@@ -84,9 +84,9 @@
  */
 
 
-#define DKU_H_VERSION_MAJOR		2
-#define DKU_H_VERSION_MINOR		5
-#define DKU_H_VERSION_REVISION	2
+#define DKU_H_VERSION_MAJOR 2
+#define DKU_H_VERSION_MINOR 5
+#define DKU_H_VERSION_REVISION 2
 
 
 #pragma warning(push)

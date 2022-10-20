@@ -64,7 +64,7 @@ namespace DKUtil
 		template <typename data_t>
 		concept dku_h_pod_t =
 			std::is_integral_v<data_t> ||
-			(std::is_standard_layout_v<data_t> && std::is_trivial_v<data_t>);
+			(std::is_standard_layout_v<data_t>&& std::is_trivial_v<data_t>);
 
 
 		enum class HookFlag : std::uint32_t

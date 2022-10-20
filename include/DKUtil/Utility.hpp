@@ -207,7 +207,7 @@ namespace DKUtil
 			template <std::size_t POS = 0, std::size_t COUNT = npos>
 			[[nodiscard]] consteval auto substr() const noexcept
 			{
-				return static_string<CharT, COUNT != npos ? COUNT : N - POS>(this->data() + POS);
+				return static_string < CharT, COUNT != npos ? COUNT : N - POS > (this->data() + POS);
 			}
 
 			template <std::size_t N1, class... Us>
@@ -546,7 +546,7 @@ namespace DKUtil
 
 
 		// taken from CommonLib, added ranged based view iterator for additive/flag enums
-		template <class Enum, 
+		template <class Enum,
 			class Underlying = std::underlying_type_t<Enum>>
 		class enumeration
 		{
@@ -709,7 +709,7 @@ namespace DKUtil
 				if (!is_flag()) {
 					ERROR("flag_range iterator called but enum is value_type!\nEnum name: {}\nEnum type: {}", enum_name(), type_name());
 				}
-#endif 
+#endif
 				if (a_begin == a_end) {
 					ERROR("Range iterator mandates different elements AND operable step value to construct a valid range!");
 				}

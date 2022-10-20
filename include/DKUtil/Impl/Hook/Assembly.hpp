@@ -165,4 +165,3 @@ namespace DKUtil::Hook::Assembly
 	using PopR64W = PushR64W<true>;
 #pragma pack(pop)
 }  // namespace DKUtil::Hook
-

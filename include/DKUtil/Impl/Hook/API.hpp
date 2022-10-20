@@ -1,9 +1,9 @@
 #pragma once
 
 
-#include "Shared.hpp"
 #include "Assembly.hpp"
 #include "Internal.hpp"
+#include "Shared.hpp"
 #include "Trampoline.hpp"
 
 

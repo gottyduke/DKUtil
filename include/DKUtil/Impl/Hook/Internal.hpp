@@ -1,8 +1,8 @@
 #pragma once
 
 
-#include "Shared.hpp"
 #include "Assembly.hpp"
+#include "Shared.hpp"
 #include "Trampoline.hpp"
 
 
@@ -164,8 +164,8 @@ namespace DKUtil::Hook
 
 
 	inline const unpacked_data RuntimePatch(
-		[[maybe_unused]] const unpacked_data a_ae, 
-		[[maybe_unused]] const unpacked_data a_se, 
+		[[maybe_unused]] const unpacked_data a_ae,
+		[[maybe_unused]] const unpacked_data a_se,
 		[[maybe_unused]] const unpacked_data a_vr = { nullptr, 0 }) noexcept
 	{
 		switch (REL::Module::GetRuntime()) {
