@@ -144,3 +144,6 @@ using namespace std::literals;
 #include <ShlObj.h>
 #include <WinUser.h>
 #include <winnt.h>
+
+#undef min
+#undef max

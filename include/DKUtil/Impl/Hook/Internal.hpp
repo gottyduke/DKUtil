@@ -99,13 +99,13 @@ namespace DKUtil::Hook
 		return WriteData(a_dst, a_patch->Data, a_patch->Size, a_forwardPtr, a_requestAlloc);
 	}
 
-	inline inline void WritePatch(const std::uintptr_t& a_dst, const Patch* a_patch, bool a_requestAlloc = NO_ALLOC) noexcept
+	inline void WritePatch(const std::uintptr_t& a_dst, const Patch* a_patch, bool a_requestAlloc = NO_ALLOC) noexcept
 	{
 		return WriteData(const_cast<std::uintptr_t&>(a_dst), a_patch->Data, a_patch->Size, NO_FORWARD, a_requestAlloc);
 	}
 
 
-	std::string_view GetProcessName(HMODULE a_handle = 0) noexcept
+	inline std::string_view GetProcessName(HMODULE a_handle = 0) noexcept
 	{
 		static std::string fileName(MAX_PATH + 1, ' ');
 		auto res = GetModuleBaseNameA(GetCurrentProcess(), a_handle, fileName.data(), MAX_PATH + 1);
@@ -121,71 +121,6 @@ namespace DKUtil::Hook
 	inline constexpr std::uintptr_t TblToAbs(const std::uintptr_t a_base, const std::uint16_t a_index, const std::size_t a_size = sizeof(Imm64)) noexcept
 	{
 		return AsAddress(a_base + a_index * a_size);
-	}
-
-
-	inline std::uintptr_t IDToAbs([[maybe_unused]] std::uint64_t a_ae, [[maybe_unused]] std::uint64_t a_se, [[maybe_unused]] std::uint64_t a_vr = 0)
-	{
-		DEBUG("DKU_H: Attempt to load {} address by id {}", IS_AE ? "AE" : IS_VR ? "VR" :
-																				   "SE",
-			IS_AE ? a_ae : a_vr ? a_vr :
-								  a_se);
-		std::uintptr_t resolved = a_vr ? REL::RelocationID(a_se, a_ae, a_vr).address() : REL::RelocationID(a_se, a_ae).address();
-		DEBUG("DKU_H: Resolved: {:X} | Base: {:X} | RVA: {:X}", REL::RelocationID(a_se, a_ae).address(), REL::Module::get().base(), resolved - REL::Module::get().base());
-
-		return resolved;
-	}
-
-
-	inline offset_pair RuntimeOffset(
-		[[maybe_unused]] const std::ptrdiff_t a_aeLow, [[maybe_unused]] const std::ptrdiff_t a_aeHigh,
-		[[maybe_unused]] const std::ptrdiff_t a_seLow, [[maybe_unused]] const std::ptrdiff_t a_seHigh,
-		[[maybe_unused]] const std::ptrdiff_t a_vrLow = -1, [[maybe_unused]] const std::ptrdiff_t a_vrHigh = -1)
-	{
-		switch (REL::Module::GetRuntime()) {
-		case REL::Module::Runtime::AE:
-			{
-				return std::make_pair(a_aeLow, a_aeHigh);
-			}
-		case REL::Module::Runtime::SE:
-			{
-				return std::make_pair(a_seLow, a_seHigh);
-			}
-		case REL::Module::Runtime::VR:
-			{
-				return a_vrLow != -1 ? std::make_pair(a_vrLow, a_vrHigh) : std::make_pair(a_seLow, a_seHigh);
-			}
-		default:
-			{
-				ERROR("DKU_H: Runtime offset failed to relocate for unknown runtime!");
-			}
-		}
-	}
-
-
-	inline const unpacked_data RuntimePatch(
-		[[maybe_unused]] const unpacked_data a_ae,
-		[[maybe_unused]] const unpacked_data a_se,
-		[[maybe_unused]] const unpacked_data a_vr = { nullptr, 0 }) noexcept
-	{
-		switch (REL::Module::GetRuntime()) {
-		case REL::Module::Runtime::AE:
-			{
-				return a_ae;
-			}
-		case REL::Module::Runtime::SE:
-			{
-				return a_se;
-			}
-		case REL::Module::Runtime::VR:
-			{
-				return (a_vr.first && a_vr.second) ? a_vr : a_se;
-			}
-		default:
-			{
-				ERROR("DKU_H: Runtime patch failed to relocate for unknown runtime!");
-			}
-		}
 	}
 
 
