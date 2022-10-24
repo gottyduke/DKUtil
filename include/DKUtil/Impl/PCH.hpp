@@ -147,3 +147,8 @@ using namespace std::literals;
 
 #undef min
 #undef max
+
+
+namespace DKUtil
+{};
+namespace dku = DKUtil;

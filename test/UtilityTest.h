@@ -6,7 +6,7 @@
 #	define UNDERLYING
 #else
 #	define ENUM_TYPE
-#define UNDERLYING , std::uint32_t
+#	define UNDERLYING , std::uint32_t
 #endif
 
 namespace Test::Utility
@@ -106,14 +106,15 @@ namespace Test::Utility
 		};
 	} // namespace Enum
 
-	constexpr void TestNumbers() noexcept
+	consteval void TestNumbers() noexcept
 	{
 		// 64B3BC14
 		constexpr const char* hashBase32 = "CONSTEXPR_HASH_STRING_32";
 		// 7873E548866D72BB
 		constexpr const char* hashBase64 = "CONSTEXPR_HASH_STRING_64";
-		constexpr auto hash32 = DKUtil::numbers::FNV_1A_32(hashBase32);
-		constexpr auto hash64 = DKUtil::numbers::FNV_1A_64(hashBase64);
+
+		constexpr auto hash32 = dku::numbers::FNV_1A_32(hashBase32);
+		constexpr auto hash64 = dku::numbers::FNV_1A_64(hashBase64);
 
 		static_assert(hash32 == 0x64B3BC14U);
 		static_assert(hash64 == 0x7873E548866D72BBULL);
@@ -142,10 +143,10 @@ namespace Test::Utility
 		using namespace Enum;
 
 		// concept-restraint auto ctor
-		DKUtil::enumeration<ContiguousValue UNDERLYING> cValues{ 0, 2, 4, 5, 9, 15 };
-		DKUtil::enumeration<SparseValue UNDERLYING> sValues{ 0, 2, 4, 5, 9, 15 };
-		DKUtil::enumeration<ContiguousFlag UNDERLYING> cFlags{ 0, 2, 4, 5, 9, 15 };
-		DKUtil::enumeration<SparseFlag UNDERLYING> sFlags{ SparseFlag::NONE, SparseFlag::RCX, SparseFlag::RBX, SparseFlag::RSI, SparseFlag::R9, SparseFlag::R14 };
+		dku::enumeration<ContiguousValue UNDERLYING> cValues{ 0, 2, 4, 5, 9, 15 };
+		dku::enumeration<SparseValue UNDERLYING> sValues{ 0, 2, 4, 5, 9, 15 };
+		dku::enumeration<ContiguousFlag UNDERLYING> cFlags{ 0, 2, 4, 5, 9, 15 };
+		dku::enumeration<SparseFlag UNDERLYING> sFlags{ SparseFlag::NONE, SparseFlag::RCX, SparseFlag::RBX, SparseFlag::RSI, SparseFlag::R9, SparseFlag::R14 };
 		
 		// static reflections
 		// 1) check for value-type enum reflection
@@ -178,9 +179,9 @@ namespace Test::Utility
 		}
 		
 		// 8) string to enum cast
-		std::string nameStr1{ "RSI" };
-		std::string nameStr2{ "RAX" };
-		std::string nameStr3{ "RDX" };
+		std::string nameStr1{ "rsi" };
+		std::string nameStr2{ "RaX" };
+		std::string nameStr3{ "Rdx" };
 
 		auto nameEnum1 = cValues.from_string(nameStr1);
 		auto nameEnum2 = cValues.from_string(nameStr2);
