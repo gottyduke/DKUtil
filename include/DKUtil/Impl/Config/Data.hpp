@@ -65,11 +65,7 @@ namespace DKUtil::Config::detail
 		}
 		[[nodiscard]] constexpr operator bool() noexcept requires(std::is_same_v<bool, underlying_data_t>) { return _data; }
 		[[nodiscard]] constexpr auto& operator*() noexcept { return _data; }
-		[[nodiscard]] constexpr auto operator<=>(const std::three_way_comparable<underlying_data_t> auto& a_rhs) const noexcept { return _data <=> a_rhs; }
-		[[nodiscard]] constexpr auto operator<=>(const AData<underlying_data_t>& a_rhs) const noexcept { return _data <=> a_rhs._data; }
-		[[nodiscard]] constexpr auto operator==(const AData<underlying_data_t>& a_rhs) const noexcept { return _data == a_rhs._data; }
-		[[nodiscard]] constexpr auto operator!=(const AData<underlying_data_t>& a_rhs) const noexcept { return _data != a_rhs._data; }
-
+		[[nodiscard]] constexpr auto& operator=(const std::convertible_to<underlying_data_t> auto& a_rhs) noexcept { return _data = static_cast<underlying_data_t>(a_rhs); }
 
 		[[nodiscard]] constexpr auto get_key() const noexcept { return _key.c_str(); }
 		[[nodiscard]] constexpr auto get_section() const noexcept { return _section.c_str(); }
