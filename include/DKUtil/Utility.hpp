@@ -573,7 +573,7 @@ namespace DKUtil
 			constexpr enumeration(enumeration&&) noexcept = default;
 
 			template <class U2>  // NOLINTNEXTLINE(google-explicit-constructor)
-			constexpr enumeration(enumeration<Enum, U2> a_rhs) noexcept :
+			constexpr enumeration(enumeration<enum_type, U2> a_rhs) noexcept :
 				_impl(static_cast<underlying_type>(a_rhs.get()))
 			{}
 			constexpr enumeration(const std::same_as<enum_type> auto... a_values) noexcept :
@@ -640,14 +640,14 @@ namespace DKUtil
 			}
 
 			// static reflection
-			[[nodiscard]] constexpr std::string value_name(enum_type a_enum, bool a_full = false) noexcept
+			[[nodiscard]] constexpr std::string to_string(enum_type a_enum, bool a_full = false) noexcept
 			{
 				build_cache();
-				return value_name(is_flag() ? (std::bit_width<underlying_type>(std::to_underlying(a_enum)) - 1) : std::to_underlying(a_enum), a_full);
+				return to_string(is_flag() ? (std::bit_width<underlying_type>(std::to_underlying(a_enum)) - 1) : std::to_underlying(a_enum), a_full);
 			}
 
 			// underlying adaptor
-			[[nodiscard]] constexpr std::string value_name(const std::convertible_to<underlying_type> auto a_value, bool a_full = false) noexcept
+			[[nodiscard]] constexpr std::string to_string(const std::convertible_to<underlying_type> auto a_value, bool a_full = false) noexcept
 			{
 				build_cache();
 
@@ -662,6 +662,28 @@ namespace DKUtil
 				}
 
 				return _reflection.nameTbl[idx];
+			}
+
+			// string cast
+			[[nodiscard]] std::optional<enum_type> from_string(std::string a_enumString, bool a_caseSensitive = false) noexcept
+			{
+				if (a_enumString.empty()) {
+					return {};
+				}
+
+				build_cache();
+
+				for (auto& [idx, name] : _reflection.nameTbl) {
+					std::string shortName = name.substr(_reflection.type.length() + 2, name.length() - _reflection.type.length());
+					if ((a_caseSensitive && shortName.compare(a_enumString) == 0) ||
+						(!a_caseSensitive && string::iequals(shortName, a_enumString))) {
+						return static_cast<enum_type>(idx);
+					} else {
+						continue;
+					}
+				}
+
+				return {};
 			}
 
 			// enum name

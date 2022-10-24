@@ -13,8 +13,6 @@ namespace DKUtil::Hook::Trampoline
 		// https://stackoverflow.com/a/54732489/17295222
 		static void* PageAlloc(const std::size_t a_size, const std::uintptr_t a_from = 0) noexcept
 		{
-
-
 			static std::uint32_t dwAllocationGranularity;
 
 			if (!dwAllocationGranularity) {
@@ -51,7 +49,7 @@ namespace DKUtil::Hook::Trampoline
 			return nullptr;
 		}
 
-		
+
 		[[nodiscard]] constexpr bool empty() const noexcept { return _capacity == 0; }
 		[[nodiscard]] constexpr std::size_t capacity() const noexcept { return _capacity; }
 		[[nodiscard]] constexpr std::size_t consumed() const noexcept { return _used; }
