@@ -17,11 +17,13 @@
 #define FORWARD_PTR true
 #define NO_FORWARD false
 
+#define NO_PATCH   \
+	{              \
+		nullptr, 0 \
+	}
 
 #define ASM_MINIMUM_SKIP 2
-
 #define CAVE_MINIMUM_BYTES 0x5
-
 #ifndef CAVE_BUF_SIZE 1 << 7
 #	define CAVE_BUF_SIZE 1 << 7
 #endif
@@ -51,8 +53,6 @@ namespace DKUtil
 
 	namespace Hook
 	{
-		using namespace DKUtil::Alias;
-
 		using REX = std::uint8_t;
 		using ModRM = std::uint8_t;
 		using SIndex = std::uint8_t;
@@ -93,6 +93,7 @@ namespace DKUtil
 			std::string_view Name;
 		};
 
+		using namespace Alias;
 
 #ifdef SKSEAPI
 
@@ -115,7 +116,7 @@ namespace DKUtil
 #	define PAGE_ALLOC(SIZE) SKSE::AllocTrampoline((SIZE))
 
 
-		inline std::uintptr_t IDToAbs([[maybe_unused]] std::uint64_t a_ae, [[maybe_unused]] std::uint64_t a_se, [[maybe_unused]] std::uint64_t a_vr = 0)
+		inline std::uintptr_t IDToAbs([[maybe_unused]] std::uint64_t a_ae, [[maybe_unused]] std::uint64_t a_se, [[maybe_unused]] std::uint64_t a_vr = 0) noexcept
 		{
 			DEBUG("DKU_H: Attempt to load {} address by id {}", IS_AE ? "AE" : IS_VR ? "VR" :
 																					   "SE",
@@ -131,7 +132,7 @@ namespace DKUtil
 		inline offset_pair RuntimeOffset(
 			[[maybe_unused]] const std::ptrdiff_t a_aeLow, [[maybe_unused]] const std::ptrdiff_t a_aeHigh,
 			[[maybe_unused]] const std::ptrdiff_t a_seLow, [[maybe_unused]] const std::ptrdiff_t a_seHigh,
-			[[maybe_unused]] const std::ptrdiff_t a_vrLow = -1, [[maybe_unused]] const std::ptrdiff_t a_vrHigh = -1)
+			[[maybe_unused]] const std::ptrdiff_t a_vrLow = -1, [[maybe_unused]] const std::ptrdiff_t a_vrHigh = -1) noexcept
 		{
 			switch (REL::Module::GetRuntime()) {
 			case REL::Module::Runtime::AE:
@@ -154,10 +155,62 @@ namespace DKUtil
 		}
 
 
+		inline auto RuntimePatch(
+			[[maybe_unused]] const Xbyak::CodeGenerator* a_ae,
+			[[maybe_unused]] const Xbyak::CodeGenerator* a_se,
+			[[maybe_unused]] const Xbyak::CodeGenerator* a_vr = nullptr) noexcept
+		{
+			switch (REL::Module::GetRuntime()) {
+			case REL::Module::Runtime::AE:
+				{
+					return a_ae;
+				}
+			case REL::Module::Runtime::SE:
+				{
+					return a_se;
+				}
+			case REL::Module::Runtime::VR:
+				{
+					return (a_vr && a_vr->getCode() && a_vr->getSize()) ? a_vr : a_se;
+				}
+			default:
+				{
+					ERROR("DKU_H: Runtime patch failed to relocate for unknown runtime!");
+				}
+			}
+		}
+
+
+		inline auto RuntimePatch(
+			[[maybe_unused]] const Patch* a_ae,
+			[[maybe_unused]] const Patch* a_se,
+			[[maybe_unused]] const Patch* a_vr = nullptr) noexcept
+		{
+			switch (REL::Module::GetRuntime()) {
+			case REL::Module::Runtime::AE:
+				{
+					return a_ae;
+				}
+			case REL::Module::Runtime::SE:
+				{
+					return a_se;
+				}
+			case REL::Module::Runtime::VR:
+				{
+					return (a_vr && a_vr->Data && a_vr->Size) ? a_vr : a_se;
+				}
+			default:
+				{
+					ERROR("DKU_H: Runtime patch failed to relocate for unknown runtime!");
+				}
+			}
+		}
+
+
 		inline const unpacked_data RuntimePatch(
-			[[maybe_unused]] const unpacked_data a_ae,
-			[[maybe_unused]] const unpacked_data a_se,
-			[[maybe_unused]] const unpacked_data a_vr = { nullptr, 0 }) noexcept
+			[[maybe_unused]] unpacked_data a_ae,
+			[[maybe_unused]] unpacked_data a_se,
+			[[maybe_unused]] unpacked_data a_vr = { nullptr, 0 }) noexcept
 		{
 			switch (REL::Module::GetRuntime()) {
 			case REL::Module::Runtime::AE:
@@ -179,5 +232,132 @@ namespace DKUtil
 			}
 		}
 #endif
+
+
+		inline std::string_view GetProcessName(HMODULE a_handle = 0) noexcept
+		{
+			static std::string fileName(MAX_PATH + 1, ' ');
+			auto res = GetModuleBaseNameA(GetCurrentProcess(), a_handle, fileName.data(), MAX_PATH + 1);
+			if (res == 0) {
+				fileName = "[ProcessHost]";
+				res = 13;
+			}
+
+			return { fileName.c_str(), res };
+		}
+
+
+		inline std::pair<std::uintptr_t, std::uintptr_t> GetModuleSectionRange(std::string_view a_section, const char* a_moduleName = nullptr) noexcept
+		{
+			auto base = AsAddress(GetModuleHandleA(a_moduleName));
+			auto* dosHeader = std::bit_cast<const IMAGE_DOS_HEADER*>(base);
+			auto* ntHeader = std::bit_cast<const IMAGE_NT_HEADERS64*>(dosHeader + dosHeader->e_lfanew);
+			const auto* sections = IMAGE_FIRST_SECTION(ntHeader);
+
+			for (std::size_t i = 0; i < 8; ++i) {
+				const auto& section = sections[i];
+				constexpr auto size = std::extent_v<decltype(section.Name)>;
+				const auto len = std::min(a_section.size(), size);
+				INFO("{} {}", i, len);
+				if (std::memcmp(a_section.data(), section.Name, len) == 0 &&
+					(section.Characteristics & a_section.size()) == a_section.size()) {
+					return std::make_pair(base + section.VirtualAddress, base + section.Misc.VirtualSize - 1);
+				}
+			}
+
+			return std::make_pair(0, 0);
+		}
+
+
+		inline void WriteData(std::uintptr_t& a_dst, const void* a_data, const std::size_t a_size, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+		{
+			if (a_requestAlloc) {
+				void(TRAM_ALLOC(a_size));
+			}
+
+			DWORD oldProtect;
+
+			auto success = VirtualProtect(AsPointer(a_dst), a_size, PAGE_EXECUTE_READWRITE, std::addressof(oldProtect));
+			if (success != FALSE) {
+				std::memcpy(AsPointer(a_dst), a_data, a_size);
+				success = VirtualProtect(AsPointer(a_dst), a_size, oldProtect, std::addressof(oldProtect));
+			}
+
+			assert(success != FALSE);
+
+			if (a_forwardPtr) {
+				a_dst += a_size;
+			}
+		}
+
+		inline void WriteData(const std::uintptr_t& a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = NO_ALLOC) noexcept
+		{
+			return WriteData(const_cast<std::uintptr_t&>(a_dst), a_data, a_size, NO_FORWARD, a_requestAlloc);
+		}
+
+		inline void WriteImm(std::uintptr_t& a_dst, const dku_h_pod_t auto& a_data, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+		{
+			return WriteData(a_dst, std::addressof(a_data), sizeof(a_data), a_forwardPtr, a_requestAlloc);
+		}
+
+		inline void WriteImm(const std::uintptr_t& a_dst, const dku_h_pod_t auto& a_data, bool a_requestAlloc = NO_ALLOC) noexcept
+		{
+			return WriteData(const_cast<std::uintptr_t&>(a_dst), std::addressof(a_data), sizeof(a_data), NO_FORWARD, a_requestAlloc);
+		}
+
+		inline void WritePatch(std::uintptr_t& a_dst, const unpacked_data a_patch, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+		{
+			return WriteData(a_dst, a_patch.first, a_patch.second, a_forwardPtr, a_requestAlloc);
+		}
+
+		inline void WritePatch(const std::uintptr_t& a_dst, const unpacked_data a_patch, bool a_requestAlloc = NO_ALLOC) noexcept
+		{
+			return WriteData(const_cast<std::uintptr_t&>(a_dst), a_patch.first, a_patch.second, NO_FORWARD, a_requestAlloc);
+		}
+
+		inline void WritePatch(std::uintptr_t& a_dst, const Xbyak::CodeGenerator* a_patch, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+		{
+			return WriteData(a_dst, a_patch->getCode(), a_patch->getSize(), a_forwardPtr, a_requestAlloc);
+		}
+
+		inline void WritePatch(const std::uintptr_t& a_dst, const Xbyak::CodeGenerator* a_patch, bool a_requestAlloc = NO_ALLOC) noexcept
+		{
+			return WriteData(const_cast<std::uintptr_t&>(a_dst), a_patch->getCode(), a_patch->getSize(), NO_FORWARD, a_requestAlloc);
+		}
+
+		inline void WritePatch(std::uintptr_t& a_dst, const Hook::Patch* a_patch, bool a_forwardPtr = FORWARD_PTR, bool a_requestAlloc = REQUEST_ALLOC) noexcept
+		{
+			return WriteData(a_dst, a_patch->Data, a_patch->Size, a_forwardPtr, a_requestAlloc);
+		}
+
+		inline void WritePatch(const std::uintptr_t& a_dst, const Hook::Patch* a_patch, bool a_requestAlloc = NO_ALLOC) noexcept
+		{
+			return WriteData(const_cast<std::uintptr_t&>(a_dst), a_patch->Data, a_patch->Size, NO_FORWARD, a_requestAlloc);
+		}
+
+		inline constexpr std::uintptr_t TblToAbs(const std::uintptr_t a_base, const std::uint16_t a_index, const std::size_t a_size = sizeof(Imm64)) noexcept
+		{
+			return AsAddress(a_base + a_index * a_size);
+		}
+
+		template <typename T, typename P>
+		constexpr T& AsPun(P* a_pointer) noexcept
+		{
+			if constexpr (std::is_const_v<P> && std::is_volatile_v<P>) {
+				return *std::bit_cast<std::add_cv_t<T>*>(a_pointer);
+			} else if constexpr (std::is_const_v<P>) {
+				return *std::bit_cast<std::add_const_t<T>*>(a_pointer);
+			} else if constexpr (std::is_volatile_v<P>) {
+				return *std::bit_cast<std::add_volatile_t<T>*>(a_pointer);
+			} else {
+				return *std::bit_cast<T*>(a_pointer);
+			}
+		}
+
+		template <typename T>
+		constexpr T& AsPun(const std::uintptr_t a_address) noexcept
+		{
+			return AsPun<T>(AsPointer(a_address));
+		}
 	}  // namespace Hook
 }  // namespace DKUtil

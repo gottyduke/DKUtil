@@ -9,29 +9,7 @@
 
 namespace DKUtil::Hook
 {
-	inline const auto RuntimePatch(
-		[[maybe_unused]] const Xbyak::CodeGenerator* a_ae,
-		[[maybe_unused]] const Xbyak::CodeGenerator* a_se,
-		[[maybe_unused]] const Xbyak::CodeGenerator* a_vr = nullptr) noexcept
-	{
-		return RuntimePatch(
-			std::make_pair(a_ae->getCode(), a_ae->getSize()),
-			std::make_pair(a_se->getCode(), a_se->getSize()),
-			a_vr ? std::make_pair(a_vr->getCode(), a_vr->getSize()) : std::make_pair(nullptr, 0));
-	}
-
-	inline const auto RuntimePatch(
-		[[maybe_unused]] const Patch* a_ae,
-		[[maybe_unused]] const Patch* a_se,
-		[[maybe_unused]] const Patch* a_vr = nullptr) noexcept
-	{
-		return RuntimePatch(
-			{ a_ae->Data, a_ae->Size },
-			{ a_se->Data, a_se->Size },
-			a_vr ? std::make_pair(a_vr->Data, a_vr->Size) : std::make_pair(nullptr, 0));
-	}
-
-	inline const auto AddASMPatch(
+	inline auto AddASMPatch(
 		const std::uintptr_t a_address,
 		const offset_pair a_offset,
 		const Xbyak::CodeGenerator* a_xbyak,
@@ -40,7 +18,7 @@ namespace DKUtil::Hook
 		return AddASMPatch(a_address, a_offset, { a_xbyak->getCode(), a_xbyak->getSize() }, a_forward);
 	}
 
-	inline const auto AddASMPatch(
+	inline auto AddASMPatch(
 		const std::uintptr_t a_address,
 		const offset_pair a_offset,
 		const Patch* a_patch,
@@ -49,7 +27,7 @@ namespace DKUtil::Hook
 		return AddASMPatch(a_address, a_offset, { a_patch->Data, a_patch->Size }, a_forward);
 	}
 
-	inline const auto AddCaveHook(
+	inline auto AddCaveHook(
 		const std::uintptr_t a_address,
 		const offset_pair a_offset,
 		const FuncInfo a_funcInfo,
@@ -64,7 +42,7 @@ namespace DKUtil::Hook
 			a_flag);
 	}
 
-	inline const auto AddCaveHook(
+	inline auto AddCaveHook(
 		const std::uintptr_t a_address,
 		const offset_pair a_offset,
 		const FuncInfo a_funcInfo,
@@ -79,7 +57,7 @@ namespace DKUtil::Hook
 			a_flag);
 	}
 
-	inline const auto AddVMTHook(
+	inline auto AddVMTHook(
 		const void* a_vtbl,
 		const std::uint16_t a_index,
 		const FuncInfo a_funcInfo,
@@ -89,7 +67,7 @@ namespace DKUtil::Hook
 			a_xbyak ? std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()) : std::make_pair(nullptr, 0));
 	}
 
-	inline const auto AddVMTHook(
+	inline auto AddVMTHook(
 		const void* a_vtbl,
 		const std::uint16_t a_index,
 		const FuncInfo a_funcInfo,
@@ -99,7 +77,7 @@ namespace DKUtil::Hook
 			a_patch ? std::make_pair(a_patch->Data, a_patch->Size) : std::make_pair(nullptr, 0));
 	}
 
-	inline const auto AddIATHook(
+	inline auto AddIATHook(
 		const char* a_moduleName,
 		const char* a_methodName,
 		const FuncInfo a_funcInfo,
@@ -109,7 +87,7 @@ namespace DKUtil::Hook
 			a_xbyak ? std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()) : std::make_pair(nullptr, 0));
 	}
 
-	inline const auto AddIATHook(
+	inline auto AddIATHook(
 		const char* a_moduleName,
 		const char* a_methodName,
 		const FuncInfo a_funcInfo,
