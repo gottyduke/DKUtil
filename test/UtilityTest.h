@@ -190,10 +190,8 @@ namespace Test::Utility
 		INFO("String {} -> Enum {}", nameStr1, std::to_underlying(nameEnum1.value()));
 		INFO("String {} -> Enum {}", nameStr2, std::to_underlying(nameEnum2.value()));
 		INFO("String {} -> Enum {}", nameStr3, std::to_underlying(nameEnum3.value()));
-
 		ContiguousValue Enum1 = nameEnum1.value();
 	}
-
 
 	void Run() noexcept
 	{

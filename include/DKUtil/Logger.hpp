@@ -34,21 +34,21 @@
 #	include <spdlog/spdlog.h>
 
 #	define __SHORTF__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
-#	define INFO(...)                                                                       \
+#	define INFO(...)                                                                      \
 		{                                                                                  \
 			std::source_location src = std::source_location::current();                    \
 			spdlog::log(spdlog::source_loc{ src.file_name(), static_cast<int>(src.line()), \
 							src.function_name() },                                         \
 				spdlog::level::info, __VA_ARGS__);                                         \
 		}
-#	define DEBUG(...)                                                                      \
+#	define DEBUG(...)                                                                     \
 		{                                                                                  \
 			std::source_location src = std::source_location::current();                    \
 			spdlog::log(spdlog::source_loc{ src.file_name(), static_cast<int>(src.line()), \
 							src.function_name() },                                         \
 				spdlog::level::debug, __VA_ARGS__);                                        \
 		}
-#	define ERROR(...)                                                                             \
+#	define ERROR(...)                                                                            \
 		{                                                                                         \
 			std::source_location src = std::source_location::current();                           \
 			const auto msg = fmt::format(__VA_ARGS__);                                            \
@@ -100,7 +100,7 @@ namespace DKUtil
 namespace DKUtil::Logger
 {
 	// From CommonLibSSE https://github.com/Ryan-rsm-McKenzie/CommonLibSSE
-	inline std::filesystem::path docs_directory()
+	inline std::filesystem::path docs_directory() noexcept
 	{
 		wchar_t* buffer{ nullptr };
 		const auto result = SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, nullptr, std::addressof(buffer));
@@ -111,7 +111,7 @@ namespace DKUtil::Logger
 
 
 #ifndef DKU_DISABLE_LOGGING
-	inline void Init(const std::string_view a_name, const std::string_view a_version)
+	inline void Init(const std::string_view a_name, const std::string_view a_version) noexcept
 	{
 		std::filesystem::path path;
 #	ifdef PLUGIN_MODE
@@ -153,9 +153,15 @@ namespace DKUtil::Logger
 	}
 
 
-	inline void SetLevel(const spdlog::level::level_enum a_level)
+	inline void SetLevel(const spdlog::level::level_enum a_level) noexcept
 	{
 		spdlog::default_logger()->set_level(a_level);
+	}
+
+
+	inline void EnableDebug(bool a_enable = true) noexcept
+	{
+		SetLevel(a_enable ? spdlog::level::level_enum::debug : spdlog::level::level_enum::info);
 	}
 #endif
 }  // namespace DKUtil::Logger

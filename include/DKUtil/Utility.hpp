@@ -427,20 +427,20 @@ namespace DKUtil
 		class Singleton
 		{
 		public:
-			static derived_t* GetSingleton()
+			constexpr static derived_t* GetSingleton()
 			{
 				static derived_t singleton;
 				return std::addressof(singleton);
 			}
 
-			Singleton(const Singleton&) = delete;
-			Singleton(Singleton&&) = delete;
-			Singleton& operator=(const Singleton&) = delete;
-			Singleton& operator=(Singleton&&) = delete;
+			constexpr Singleton(const Singleton&) = delete;
+			constexpr Singleton(Singleton&&) = delete;
+			constexpr Singleton& operator=(const Singleton&) = delete;
+			constexpr Singleton& operator=(Singleton&&) = delete;
 
 		protected:
-			Singleton() = default;
-			virtual ~Singleton() = default;
+			constexpr Singleton() = default;
+			constexpr ~Singleton() = default;
 		};
 
 		// ryan is really a wiz, I shamelessly copy

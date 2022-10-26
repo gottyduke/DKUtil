@@ -38,22 +38,27 @@ namespace DKUtil::Config::detail
 						case DataType::kInteger:
 							{
 								std::int64_t input;
-								if (raw->second.is_array()) {
-									if (raw->second.as_array()->size()) {
+								if (raw->second.is_array() && raw->second.as_array()) {
+									if (raw->second.as_array()->size() == 1 &&
+										raw->second.as_array()->front().as_integer()) {
+										input = raw->second.as_array()->front().as_integer()->get();
+									} else if (raw->second.as_array()->size() > 1) {
 										std::vector<std::int64_t> array;
 										for (auto& node : *raw->second.as_array()) {
-											array.push_back(node.as_integer()->get());
+											if (node.as_integer()) {
+												array.push_back(node.as_integer()->get());
+											}
 										}
 
 										auto data = dynamic_cast<AData<std::int64_t>*>(dataPtr);
 										data->set_data(array);
 
 										break;
-									} else {
-										input = raw->second.as_array()->front().as_integer()->get();
 									}
 								} else {
-									input = raw->second.as_integer()->get();
+									if (raw->second.as_integer()) {
+										input = raw->second.as_integer()->get();
+									}
 								}
 								_manager.SetByKey(dataKey, input);
 								break;
@@ -61,50 +66,62 @@ namespace DKUtil::Config::detail
 						case DataType::kDouble:
 							{
 								double input;
-								if (raw->second.is_array()) {
-									if (raw->second.as_array()->size()) {
+								if (raw->second.is_array() && raw->second.as_array()) {
+									if (raw->second.as_array()->size() == 1 &&
+										raw->second.as_array()->front().as_floating_point()) {
+										input = raw->second.as_array()->front().as_floating_point()->get();
+									} else if (raw->second.as_array()->size()) {
 										std::vector<double> array;
 										for (auto& node : *raw->second.as_array()) {
-											array.push_back(node.as_floating_point()->get());
+											if (node.as_floating_point()) {
+												array.push_back(node.as_floating_point()->get());
+											}
 										}
 
 										auto data = dynamic_cast<AData<double>*>(dataPtr);
 										data->set_data(array);
 
 										break;
-									} else {
-										input = raw->second.as_array()->front().as_floating_point()->get();
 									}
 								} else {
-									input = raw->second.as_floating_point()->get();
+									if (raw->second.as_floating_point()) {
+										input = raw->second.as_floating_point()->get();
+									}
 								}
 								_manager.SetByKey(dataKey, input);
 								break;
 							}
 						case DataType::kBoolean:
 							{
-								_manager.SetByKey(dataKey, raw->second.as_boolean()->get());
+								if (raw->second.as_boolean()) {
+									_manager.SetByKey(dataKey, raw->second.as_boolean()->get());
+								}
 								break;
 							}
 						case DataType::kString:
 							{
 								std::basic_string<char> input;
-								if (raw->second.is_array()) {
-									if (raw->second.as_array()->size()) {
+								if (raw->second.is_array() && raw->second.as_array()) {
+									if (raw->second.as_array()->size() == 1 &&
+										raw->second.as_array()->front().as_string()) {
+										input = raw->second.as_array()->front().as_string()->get();
+									} else if (raw->second.as_array()->size()) {
 										std::vector<std::basic_string<char>> array;
 										for (auto& node : *raw->second.as_array()) {
-											array.push_back(node.as_string()->get());
+											if (node.as_string()) {
+												array.push_back(node.as_string()->get());
+											}
 										}
 
 										auto data = dynamic_cast<AData<std::basic_string<char>>*>(dataPtr);
 										data->set_data(array);
 
 										break;
-									} else {
-										input = raw->second.as_array()->front().as_string()->get();
 									}
 								} else {
-									input = raw->second.as_string()->get();
+									if (raw->second.as_string()) {
+										input = raw->second.as_string()->get();
+									}
 								}
 								_manager.SetByKey(dataKey, input);
 								break;

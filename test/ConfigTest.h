@@ -34,7 +34,11 @@ namespace Test::Config
 		static auto runtime = RUNTIME_PROXY(someRandomeName);
 
 		runtime.Load();
-
 		INFO("ini#{} json#{} toml#{} runtime#{}", MainIni.get_id(), MainJson.get_id(), MainToml.get_id(), runtime.get_id());
+
+		auto f = dku::Config::GetAllFiles({}, ".ini"sv, {}, {}, true);
+		for (auto& fi : f) {
+			INFO("File -> {}", fi);
+		}
 	}
 } // namespace Test::Config
