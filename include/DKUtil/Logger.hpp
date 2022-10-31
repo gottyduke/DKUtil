@@ -33,21 +33,17 @@
 #	include <spdlog/sinks/basic_file_sink.h>
 #	include <spdlog/spdlog.h>
 
+#	define LOG(LEVEL, ...)                                                                \
+		{                                                                                  \
+			std::source_location src = std::source_location::current();                    \
+			spdlog::log(spdlog::source_loc{ src.file_name(), static_cast<int>(src.line()), \
+							src.function_name() },                                         \
+				spdlog::level::LEVEL, __VA_ARGS__);                                        \
+		}
+#	define INFO(...) LOG(info, __VA_ARGS__)
+#	define DEBUG(...) LOG(debug, __VA_ARGS__)
+#	define WARN(...) LOG(warn, __VA_ARGS__)
 #	define __SHORTF__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
-#	define INFO(...)                                                                      \
-		{                                                                                  \
-			std::source_location src = std::source_location::current();                    \
-			spdlog::log(spdlog::source_loc{ src.file_name(), static_cast<int>(src.line()), \
-							src.function_name() },                                         \
-				spdlog::level::info, __VA_ARGS__);                                         \
-		}
-#	define DEBUG(...)                                                                     \
-		{                                                                                  \
-			std::source_location src = std::source_location::current();                    \
-			spdlog::log(spdlog::source_loc{ src.file_name(), static_cast<int>(src.line()), \
-							src.function_name() },                                         \
-				spdlog::level::debug, __VA_ARGS__);                                        \
-		}
 #	define ERROR(...)                                                                            \
 		{                                                                                         \
 			std::source_location src = std::source_location::current();                           \

@@ -303,6 +303,17 @@ namespace DKUtil
 				});
 		}
 
+		inline bool istarts_with(std::string_view a_str1, std::string_view a_str2)
+		{
+			if (a_str2.length() > a_str1.length())
+				return false;
+
+			return std::ranges::starts_with(a_str1, a_str2,
+				[](char ch1, char ch2) {
+					return std::toupper(ch1) == std::toupper(ch2);
+				});
+		}
+
 		inline std::string join(const std::vector<std::string>& a_vec, const char* a_delimiter)
 		{
 			std::ostringstream os;
