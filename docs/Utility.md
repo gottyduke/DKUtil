@@ -26,8 +26,7 @@ On the basis of original `stl::enumeration`, `DKUtil::enumeration` adds the foll
 * expanded ctor with concept restraint auto templates.
 
 ```C++
-namespace Enum
-{
+
     enum class ContiguousFlag
     {
         NONE = 0u,
@@ -123,16 +122,17 @@ namespace Enum
 
 
 void TestEnum() noexcept
-{
+{		
     using namespace Enum;
 
     // concept-restraint auto ctor
-    DKUtil::enumeration<ContiguousValue> cValues{ 0, 2, 4, 5, 9, 15 };
-    DKUtil::enumeration<SparseValue> sValues{ 0, 2, 4, 5, 9, 15 };
-    DKUtil::enumeration<ContiguousFlag> cFlags{ 0, 2, 4, 5, 9, 15 };
-    DKUtil::enumeration<SparseFlag> sFlags{ SparseFlag::NONE, SparseFlag::RCX, SparseFlag::RBX, SparseFlag::RSI, SparseFlag::R9, SparseFlag::R14 };
-
-    /* static reflections */
+    dku::enumeration<ContiguousValue UNDERLYING> cValues{ 0, 2, 4, 5, 9, 15 };
+    dku::enumeration<SparseValue UNDERLYING> sValues{ 0, 2, 4, 5, 9, 15 };
+    dku::enumeration<ContiguousFlag UNDERLYING> cFlags{ 0, 2, 4, 5, 9, 15 };
+    dku::enumeration<SparseFlag UNDERLYING> sFlags{ SparseFlag::NONE, SparseFlag::RCX, SparseFlag::RBX, SparseFlag::RSI, SparseFlag::R9, SparseFlag::R14 };
+    
+    /**/
+    // static reflections
     // 1) check for value-type enum reflection
     // 2) check for flag-type enum reflection
     // 3) check for mixed sparse enum reflection
@@ -140,10 +140,10 @@ void TestEnum() noexcept
     // 5) direct invocation between raw underlying value and enum value
     INFO("Reflecting enum value names");
     for (auto i : std::views::iota(0, 17)) {
-        INFO("{}{} {}", cValues.is_flag() ? "1<<" : "", i, cValues.value_name(static_cast<ContiguousValue>(i)));
-        INFO("{}{} {}", sValues.is_flag() ? "1<<" : "", i, sValues.value_name(i));
-        INFO("{}{} {}", cFlags.is_flag() ? "1<<" : "", i, cFlags.value_name(i));
-        INFO("{}{} {}", sFlags.is_flag() ? "1<<" : "", i, sFlags.value_name(i));
+        INFO("{}{} {}", cValues.is_flag() ? "1<<" : "", i, cValues.to_string(static_cast<ContiguousValue>(i)));
+        INFO("{}{} {}", sValues.is_flag() ? "1<<" : "", i, sValues.to_string(i));
+        INFO("{}{} {}", cFlags.is_flag() ? "1<<" : "", i, cFlags.to_string(i));
+        INFO("{}{} {}", sFlags.is_flag() ? "1<<" : "", i, sFlags.to_string(i));
     }
 
     // 5) check for enum class name reflection
@@ -151,16 +151,31 @@ void TestEnum() noexcept
     // 6) check for enum underlying type name
     INFO("Type name:\n{}\n{}\n{}\n{}", cValues.type_name(), sValues.type_name(), cFlags.type_name(), sFlags.type_name());
     
-    /* value range iterator */
+    // 7) value range iterator
     INFO("Iterating by value_range");
     for (const auto e : cValues.value_range(ContiguousValue::NONE, ContiguousValue::R15)) {
-        INFO("{}", cValues.value_name(e));
+        INFO("{}", cValues.to_string(e));
     }
 
     INFO("Iterating by flag_range");
     for (const auto e : cFlags.flag_range(ContiguousFlag::NONE, ContiguousFlag::R15)) {
-        INFO("{}", cFlags.value_name(e));
+        INFO("{}", cFlags.to_string(e));
     }
+    
+    // 8) string to enum cast
+    std::string nameStr1{ "rsi" };
+    std::string nameStr2{ "RaX" };
+    std::string nameStr3{ "Rdx" };
+
+    auto nameEnum1 = cValues.from_string(nameStr1);
+    auto nameEnum2 = cValues.from_string(nameStr2);
+    auto nameEnum3 = cValues.from_string(nameStr3);
+
+    INFO("String {} -> Enum {}", nameStr1, std::to_underlying(nameEnum1.value()));
+    INFO("String {} -> Enum {}", nameStr2, std::to_underlying(nameEnum2.value()));
+    INFO("String {} -> Enum {}", nameStr3, std::to_underlying(nameEnum3.value()));
+    ContiguousValue Enum1 = nameEnum1.value();
+    /**/
 }
 ```
    
