@@ -21,8 +21,11 @@ namespace DKUtil::Config
 	}
 
 
-	inline std::vector<std::string> GetAllFiles(std::string_view a_path = {}, std::string_view a_ext = {}, std::string_view a_prefix = {}, std::string_view a_suffix = {}, bool a_recursive = false) noexcept
+	template <bool RECURSIVE = false>
+	inline std::vector<std::string> GetAllFiles(std::string_view a_path = {}, std::string_view a_ext = {}, std::string_view a_prefix = {}, std::string_view a_suffix = {}) noexcept
 	{
+		using dir_iterator = std::conditional_t<RECURSIVE, std::filesystem::recursive_directory_iterator, std::filesystem::directory_iterator>;
+
 		std::vector<std::string> files;
 		auto file_iterator = [&](const std::filesystem::directory_entry& a_file) {
 			if (a_file.exists() &&
@@ -57,24 +60,22 @@ namespace DKUtil::Config
 			path = dir / path;
 		}
 
-		[[unlikely]] if (a_recursive)
-		{
-			std::ranges::for_each(std::filesystem::recursive_directory_iterator(path), file_iterator);
-		}
-		else
-		{
-			std::ranges::for_each(std::filesystem::directory_iterator(path), file_iterator);
-		}
-
+		std::ranges::for_each(dir_iterator(path), file_iterator);
 		std::ranges::sort(files);
 
 		return files;
 	}
 
+	// clang-format off
+	// DEPRECATED
+	[[deprecated("Use template instantiation of GetAllFiles<RECURSIVE[true|false]>() instead")]]
+	inline constexpr std::vector<std::string> GetAllFiles(std::string_view a_path = {}, std::string_view a_ext = {}, std::string_view a_prefix = {}, std::string_view a_suffix = {}, const bool a_recursive = false) noexcept { return {}; }
+	// clang-format on
+
 
 	namespace detail
 	{
-		inline static std::uint32_t Count{ 0 };
+		inline static std::uint32_t _Count{ 0 };
 
 		class DataManager;
 		class IParser
