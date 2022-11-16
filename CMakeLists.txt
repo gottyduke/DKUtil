@@ -173,14 +173,6 @@ target_link_libraries(
 if (MSVC)
 	add_compile_definitions(_UNICODE)
 
-	if (DKUTIL_TEST_RUN)
-	target_compile_definitions(
-		${PROJECT_NAME}
-		PUBLIC
-		"DKUTIL_TEST_RUN=1"
-	)
-	endif()
-
 	target_compile_options(
 		${PROJECT_NAME}
 		PRIVATE
