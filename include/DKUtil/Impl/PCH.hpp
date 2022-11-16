@@ -141,9 +141,8 @@ using namespace std::literals;
 #define NOPROFILER
 #define NODEFERWINDOWPOS
 #define NOMCX
+#include <Psapi.h>
 #include <ShlObj.h>
-#include <WinUser.h>
-#include <winnt.h>
 
 #undef min
 #undef max
