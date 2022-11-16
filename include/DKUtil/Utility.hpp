@@ -29,7 +29,7 @@
 namespace std::ranges::views
 {
 	inline constexpr auto drop_last = [](std::size_t count) { return std::views::reverse | std::views::drop(count) | std::views::reverse; };
-} // namepsace std::views
+}  // namepsace std::views
 
 
 namespace DKUtil
@@ -228,42 +228,42 @@ namespace DKUtil
 		static_string(const CharT (&)[N]) -> static_string<CharT, N - 1>;
 
 		// trim from left
-		inline constexpr std::string& ltrim(std::string& a_str) noexcept 
+		inline constexpr std::string& ltrim(std::string& a_str) noexcept
 		{
 			a_str.erase(0, a_str.find_first_not_of(" \t\n\r\f\v"));
 			return a_str;
 		}
 
 		// trim from right
-		inline constexpr std::string& rtrim(std::string& a_str) noexcept 
+		inline constexpr std::string& rtrim(std::string& a_str) noexcept
 		{
 			a_str.erase(a_str.find_last_not_of(" \t\n\r\f\v") + 1);
 			return a_str;
 		}
 
-		inline constexpr std::string& trim(std::string& a_str) noexcept 
+		inline constexpr std::string& trim(std::string& a_str) noexcept
 		{
 			return ltrim(rtrim(a_str));
 		}
 
-		inline constexpr std::string trim_copy(std::string a_str) noexcept 
+		inline constexpr std::string trim_copy(std::string a_str) noexcept
 		{
 			return trim(a_str);
 		}
 
-		inline constexpr bool is_empty(const char* a_char) noexcept 
+		inline constexpr bool is_empty(const char* a_char) noexcept
 		{
 			return a_char == nullptr || a_char[0] == '\0';
 		}
 
-		inline constexpr bool is_only_digit(std::string_view a_str) noexcept 
+		inline constexpr bool is_only_digit(std::string_view a_str) noexcept
 		{
 			return std::ranges::all_of(a_str, [](char c) {
 				return std::isdigit(static_cast<unsigned char>(c));
 			});
 		}
 
-		inline constexpr bool is_only_hex(std::string_view a_str) noexcept 
+		inline constexpr bool is_only_hex(std::string_view a_str) noexcept
 		{
 			if (a_str.compare(0, 2, "0x") == 0 || a_str.compare(0, 2, "0X") == 0) {
 				return a_str.size() > 2 && std::all_of(a_str.begin() + 2, a_str.end(), [](char c) {
@@ -273,14 +273,14 @@ namespace DKUtil
 			return false;
 		}
 
-		inline constexpr bool is_only_letter(std::string_view a_str) noexcept 
+		inline constexpr bool is_only_letter(std::string_view a_str) noexcept
 		{
 			return std::ranges::all_of(a_str, [](char c) {
 				return std::isalpha(static_cast<unsigned char>(c));
 			});
 		}
 
-		inline constexpr bool is_only_space(std::string_view a_str) noexcept 
+		inline constexpr bool is_only_space(std::string_view a_str) noexcept
 		{
 			return std::ranges::all_of(a_str, [](char c) {
 				return std::isspace(static_cast<unsigned char>(c));
@@ -291,23 +291,23 @@ namespace DKUtil
 			return std::toupper(static_cast<unsigned char>(ch1)) == std::toupper(static_cast<unsigned char>(ch2));
 		};
 
-		inline constexpr bool icontains(std::string_view a_full, std::string_view a_part) noexcept 
+		inline constexpr bool icontains(std::string_view a_full, std::string_view a_part) noexcept
 		{
 			return std::ranges::contains_subrange(a_full, a_part, icmp);
 		}
 
-		inline constexpr bool iequals(std::string_view a_str1, std::string_view a_str2) noexcept 
+		inline constexpr bool iequals(std::string_view a_str1, std::string_view a_str2) noexcept
 		{
 			return std::ranges::equal(a_str1, a_str2, icmp);
 		}
 
-		inline constexpr bool istarts_with(std::string_view a_full, std::string_view a_sub) noexcept 
+		inline constexpr bool istarts_with(std::string_view a_full, std::string_view a_sub) noexcept
 		{
 			return std::ranges::starts_with(a_full, a_sub, icmp);
 		}
 
 		template <class T>
-		T lexical_cast(const std::string& a_str, bool a_hex = false) noexcept 
+		T lexical_cast(const std::string& a_str, bool a_hex = false) noexcept
 		{
 			if constexpr (std::is_floating_point_v<T>) {
 				return static_cast<T>(std::stof(a_str));
@@ -322,66 +322,88 @@ namespace DKUtil
 			}
 		}
 
-		inline std::string remove_non_alphanumeric(std::string& a_str) noexcept 
+		inline std::string remove_non_alphanumeric(std::string& a_str) noexcept
 		{
 			std::ranges::replace_if(
 				a_str, [](char c) { return !std::isalnum(static_cast<unsigned char>(c)); }, ' ');
 			return trim_copy(a_str);
 		}
 
-		inline std::string remove_non_numeric(std::string& a_str) noexcept 
+		inline std::string remove_non_numeric(std::string& a_str) noexcept
 		{
 			std::ranges::replace_if(
 				a_str, [](char c) { return !std::isdigit(static_cast<unsigned char>(c)); }, ' ');
 			return trim_copy(a_str);
 		}
 
-		inline void replace_all(std::string& a_str, std::string_view a_search, std::string_view a_replace) noexcept 
+		inline void replace_all(std::string& a_str, std::string_view a_pattern, std::string_view a_replace) noexcept
 		{
-			if (a_search.empty()) {
+			if (a_pattern.empty()) {
 				return;
 			}
 
 			size_t pos = 0;
-			while ((pos = a_str.find(a_search, pos)) != std::string::npos) {
-				a_str.replace(pos, a_search.length(), a_replace);
+			while ((pos = a_str.find(a_pattern, pos)) != std::string::npos) {
+				a_str.replace(pos, a_pattern.length(), a_replace);
 				pos += a_replace.length();
 			}
 		}
 
-		inline void replace_first_instance(std::string& a_str, std::string_view a_search, std::string_view a_replace) noexcept 
+		inline void replace_first_instance(std::string& a_str, std::string_view a_pattern, std::string_view a_replace) noexcept
 		{
-			if (a_search.empty()) {
+			if (a_pattern.empty()) {
 				return;
 			}
 
-			if (auto pos = a_str.find(a_search); pos != std::string::npos) {
-				a_str.replace(pos, a_search.length(), a_replace);
+			if (auto pos = a_str.find(a_pattern); pos != std::string::npos) {
+				a_str.replace(pos, a_pattern.length(), a_replace);
 			}
 		}
 
-		inline void replace_last_instance(std::string& a_str, std::string_view a_search, std::string_view a_replace) noexcept 
+		inline void replace_last_instance(std::string& a_str, std::string_view a_pattern, std::string_view a_replace) noexcept
 		{
-			if (a_search.empty()) {
+			if (a_pattern.empty()) {
 				return;
 			}
 
-			if (auto pos = a_str.rfind(a_search); pos != std::string::npos) {
-				a_str.replace(pos, a_search.length(), a_replace);
+			if (auto pos = a_str.rfind(a_pattern); pos != std::string::npos) {
+				a_str.replace(pos, a_pattern.length(), a_replace);
 			}
 		}
 
-		inline std::vector<std::string> split(const std::string_view a_str, const std::string_view a_deliminator) noexcept 
+		inline constexpr std::vector<std::string> split(const std::string_view a_str, const std::convertible_to<std::string_view> auto&... a_deliminators) noexcept
 		{
 			std::vector<std::string> list;
-			for (const auto& token : std::views::split(a_str, a_deliminator)) {
-				list.emplace_back(token.begin(), token.end());
+			std::string_view chunk{};
+			// <p, n> window
+			std::size_t p{ 0 }, n{ 0 };
+
+			constexpr auto slide_split = [&](std::string_view delim) {
+				if (auto pos = chunk.rfind(delim); pos != std::string_view::npos) {
+					p = n;
+					if (pos) {
+						list.emplace_back(chunk.substr(0, pos));
+						return;
+					}
+				}
+			};
+
+			while (n < a_str.length()) {
+				chunk = a_str.substr(p, n - p);
+				(slide_split(a_deliminators), ...);
+				++n;
 			}
 
+			// end of chunk
+			if (n == a_str.length()) {
+				list.emplace_back(a_str.substr(p, n - p + 1));
+			}
+
+			// O(m*n)
 			return list;
 		}
 
-		inline constexpr std::string join(const std::vector<std::string>& a_vec, std::string_view a_delimiter = {}) noexcept
+		inline constexpr std::string join(const std::vector<std::string>& a_vec, const std::string_view a_delimiter = {}) noexcept
 		{
 			auto jv = a_vec | std::views::join_with(a_delimiter);
 			return { jv.begin(), jv.end() };
@@ -393,7 +415,13 @@ namespace DKUtil
 			return a_str;
 		}
 
-		inline constexpr std::string& drop(std::string& a_str, std::size_t a_count) noexcept 
+		inline constexpr std::string& tolower(std::string& a_str) noexcept
+		{
+			std::ranges::for_each(a_str, [](char& c) { c = std::tolower(c); });
+			return a_str;
+		}
+
+		inline constexpr std::string& drop(std::string& a_str, std::size_t a_count) noexcept
 		{
 			auto v = a_str | std::views::drop(a_count);
 			return a_str = std::string{ v.begin(), v.end() };
@@ -458,9 +486,9 @@ namespace DKUtil
 
 		// ryan is really a wiz, I shamelessly copy
 		// https://github.com/Ryan-rsm-McKenzie/CommonLibSSE/blob/master/include/SKSE/Impl/PCH.h
-		template <class EF>                                    //
-		requires(std::invocable<std::remove_reference_t<EF>>)  //
-			class scope_exit
+		template <class EF>                                        //
+			requires(std::invocable<std::remove_reference_t<EF>>)  //
+		class scope_exit
 		{
 		public:
 			// 1)
@@ -522,8 +550,8 @@ namespace DKUtil
 		template <class EF>
 		scope_exit(EF) -> scope_exit<EF>;
 
-		
-	// 64 by default, nums(64) or bits(1<<64)
+
+		// 64 by default, nums(64) or bits(1<<64)
 #ifndef DKU_MAX_REFLECTION_ENUM
 #	define DKU_MAX_REFLECTION_ENUM 64
 #endif
@@ -823,7 +851,12 @@ namespace DKUtil
 				std::common_type_t<Args...>>>;
 	}  // namespace model
 
-	
+
 	template <class Enum, class Underlying = std::underlying_type_t<Enum>>
 	using enumeration = model::enumeration<Enum, Underlying>;
 }  // namespace DKUtil
+
+
+#undef DKU_BUILD_STEP_CACHE
+#undef DKU_BUILD_FLAG_CACHE
+#undef DKU_FOR_EACH_ENUM
