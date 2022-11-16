@@ -36,9 +36,15 @@ namespace DKUtil::Hook::Assembly
 	};
 
 #pragma pack(push, 1)
-#define DEF_ASM                                                                 \
-	constexpr auto* data() noexcept { return std::bit_cast<std::byte*>(this); } \
-	constexpr auto size() noexcept { return sizeof(*this); }
+#define DEF_ASM                                 \
+	constexpr auto* data() noexcept             \
+	{                                           \
+		return std::bit_cast<std::byte*>(this); \
+	}                                           \
+	constexpr auto size() noexcept              \
+	{                                           \
+		return sizeof(*this);                   \
+	}
 
 	struct JmpRel
 	{

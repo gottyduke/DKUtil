@@ -29,12 +29,21 @@
 #endif
 
 
-#define FUNC_INFO(FUNC) \
-	DKUtil::Hook::FuncInfo { reinterpret_cast<std::uintptr_t>(FUNC), DKUtil::function::GetFuncArgsCount(FUNC), #FUNC }
-#define MEM_FUNC_INFO(FUNC) \
-	DKUtil::Hook::FuncInfo { reinterpret_cast<std::uintptr_t>(FUNC), DKUtil::function::GetMemFuncArgsCount(FUNC), #FUNC }
+#define FUNC_INFO(FUNC)                                                                         \
+	DKUtil::Hook::FuncInfo                                                                      \
+	{                                                                                           \
+		reinterpret_cast<std::uintptr_t>(FUNC), DKUtil::function::GetFuncArgsCount(FUNC), #FUNC \
+	}
+#define MEM_FUNC_INFO(FUNC)                                                                        \
+	DKUtil::Hook::FuncInfo                                                                         \
+	{                                                                                              \
+		reinterpret_cast<std::uintptr_t>(FUNC), DKUtil::function::GetMemFuncArgsCount(FUNC), #FUNC \
+	}
 #define RT_INFO(FUNC, NAME) \
-	DKUtil::Hook::FuncInfo { FUNC, 0, NAME }
+	DKUtil::Hook::FuncInfo  \
+	{                       \
+		FUNC, 0, NAME       \
+	}
 
 namespace DKUtil
 {
@@ -64,7 +73,7 @@ namespace DKUtil
 		template <typename data_t>
 		concept dku_h_pod_t =
 			std::is_integral_v<data_t> ||
-			(std::is_standard_layout_v<data_t>&& std::is_trivial_v<data_t>);
+			(std::is_standard_layout_v<data_t> && std::is_trivial_v<data_t>);
 
 
 		enum class HookFlag : std::uint32_t
@@ -102,7 +111,6 @@ namespace DKUtil
 #		include "F4SE/API.h"
 #	elif defined(SKSEAPI)
 #		include "SKSE/API.h"
-
 #		define IS_AE REL::Module::IsAE()
 #		define IS_SE REL::Module::IsSE()
 #		define IS_VR REL::Module::IsVR()

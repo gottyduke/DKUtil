@@ -61,19 +61,22 @@ namespace DKUtil::Config
 
 
 	template <const FileType ConfigFileType>
-	requires(ConfigFileType != FileType::kError) class Proxy
+		requires(ConfigFileType != FileType::kError)
+	class Proxy
 	{
+		// clang-format off
 		using parser_t =
 			std::conditional_t<ConfigFileType == FileType::kIni, detail::Ini,
-				std::conditional_t<ConfigFileType == FileType::kJson, detail::Json,
-					std::conditional_t<ConfigFileType == FileType::kToml, detail::Toml,
-						std::conditional_t<ConfigFileType == FileType::kSchema, detail::Schema, detail::IParser>>>>;
-
+			std::conditional_t<ConfigFileType == FileType::kJson, detail::Json,
+			std::conditional_t<ConfigFileType == FileType::kToml, detail::Toml,
+			std::conditional_t<ConfigFileType == FileType::kSchema, detail::Schema, detail::IParser>>>>;
+		// clang-format on
 	public:
 		// compile defined
 		constexpr explicit Proxy(const std::string_view a_file) noexcept
-			requires(ConfigFileType != FileType::kDynamic) :
-			_id(detail::Count++),
+			requires(ConfigFileType != FileType::kDynamic)
+			:
+			_id(detail::_Count++),
 			_file(a_file.data()),
 			_type(ConfigFileType), _parser(std::make_unique<parser_t>(a_file.data(), _id, _manager))
 		{
@@ -82,8 +85,9 @@ namespace DKUtil::Config
 
 		// runtime defined
 		constexpr explicit Proxy(const std::string_view a_file) noexcept
-			requires(ConfigFileType == FileType::kDynamic) :
-			_id(detail::Count++),
+			requires(ConfigFileType == FileType::kDynamic)
+			:
+			_id(detail::_Count++),
 			_file(a_file.data())
 		{
 			// bogus, need fixing

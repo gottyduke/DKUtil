@@ -8,12 +8,14 @@ namespace DKUtil::Config::detail
 {
 	template <typename data_t>
 	concept dku_c_numeric =
-		(std::convertible_to<data_t, std::int64_t> || std::convertible_to<data_t, double>)&&!std::convertible_to<data_t, std::basic_string<char>>;
+		(std::convertible_to<data_t, std::int64_t> || std::convertible_to<data_t, double>) && !
+	std::convertible_to<data_t, std::basic_string<char>>;
 
 
 	template <typename data_t>
 	concept dku_c_trivial_t =
-		(dku_c_numeric<data_t> || std::convertible_to<data_t, bool>)&&!std::convertible_to<data_t, std::basic_string<char>>;
+		(dku_c_numeric<data_t> || std::convertible_to<data_t, bool>) && !
+	std::convertible_to<data_t, std::basic_string<char>>;
 
 
 	enum class DataType
@@ -63,7 +65,11 @@ namespace DKUtil::Config::detail
 				return _data;
 			}
 		}
-		[[nodiscard]] constexpr operator bool() noexcept requires(std::is_same_v<bool, underlying_data_t>) { return _data; }
+		[[nodiscard]] constexpr operator bool() noexcept
+			requires(std::is_same_v<bool, underlying_data_t>)
+		{
+			return _data;
+		}
 		[[nodiscard]] constexpr auto& operator*() noexcept { return _data; }
 		[[nodiscard]] constexpr auto& operator=(const std::convertible_to<underlying_data_t> auto& a_rhs) noexcept { return _data = static_cast<underlying_data_t>(a_rhs); }
 
@@ -88,8 +94,7 @@ namespace DKUtil::Config::detail
 			_collection.reset();
 
 			_isCollection = (a_list.size() > 1);
-			[[unlikely]] if (_isCollection)
-			{
+			[[unlikely]] if (_isCollection) {
 				_collection = std::make_unique<collection>(a_list);
 			}
 
@@ -97,14 +102,11 @@ namespace DKUtil::Config::detail
 
 			clamp();
 
-			[[unlikely]] if (_isCollection)
-			{
+			[[unlikely]] if (_isCollection) {
 				std::for_each(_collection->begin(), _collection->end(), [&](underlying_data_t val) {
 					DEBUG("Setting collection value [{}] to [{}]", val, _key);
 				});
-			}
-			else
-			{
+			} else {
 				DEBUG("Setting value [{}] to [{}]", _data, _key);
 			}
 		}
@@ -114,21 +116,17 @@ namespace DKUtil::Config::detail
 			_collection.reset();
 
 			_isCollection = (a_collection.size() > 1);
-			[[likely]] if (_isCollection)
-			{
+			[[likely]] if (_isCollection) {
 				_collection = std::make_unique<collection>(std::move(a_collection));
 				_data = a_collection.front();
 				clamp();
 			}
 
-			[[likely]] if (_isCollection)
-			{
+			[[likely]] if (_isCollection) {
 				std::for_each(_collection->begin(), _collection->end(), [&](underlying_data_t val) {
 					DEBUG("Setting collection value [{}] to [{}]", val, _key);
 				});
-			}
-			else
-			{
+			} else {
 				DEBUG("Setting value [{}] to [{}]", _data, _key);
 			}
 		}
