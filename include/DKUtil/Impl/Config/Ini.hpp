@@ -16,9 +16,9 @@ namespace DKUtil::Config::detail
 		void Parse(const char* a_data) noexcept override
 		{
 			_ini.SetUnicode();
-			auto result = a_data ? _ini.LoadData(a_data) : _ini.LoadFile(_filePath.c_str());
+			auto result = a_data ? _ini.LoadData(a_data) : _ini.LoadFile(_filepath.c_str());
 			if (result < 0) {
-				ERROR("DKU_C: Parser#{}: Loading failed! -> {}\n{}", _id, _filePath.c_str(), err_getmsg());
+				ERROR("DKU_C: Parser#{}: Loading failed! -> {}\n{}", _id, _filepath.c_str(), err_getmsg());
 			}
 
 			CSimpleIniA::TNamesDepend sections;
@@ -34,73 +34,105 @@ namespace DKUtil::Config::detail
 						continue;
 					}
 
-					switch (_manager.Visit(key.pItem)) {
-					case DataType::kInteger:
-						{
-							try {
-								_manager.SetByKey(key.pItem, std::stoll(value));
-							} catch (const std::exception&) {
-								err_mismatch(key.pItem, "Integer", value);
+					if (_manager.contains(key.pItem)) {
+						std::string raw{ value };
+
+						auto* data = _manager[key.pItem];
+						switch (data->get_type()) {
+						case DataType::kBoolean:
+							{
+								dku::string::tolower(raw);
+								if (raw == "0" || raw == "false") {
+									data->As<bool>()->set_data(false);
+								} else if (raw == "1" || raw == "true") {
+									data->As<bool>()->set_data(true);
+								} else {
+									err_mismatch("Invalid bool input", key.pItem, "Boolean", value);
+								}
+
+								break;
 							}
-							break;
-						}
-					case DataType::kDouble:
-						{
-							try {
-								_manager.SetByKey(key.pItem, std::stod(value));
-							} catch (const std::exception&) {
-								err_mismatch(key.pItem, "Double", value);
+						case DataType::kDouble:
+							{
+								auto sv = dku::string::split(raw, ",", " ");
+								try {
+									if (sv.empty()) {
+										data->As<double>()->set_data(std::stod(value));
+									} else {
+										auto tv = sv | std::views::transform([](std::string str) { return std::stod(str); });
+										data->As<double>()->set_data({ tv.begin(), tv.end() });
+									}
+								} catch (const std::exception& e) {
+									err_mismatch(e.what(), key.pItem, "Double", value);
+								}
+
+								break;
 							}
-							break;
-						}
-					case DataType::kBoolean:
-						{
-							std::string raw{ value };
-							std::transform(raw.begin(), raw.end(), raw.begin(), [](unsigned char a_char) { return std::tolower(a_char); });
-							if (raw == "0" || raw == "false") {
-								_manager.SetByKey(key.pItem, false);
-							} else if (raw == "1" || raw == "true") {
-								_manager.SetByKey(key.pItem, true);
-							} else {
-								err_mismatch(key.pItem, "Boolean", value);
+						case DataType::kInteger:
+							{
+								auto sv = dku::string::split(raw, ",", " ");
+								try {
+									if (sv.empty()) {
+										data->As<std::int64_t>()->set_data(std::stoll(value));
+									} else {
+										auto tv = sv | std::views::transform([](std::string& str) { return std::stoll(str); });
+										data->As<std::int64_t>()->set_data({ tv.begin(), tv.end() });
+									}
+								} catch (const std::exception& e) {
+									err_mismatch(e.what(), key.pItem, "Double", value);
+								}
+
+								break;
 							}
-							break;
-						}
-					case DataType::kString:
-						{
-							std::string raw{ value };
-							if (raw.front() == '"' && raw.back() == '"') {
-								raw.pop_back();
-								raw.erase(raw.begin());
+						case DataType::kString:
+							{
+								std::string old{ raw };
+								dku::string::replace_all(raw, "\\,", "_dku_comma_");
+								dku::string::replace_all(raw, "\\\"", "_dku_quote_");
+
+								auto sv = dku::string::split(raw, ",");
+								try {
+									if (sv.empty()) {
+										dku::string::trim(old);
+										dku::string::replace_all(old, "\"");
+										data->As<std::basic_string<char>>()->set_data(old);
+									} else {
+										std::ranges::for_each(sv, [](std::string& str) {
+											dku::string::replace_all(str, "\"");
+											dku::string::replace_all(str, "_dku_comma_", "\\,");
+											dku::string::replace_all(str, "_dku_quote_", "\\\"");
+											dku::string::trim(str);
+										});
+										data->As<std::basic_string<char>>()->set_data(sv);
+									}
+								} catch (const std::exception& e) {
+									err_mismatch(e.what(), key.pItem, "String", value);
+								}
+
+								break;
 							}
-							_manager.SetByKey(key.pItem, raw);
-							break;
+						case DataType::kError:
+						default:
+							continue;
 						}
-					case DataType::kError:
-					default:
-						continue;
 					}
 				}
 			}
+
+			auto sr = _ini.Save(_content);
+			if (sr < 0) {
+				ERROR("DKU_C: Parser#{}: Saving data failed!\n{}", _id, err_getmsg());
+			}
+
 			DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
 		}
 
 		void Write(const std::string_view a_filePath) noexcept override
 		{
-			auto result = a_filePath.empty() ? _ini.SaveFile(_filePath.c_str()) : _ini.SaveFile(a_filePath.data());
+			auto result = a_filePath.empty() ? _ini.SaveFile(_filepath.c_str()) : _ini.SaveFile(a_filePath.data());
 			if (result < 0) {
 				ERROR("DKU_C: Parser#{}: Writing file failed!\n{}", _id, err_getmsg());
 			}
-		}
-
-		const void* Data() noexcept override
-		{
-			auto result = _ini.Save(_out);
-			if (result < 0) {
-				ERROR("DKU_C: Parser#{}: Saving data failed!\n{}", _id, err_getmsg());
-			}
-
-			return _out.data();
 		}
 
 	private:
@@ -111,9 +143,9 @@ namespace DKUtil::Config::detail
 			return errmsg;
 		}
 
-		void err_mismatch(const char* a_key, const char* a_type, const char* a_value) noexcept
+		void err_mismatch(std::string_view a_key, std::string_view a_type, std::string_view a_value, std::string_view a_what) noexcept
 		{
-			ERROR("DKU_C: Parser#{}: Value type mismatch!\nFile: {}\nKey: {}, Expected: {}, Value: {}", _id, _filePath.c_str(), a_key, a_type, a_value);
+			ERROR("DKU_C: Parser#{}: {}\nValue type mismatch!\nFile: {}\nKey: {}, Expected: {}, Value: {}", _id, a_what, _filepath.c_str(), a_key, a_type, a_value);
 		}
 
 

@@ -19,51 +19,51 @@ namespace DKUtil::Config::detail
 			if (a_data) {
 				_json = json::parse(a_data);
 			} else {
-				std::basic_ifstream<char> file(_filePath);
+				std::basic_ifstream<char> file(_filepath);
 				if (!file.is_open()) {
-					ERROR("DKU_C: Parser#{}: Loading failed! -> {}", _id, _filePath.c_str());
+					ERROR("DKU_C: Parser#{}: Loading failed! -> {}", _id, _filepath.c_str());
 				}
 
 				file >> _json;
 				file.close();
 			}
 
-			for (auto& data : _manager.get_managed()) {
-				auto raw = _json.find(data.first.data());
+			for (auto& [key, data] : _manager) {
+				auto raw = _json.find(key.data());
 				if (raw == _json.end()) {
-					ERROR("DKU_C: Parser#{}: Retrieving config failed!\nFile: {}\nKey: {}", _id, _filePath.c_str(), data.first);
+					ERROR("DKU_C: Parser#{}: Retrieving config failed!\nFile: {}\nKey: {}", _id, _filepath.c_str(), key);
 				}
 
-				switch (_manager.Visit(data.first)) {
-				case DataType::kInteger:
+				switch (data->get_type()) {
+				case DataType::kBoolean:
 					{
-						if (raw->type() == json::value_t::array) {
-							dynamic_cast<AData<std::int64_t>*>(data.second)->set_data(raw->get<std::vector<std::int64_t>>());
-						} else {
-							_manager.SetByKey(data.first, raw->get<std::int64_t>());
-						}
+						data->As<bool>()->set_data(raw->get<bool>());
 						break;
 					}
 				case DataType::kDouble:
 					{
 						if (raw->type() == json::value_t::array) {
-							dynamic_cast<AData<double>*>(data.second)->set_data(raw->get<std::vector<double>>());
+							data->As<double>()->set_data(raw->get<std::vector<double>>());
 						} else {
-							_manager.SetByKey(data.first, raw->get<double>());
+							data->As<double>()->set_data(raw->get<double>());
 						}
 						break;
 					}
-				case DataType::kBoolean:
+				case DataType::kInteger:
 					{
-						_manager.SetByKey(data.first, raw->get<bool>());
+						if (raw->type() == json::value_t::array) {
+							data->As<std::int64_t>()->set_data(raw->get<std::vector<std::int64_t>>());
+						} else {
+							data->As<std::int64_t>()->set_data(raw->get<std::int64_t>());
+						}
 						break;
 					}
 				case DataType::kString:
 					{
 						if (raw->type() == json::value_t::array) {
-							dynamic_cast<AData<std::basic_string<char>>*>(data.second)->set_data(raw->get<std::vector<std::basic_string<char>>>());
+							data->As<std::basic_string<char>>()->set_data(raw->get<std::vector<std::basic_string<char>>>());
 						} else {
-							_manager.SetByKey(data.first, raw->get<std::basic_string<char>>());
+							data->As<std::basic_string<char>>()->set_data(raw->get<std::basic_string<char>>());
 						}
 						break;
 					}
@@ -72,12 +72,14 @@ namespace DKUtil::Config::detail
 					continue;
 				}
 			}
+
+			_content = std::move(_json.dump());
 			DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
 		}
 
 		void Write(const std::string_view a_filePath) noexcept override
 		{
-			auto* filePath = a_filePath.empty() ? _filePath.data() : a_filePath.data();
+			auto* filePath = a_filePath.empty() ? _filepath.data() : a_filePath.data();
 			std::basic_ofstream<char> file{ filePath };
 			if (!file.is_open()) {
 				ERROR("DKU_C: Parser#{}: Writing file failed! -> {}\nofstream cannot be opened", _id, filePath);
@@ -85,12 +87,6 @@ namespace DKUtil::Config::detail
 
 			file << _json;
 			file.close();
-		}
-
-		const void* Data() noexcept override
-		{
-			_out = std::move(_json.dump());
-			return _out.data();
 		}
 
 	private:

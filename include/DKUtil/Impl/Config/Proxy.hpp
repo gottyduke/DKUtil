@@ -77,10 +77,10 @@ namespace DKUtil::Config
 			requires(ConfigFileType != FileType::kDynamic)
 			:
 			_id(detail::_Count++),
-			_file(a_file.data()),
-			_type(ConfigFileType), _parser(std::make_unique<parser_t>(a_file.data(), _id, _manager))
+			_filename(a_file),
+			_type(ConfigFileType), _parser(std::make_unique<parser_t>(a_file, _id, _manager))
 		{
-			DEBUG("DKU_C: Proxy#{}: Compile -> {}", _id, _file);
+			DEBUG("DKU_C: Proxy#{}: Compile -> {}", _id, _filename);
 		}
 
 		// runtime defined
@@ -88,7 +88,7 @@ namespace DKUtil::Config
 			requires(ConfigFileType == FileType::kDynamic)
 			:
 			_id(detail::_Count++),
-			_file(a_file.data())
+			_filename(a_file)
 		{
 			// bogus, need fixing
 			const auto extension = a_file.substr(a_file.size() - 4);
@@ -97,25 +97,25 @@ namespace DKUtil::Config
 				(extension[2] == 'n' || extension[2] == 'N') &&
 				(extension[3] == 'i' || extension[3] == 'I')) {
 				_type = FileType::kIni;
-				_parser = std::make_unique<detail::Ini>(a_file.data(), _id, _manager);
+				_parser = std::make_unique<detail::Ini>(a_file, _id, _manager);
 			} else if (
 				(extension[0] == 'j' || extension[0] == 'J') &&
 				(extension[1] == 's' || extension[1] == 'S') &&
 				(extension[2] == 'o' || extension[2] == 'O') &&
 				(extension[3] == 'n' || extension[3] == 'N')) {
 				_type = FileType::kJson;
-				_parser = std::make_unique<detail::Json>(a_file.data(), _id, _manager);
+				_parser = std::make_unique<detail::Json>(a_file, _id, _manager);
 			} else if (
 				(extension[0] == 't' || extension[0] == 'T') &&
 				(extension[1] == 'o' || extension[1] == 'O') &&
 				(extension[2] == 'm' || extension[2] == 'M') &&
 				(extension[3] == 'l' || extension[3] == 'L')) {
 				_type = FileType::kToml;
-				_parser = std::make_unique<detail::Toml>(a_file.data(), _id, _manager);
+				_parser = std::make_unique<detail::Toml>(a_file, _id, _manager);
 			} else {
 				ERROR("DKU_C: Proxy#{}: No suitable parser found for file -> {}", _id, a_file);
 			}
-			DEBUG("DKU_C: Proxy#{}: Runtime -> {}", _id, _file);
+			DEBUG("DKU_C: Proxy#{}: Runtime -> {}", _id, _filename);
 		}
 
 
@@ -130,21 +130,16 @@ namespace DKUtil::Config
 
 		void Load(const char* a_data = nullptr) noexcept
 		{
-			DEBUG("DKU_C: Proxy#{}: Loading -> {}", _id, _file);
+			DEBUG("DKU_C: Proxy#{}: Loading -> {}", _id, _filename);
 
 			_parser->Parse(a_data);
 		}
 
 		void Write(const std::string_view a_file = {}) noexcept
 		{
-			DEBUG("DKU_C: Proxy#{}: Writing -> {}", _id, _file);
+			DEBUG("DKU_C: Proxy#{}: Writing -> {}", _id, _filename);
 
 			_parser->Write(a_file);
-		}
-
-		auto Data() noexcept
-		{
-			return _parser->Data();
 		}
 
 		template <
@@ -153,23 +148,22 @@ namespace DKUtil::Config
 			typename data_t>
 		constexpr void Bind(detail::AData<data_t>& a_data, const std::convertible_to<data_t> auto&... a_value) noexcept
 		{
-			_manager.Add(a_data.get_key(), std::addressof(a_data));
+			_manager.try_emplace(a_data.get_key(), std::addressof(a_data));
 			a_data.set_range({ min, max });
 			a_data.set_data({ static_cast<data_t>(a_value)... });
 		}
 
 
 		[[nodiscard]] constexpr auto get_id() const noexcept { return _id; }
-		[[nodiscard]] constexpr auto get_file() const noexcept { return _file; }
+		[[nodiscard]] constexpr auto get_filename() const noexcept { return _filename; }
 		[[nodiscard]] constexpr auto get_type() const noexcept { return _type; }
-		[[nodiscard]] constexpr auto get_size() const noexcept { return _manager.size(); }
-		[[nodiscard]] constexpr auto& get_manager() const noexcept { return _manager; }
+		[[nodiscard]] constexpr auto* data() noexcept { return _parser->data(); }
 
 	private:
 		const std::uint32_t _id;
-		const std::string _file;
+		const std::string _filename;
 		FileType _type;
 		std::unique_ptr<parser_t> _parser;
-		detail::DataManager _manager;
+		std::unordered_map<std::string_view, detail::IData*> _manager;  // key, data*
 	};
 }  // namespace DKUtil::Config

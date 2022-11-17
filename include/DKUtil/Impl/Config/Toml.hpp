@@ -16,7 +16,7 @@ namespace DKUtil::Config::detail
 
 		void Parse(const char* a_data) noexcept override
 		{
-			auto result = a_data ? toml::parse(a_data) : toml::parse_file(_filePath);
+			auto result = a_data ? toml::parse(a_data) : toml::parse_file(_filepath);
 			if (!result) {
 				ERROR("DKU_C: Parser#{}: Parsing failed!\nFile: {}\nDesc: {}", _id, *result.error().source().path.get(), result.error().description());
 			}
@@ -27,40 +27,19 @@ namespace DKUtil::Config::detail
 					INFO("DKU_C: WARNING\nParser#{}: Sectionless configuration present and skipped.\nPossible inappropriate formatting at [{}]", _id, section.str());
 					continue;
 				} else {
-					for (auto& [dataKey, dataPtr] : _manager.get_managed()) {
-						auto raw = table.as_table()->find(dataKey.data());
+					for (auto& [key, data] : _manager) {
+						auto raw = table.as_table()->find(key.data());
 						if (table.as_table()->begin() != table.as_table()->end() &&
 							raw == table.as_table()->end()) {
 							continue;
 						}
 
-						switch (_manager.Visit(dataKey)) {
-						case DataType::kInteger:
+						switch (data->get_type()) {
+						case DataType::kBoolean:
 							{
-								std::int64_t input;
-								if (raw->second.is_array() && raw->second.as_array()) {
-									if (raw->second.as_array()->size() == 1 &&
-										raw->second.as_array()->front().as_integer()) {
-										input = raw->second.as_array()->front().as_integer()->get();
-									} else if (raw->second.as_array()->size() > 1) {
-										std::vector<std::int64_t> array;
-										for (auto& node : *raw->second.as_array()) {
-											if (node.as_integer()) {
-												array.push_back(node.as_integer()->get());
-											}
-										}
-
-										auto data = dynamic_cast<AData<std::int64_t>*>(dataPtr);
-										data->set_data(array);
-
-										break;
-									}
-								} else {
-									if (raw->second.as_integer()) {
-										input = raw->second.as_integer()->get();
-									}
+								if (raw->second.as_boolean()) {
+									data->As<bool>()->set_data(raw->second.as_boolean()->get());
 								}
-								_manager.SetByKey(dataKey, input);
 								break;
 							}
 						case DataType::kDouble:
@@ -78,9 +57,7 @@ namespace DKUtil::Config::detail
 											}
 										}
 
-										auto data = dynamic_cast<AData<double>*>(dataPtr);
-										data->set_data(array);
-
+										data->As<double>()->set_data(array);
 										break;
 									}
 								} else {
@@ -88,14 +65,35 @@ namespace DKUtil::Config::detail
 										input = raw->second.as_floating_point()->get();
 									}
 								}
-								_manager.SetByKey(dataKey, input);
+
+								data->As<double>()->set_data(input);
 								break;
 							}
-						case DataType::kBoolean:
+						case DataType::kInteger:
 							{
-								if (raw->second.as_boolean()) {
-									_manager.SetByKey(dataKey, raw->second.as_boolean()->get());
+								std::int64_t input;
+								if (raw->second.is_array() && raw->second.as_array()) {
+									if (raw->second.as_array()->size() == 1 &&
+										raw->second.as_array()->front().as_integer()) {
+										input = raw->second.as_array()->front().as_integer()->get();
+									} else if (raw->second.as_array()->size() > 1) {
+										std::vector<std::int64_t> array;
+										for (auto& node : *raw->second.as_array()) {
+											if (node.as_integer()) {
+												array.push_back(node.as_integer()->get());
+											}
+										}
+
+										data->As<std::int64_t>()->set_data(array);
+										break;
+									}
+								} else {
+									if (raw->second.as_integer()) {
+										input = raw->second.as_integer()->get();
+									}
 								}
+
+								data->As<std::int64_t>()->set_data(input);
 								break;
 							}
 						case DataType::kString:
@@ -113,9 +111,7 @@ namespace DKUtil::Config::detail
 											}
 										}
 
-										auto data = dynamic_cast<AData<std::basic_string<char>>*>(dataPtr);
-										data->set_data(array);
-
+										data->As<std::basic_string<char>>()->set_data(array);
 										break;
 									}
 								} else {
@@ -123,7 +119,8 @@ namespace DKUtil::Config::detail
 										input = raw->second.as_string()->get();
 									}
 								}
-								_manager.SetByKey(dataKey, input);
+
+								data->As<std::basic_string<char>>()->set_data(input);
 								break;
 							}
 						case DataType::kError:
@@ -133,12 +130,17 @@ namespace DKUtil::Config::detail
 					}
 				}
 			}
+
+			std::stringstream os{};
+			os << _toml;
+			_content = std::move(os.str());
+
 			DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
 		}
 
 		void Write(const std::string_view a_filePath) noexcept override
 		{
-			auto filePath = a_filePath.empty() ? _filePath.c_str() : a_filePath.data();
+			auto filePath = a_filePath.empty() ? _filepath.c_str() : a_filePath.data();
 			std::basic_ofstream<char> file{ filePath };
 			if (!file.is_open()) {
 				ERROR("DKU_C: Parser#{}: Writing file failed! -> {}\nofstream cannot be opened", _id, filePath);
@@ -146,15 +148,6 @@ namespace DKUtil::Config::detail
 
 			file << _toml;
 			file.close();
-		}
-
-		const void* Data() noexcept override
-		{
-			std::stringstream os{};
-			os << _toml;
-			_out = std::move(os.str());
-
-			return _out.data();
 		}
 
 	private:
