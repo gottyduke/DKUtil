@@ -90,31 +90,16 @@ namespace DKUtil::Config
 			_id(detail::_Count++),
 			_filename(a_file)
 		{
-			// bogus, need fixing
-			const auto extension = a_file.substr(a_file.size() - 4);
-			if (extension[0] == '.' &&
-				(extension[1] == 'i' || extension[1] == 'I') &&
-				(extension[2] == 'n' || extension[2] == 'N') &&
-				(extension[3] == 'i' || extension[3] == 'I')) {
-				_type = FileType::kIni;
+			if (dku::string::iends_with(a_file, "ini")) {
 				_parser = std::make_unique<detail::Ini>(a_file, _id, _manager);
-			} else if (
-				(extension[0] == 'j' || extension[0] == 'J') &&
-				(extension[1] == 's' || extension[1] == 'S') &&
-				(extension[2] == 'o' || extension[2] == 'O') &&
-				(extension[3] == 'n' || extension[3] == 'N')) {
-				_type = FileType::kJson;
+			} else if (dku::string::iends_with(a_file, "json")) {
 				_parser = std::make_unique<detail::Json>(a_file, _id, _manager);
-			} else if (
-				(extension[0] == 't' || extension[0] == 'T') &&
-				(extension[1] == 'o' || extension[1] == 'O') &&
-				(extension[2] == 'm' || extension[2] == 'M') &&
-				(extension[3] == 'l' || extension[3] == 'L')) {
-				_type = FileType::kToml;
+			} else if (dku::string::iends_with(a_file, "toml")) {
 				_parser = std::make_unique<detail::Toml>(a_file, _id, _manager);
 			} else {
 				ERROR("DKU_C: Proxy#{}: No suitable parser found for file -> {}", _id, a_file);
 			}
+
 			DEBUG("DKU_C: Proxy#{}: Runtime -> {}", _id, _filename);
 		}
 
@@ -148,6 +133,8 @@ namespace DKUtil::Config
 			typename data_t>
 		constexpr void Bind(detail::AData<data_t>& a_data, const std::convertible_to<data_t> auto&... a_value) noexcept
 		{
+			static_assert(ConfigFileType != FileType::kSchema, "Schema parser cannot use regular data bindings!");
+
 			_manager.try_emplace(a_data.get_key(), std::addressof(a_data));
 			a_data.set_range({ min, max });
 			a_data.set_data({ static_cast<data_t>(a_value)... });
@@ -157,6 +144,7 @@ namespace DKUtil::Config
 		[[nodiscard]] constexpr auto get_id() const noexcept { return _id; }
 		[[nodiscard]] constexpr auto get_filename() const noexcept { return _filename; }
 		[[nodiscard]] constexpr auto get_type() const noexcept { return _type; }
+		[[nodiscard]] constexpr auto& get_parser() const noexcept { return *_parser; }
 		[[nodiscard]] constexpr auto* data() noexcept { return _parser->data(); }
 
 	private:

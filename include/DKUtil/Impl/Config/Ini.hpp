@@ -37,7 +37,7 @@ namespace DKUtil::Config::detail
 					if (_manager.contains(key.pItem)) {
 						std::string raw{ value };
 
-						auto* data = _manager[key.pItem];
+						auto* data = _manager.at(key.pItem);
 						switch (data->get_type()) {
 						case DataType::kBoolean:
 							{
@@ -133,6 +133,8 @@ namespace DKUtil::Config::detail
 			if (result < 0) {
 				ERROR("DKU_C: Parser#{}: Writing file failed!\n{}", _id, err_getmsg());
 			}
+
+			DEBUG("DKU_C: Parser#{}: Writing finished", _id);
 		}
 
 	private:

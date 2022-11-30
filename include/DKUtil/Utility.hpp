@@ -301,9 +301,14 @@ namespace DKUtil
 			return std::ranges::equal(a_str1, a_str2, icmp);
 		}
 
-		inline constexpr bool istarts_with(std::string_view a_full, std::string_view a_sub) noexcept
+		inline constexpr bool istarts_with(std::string_view a_full, std::string_view a_pattern) noexcept
 		{
-			return std::ranges::starts_with(a_full, a_sub, icmp);
+			return std::ranges::starts_with(a_full, a_pattern, icmp);
+		}
+
+		inline constexpr bool iends_with(std::string_view a_full, std::string_view a_pattern) noexcept
+		{
+			return std::ranges::starts_with(a_full | std::views::reverse, a_pattern | std::views::reverse, icmp);
 		}
 
 		template <class T>
@@ -336,7 +341,7 @@ namespace DKUtil
 			return trim_copy(a_str);
 		}
 
-		inline void replace_all(std::string& a_str, std::string_view a_pattern, std::string_view a_replace) noexcept
+		inline void replace_all(std::string& a_str, std::string_view a_pattern, std::string_view a_replace = {}) noexcept
 		{
 			if (a_pattern.empty()) {
 				return;

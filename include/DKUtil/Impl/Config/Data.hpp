@@ -30,7 +30,7 @@ namespace DKUtil::Config::detail
 
 
 	template <typename data_t>
-	struct DataTrait
+	struct data_trait
 	{
 		using type = DataType;
 		static constexpr bool is_bool = std::is_same_v<data_t, bool>;
@@ -50,6 +50,8 @@ namespace DKUtil::Config::detail
 			return type::kError;
 		};
 	};
+	template <typename data_t>
+	static constexpr auto data_trait_v = data_trait<data_t>::value();
 
 
 	class IData
@@ -73,7 +75,7 @@ namespace DKUtil::Config::detail
 	// automatic data with collection enabled
 	template <
 		typename data_t,
-		DataType TYPE = DataTrait<data_t>::value()>
+		DataType TYPE = data_trait_v<data_t>>
 	class AData : public IData
 	{
 		using collection = std::vector<data_t>;

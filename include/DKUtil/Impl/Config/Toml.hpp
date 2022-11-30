@@ -142,12 +142,14 @@ namespace DKUtil::Config::detail
 		{
 			auto filePath = a_filePath.empty() ? _filepath.c_str() : a_filePath.data();
 			std::basic_ofstream<char> file{ filePath };
-			if (!file.is_open()) {
+			if (!file.is_open() || !file) {
 				ERROR("DKU_C: Parser#{}: Writing file failed! -> {}\nofstream cannot be opened", _id, filePath);
 			}
 
 			file << _toml;
 			file.close();
+
+			DEBUG("DKU_C: Parser#{}: Writing finished", _id);
 		}
 
 	private:

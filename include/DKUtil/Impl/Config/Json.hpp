@@ -19,7 +19,7 @@ namespace DKUtil::Config::detail
 			if (a_data) {
 				_json = json::parse(a_data);
 			} else {
-				std::basic_ifstream<char> file(_filepath);
+				std::basic_ifstream<char> file{ _filepath };
 				if (!file.is_open()) {
 					ERROR("DKU_C: Parser#{}: Loading failed! -> {}", _id, _filepath.c_str());
 				}
@@ -81,12 +81,14 @@ namespace DKUtil::Config::detail
 		{
 			auto* filePath = a_filePath.empty() ? _filepath.data() : a_filePath.data();
 			std::basic_ofstream<char> file{ filePath };
-			if (!file.is_open()) {
+			if (!file.is_open() || !file) {
 				ERROR("DKU_C: Parser#{}: Writing file failed! -> {}\nofstream cannot be opened", _id, filePath);
 			}
 
 			file << _json;
 			file.close();
+
+			DEBUG("DKU_C: Parser#{}: Writing finished", _id);
 		}
 
 	private:

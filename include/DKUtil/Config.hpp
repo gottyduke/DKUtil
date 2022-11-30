@@ -2,6 +2,9 @@
 
 
 /*
+ * 1.1.5
+ * Removed DataManager layer between raw data and proxy;
+ * 
  * 1.1.4
  * Adaptaion of file structural changes;
  * 
@@ -36,7 +39,7 @@
 
 #define DKU_C_VERSION_MAJOR 1
 #define DKU_C_VERSION_MINOR 1
-#define DKU_C_VERSION_REVISION 4
+#define DKU_C_VERSION_REVISION 5
 
 
 #pragma warning(push)
