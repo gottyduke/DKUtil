@@ -67,7 +67,11 @@
 #		if defined(F4SEAPI)
 #			define LOG_PATH "My Games\\Fallout4\\F4SE"sv
 #		elif defined(SKSEAPI)
+#			define IS_AE REL::Module::IsAE()
+#			define IS_SE REL::Module::IsSE()
+#			define IS_VR REL::Module::IsVR()
 #			define LOG_PATH "My Games\\Skyrim Special Edition\\SKSE"sv
+#			define LOG_PATH_VR "My Games\\Skyrim VR\\SKSE"sv
 #		else
 #			define LOG_PATH ""sv
 #			undef PLUGIN_MODE
@@ -113,8 +117,7 @@ namespace DKUtil::Logger
 #	ifdef PLUGIN_MODE
 		path = std::move(docs_directory());
 #	endif
-
-		path /= LOG_PATH;
+		path /= IS_VR ? LOG_PATH_VR : LOG_PATH;
 		path /= a_name;
 		path += ".log"sv;
 
@@ -141,11 +144,12 @@ namespace DKUtil::Logger
 #		define MODE "Fallout 4"
 #	elif defined(SKSEAPI)
 #		define MODE "Skyrim Special Edition"
+#		define MODE_VR "Skyrim VR"
 #	else
 #		define MODE "DKUtil"
 #	endif
 
-		INFO("Logger init - {} {}", MODE, a_version);
+		INFO("Logger init - {} {}", IS_VR ? MODE_VR : MODE, a_version);
 	}
 
 
