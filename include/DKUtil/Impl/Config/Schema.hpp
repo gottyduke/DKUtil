@@ -21,7 +21,7 @@ namespace DKUtil::Config::detail
 		{
 		}
 
-		const void* Data() noexcept override
+		const void* Data() noexcept
 		{
 		}
 
