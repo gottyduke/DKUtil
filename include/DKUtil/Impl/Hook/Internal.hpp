@@ -250,22 +250,20 @@ namespace DKUtil::Hook
 			a_flag.reset(HookFlag::kRestoreBeforeEpilog, HookFlag::kRestoreAfterEpilog);
 		}
 
-		const auto stackBufSize = sizeof(std::uint64_t) * a_funcInfo.ArgsCount;
-		if (stackBufSize) {
-			asmSub.Size = stackBufSize;
-			asmAdd.Size = stackBufSize;
+		// alloc stack space
+		asmSub.Size = ASM_STACK_ALLOC_SIZE;
+		asmAdd.Size = ASM_STACK_ALLOC_SIZE;
 
-			WriteData(handle->TramPtr, asmSub.data(), asmSub.size());
-			asmBranch.Disp -= static_cast<Disp32>(asmSub.size());
-		}
+		WriteData(handle->TramPtr, asmSub.data(), asmSub.size());
+		asmBranch.Disp -= static_cast<Disp32>(asmSub.size());
 
+		// write call
 		asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
 		asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
 		WriteData(handle->TramPtr, asmBranch.data(), asmBranch.size());
 
-		if (stackBufSize) {
-			WriteData(handle->TramPtr, asmAdd.data(), asmAdd.size());
-		}
+		// dealloc stack space
+		WriteData(handle->TramPtr, asmAdd.data(), asmAdd.size());
 
 		if (a_flag.any(HookFlag::kRestoreBeforeEpilog)) {
 			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);

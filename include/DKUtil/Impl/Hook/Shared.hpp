@@ -28,6 +28,8 @@
 #	define CAVE_BUF_SIZE 1 << 7
 #endif
 
+#define ASM_STACK_ALLOC_SIZE 0x20
+
 
 #define FUNC_INFO(FUNC)                                                                         \
 	DKUtil::Hook::FuncInfo                                                                      \

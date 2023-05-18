@@ -12,25 +12,26 @@ param (
 $ErrorActionPreference = "Stop"
 
 $Folder = $PSScriptRoot | Split-Path -Leaf
-$SourceExt = @('.c', '.cpp', '.cxx', '.h', '.hpp', '.hxx')
+$SourceExt = @('.c', '.cpp', '.cxx', '.h', '.hpp', '.hxx', '.inl', '.ixx')
 $ConfigExt = @('.ini', '.json', '.toml')
+$DocsExt = @('.md')
 $env:ScriptCulture = (Get-Culture).Name -eq 'zh-CN'
 
 
 function L {
-	param (
-		[Parameter(Mandatory)][string]$en,
-		[string]$zh = ''
-	)
+    param (
+        [Parameter(Mandatory)][string]$en,
+        [string]$zh = ''
+    )
 	
-	process {
-		if ($env:ScriptCulture -and $zh) {
-			return $zh
-		}
-		else {
-			return $en
-		}
-	}
+    process {
+        if ($env:ScriptCulture -and $zh) {
+            return $zh
+        }
+        else {
+            return $en
+        }
+    }
 }
 
 function Resolve-Files {
@@ -50,7 +51,7 @@ function Resolve-Files {
                 }
 
                 Get-ChildItem "$a_parent/$directory" -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
-                    ($_.Extension -in $SourceExt) -and 
+                    ($_.Extension -in ($SourceExt + $DocsExt)) -and 
                     ($_.Name -notmatch 'Plugin.h|Version.h')
                 } | Resolve-Path -Relative | ForEach-Object {
                     if (!$env:RebuildInvoke) {
@@ -61,7 +62,7 @@ function Resolve-Files {
             }               
             
             Get-ChildItem "$a_parent" -File -ErrorAction SilentlyContinue | Where-Object {
-                ($_.Extension -in $ConfigExt) -and 
+                ($_.Extension -in ($ConfigExt + $DocsExt)) -and 
                 ($_.Name -notmatch 'cmake|vcpkg')
             } | Resolve-Path -Relative | ForEach-Object {
                 if (!$env:RebuildInvoke) {
@@ -69,7 +70,8 @@ function Resolve-Files {
                 }
                 $_generated.Add("`n`t`"$($_.Substring(2) -replace '\\', '/')`"") | Out-Null
             }
-        } finally {
+        }
+        finally {
             Pop-Location
         }
 
@@ -85,8 +87,9 @@ Write-Host "`n`t<$Folder> [$Mode]"
 if ($Mode -eq 'COPY') {
     # process newly added files
     $BuildFolder = Get-ChildItem (Get-Item $Path).Parent.Parent.FullName "$Project.sln" -Depth 2 -File -Exclude ('*CMakeFiles*', '*CLib*')
-    $NewFiles = Get-ChildItem $BuildFolder.DirectoryName -File | Where-Object {$_.Extension -in $SourceExt}
-    if ($NewFiles) { # trigger ZERO_CHECK
+    $NewFiles = Get-ChildItem $BuildFolder.DirectoryName -File | Where-Object { $_.Extension -in $SourceExt }
+    if ($NewFiles) {
+        # trigger ZERO_CHECK
         $NewFiles | Move-Item -Destination "$PSScriptRoot/src" -Force -Confirm:$false -ErrorAction:SilentlyContinue | Out-Null
         [IO.File]::WriteAllText("$PSScriptRoot/CMakeLists.txt", [IO.File]::ReadAllText("$PSScriptRoot/CMakeLists.txt"))
     }
@@ -99,25 +102,25 @@ if ($Mode -eq 'COPY') {
     $OldVersion = [regex]::match($ProjectCMake, '(?s)(?:(?<=\sVERSION\s)(.*?)(?=\s+))').Groups[1].Value
 
 
-	Add-Type -AssemblyName Microsoft.VisualBasic
+    Add-Type -AssemblyName Microsoft.VisualBasic
     Add-Type -AssemblyName System.Windows.Forms
     Add-Type -AssemblyName System.Drawing
 
     [System.Windows.Forms.Application]::EnableVisualStyles()
     $MsgBox = New-Object System.Windows.Forms.Form -Property @{
-        TopLevel = $true
-        ClientSize = '350, 305'
-        Text = $Project
-        StartPosition = 'CenterScreen'
+        TopLevel        = $true
+        ClientSize      = '350, 305'
+        Text            = $Project
+        StartPosition   = 'CenterScreen'
         FormBorderStyle = 'FixedDialog'
-        MaximizeBox = $false
-        MinimizeBox = $false
-        Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Regular)
+        MaximizeBox     = $false
+        MinimizeBox     = $false
+        Font            = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Regular)
     }
     
     $Message = New-Object System.Windows.Forms.ListBox -Property @{
         ClientSize = '225, 150'
-        Location = New-Object System.Drawing.Point(20, 20)
+        Location   = New-Object System.Drawing.Point(20, 20)
     }
     
     function Log {
@@ -142,6 +145,10 @@ if ($Mode -eq 'COPY') {
         # binary
         Copy-Item "$Path/$Project.dll" "$Data/SKSE/Plugins/$Project.dll" -Force
         "- Binary files copied" | Log
+
+        # pdb
+        Copy-Item "$Path/$Project.pdb" "$Data/SKSE/Plugins/$Project.pdb" -Force
+        "- PDB files copied" | Log
 
         # configs
         Get-ChildItem $PSScriptRoot | Where-Object {
@@ -174,10 +181,10 @@ if ($Mode -eq 'COPY') {
 
     $BtnCopyMO2 = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'Copy to MO2'
-        Location = New-Object System.Drawing.Point(260, 19)
-        BackColor = 'Cyan'
-        Add_Click = {
+        Text       = 'Copy to MO2'
+        Location   = New-Object System.Drawing.Point(260, 19)
+        BackColor  = 'Cyan'
+        Add_Click  = {
             foreach ($runtime in @("$($env:MO2SkyrimAEPath)/mods", "$($env:MO2SkyrimSEPath)/mods", "$($env:MO2SkyrimVRPath)/mods")) {
                 if (Test-Path $runtime -PathType Container) {
                     Copy-Mod "$runtime/$Install"
@@ -189,9 +196,9 @@ if ($Mode -eq 'COPY') {
     
     $BtnCopyData = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'Copy to Data'
-        Location = New-Object System.Drawing.Point(260, 74)
-        Add_Click = {
+        Text       = 'Copy to Data'
+        Location   = New-Object System.Drawing.Point(260, 74)
+        Add_Click  = {
             foreach ($runtime in @("$($env:SkyrimAEPath)/data", "$($env:SkyrimSEPath)/data", "$($env:SkyrimVRPath)/data")) {
                 if (Test-Path $runtime -PathType Container) {
                     Copy-Mod "$runtime"
@@ -203,9 +210,9 @@ if ($Mode -eq 'COPY') {
     
     $BtnRemoveData = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'Remove in Data'
-        Location = New-Object System.Drawing.Point(260, 129)
-        Add_Click = {
+        Text       = 'Remove in Data'
+        Location   = New-Object System.Drawing.Point(260, 129)
+        Add_Click  = {
             foreach ($runtime in @("$($env:SkyrimAEPath)/data", "$($env:SkyrimSEPath)/data", "$($env:SkyrimVRPath)/data")) {
                 if (Test-Path "$runtime/SKSE/Plugins/$Project.dll" -PathType Leaf) {
                     Remove-Item "$runtime/SKSE/Plugins/$Project.dll" -Force -Confirm:$false -ErrorAction:SilentlyContinue | Out-Null
@@ -217,19 +224,19 @@ if ($Mode -eq 'COPY') {
     
     $BtnOpenFolder = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'Show in Explorer'
-        Location = New-Object System.Drawing.Point(260, 185)
-        BackColor = 'Yellow'
-        Add_Click = {
+        Text       = 'Show in Explorer'
+        Location   = New-Object System.Drawing.Point(260, 185)
+        BackColor  = 'Yellow'
+        Add_Click  = {
             Invoke-Item $Path
         }
     }
     
     $BtnLaunchSKSEAE = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'SKSE (AE)'
-        Location = New-Object System.Drawing.Point(20, 185)
-        Add_Click = {
+        Text       = 'SKSE (AE)'
+        Location   = New-Object System.Drawing.Point(20, 185)
+        Add_Click  = {
             Push-Location $env:SkyrimAEPath
             Start-Process ./SKSE64_loader.exe
             Pop-Location
@@ -243,9 +250,9 @@ if ($Mode -eq 'COPY') {
 
     $BtnLaunchSKSESE = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'SKSE (SE)'
-        Location = New-Object System.Drawing.Point(100, 185)
-        Add_Click = {
+        Text       = 'SKSE (SE)'
+        Location   = New-Object System.Drawing.Point(100, 185)
+        Add_Click  = {
             Push-Location $env:SkyrimSEPath
             Start-Process ./SKSE64_loader.exe
             Pop-Location
@@ -259,9 +266,9 @@ if ($Mode -eq 'COPY') {
  
     $BtnLaunchSKSEVR = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'SKSE (VR)'
-        Location = New-Object System.Drawing.Point(180, 185)
-        Add_Click = {
+        Text       = 'SKSE (VR)'
+        Location   = New-Object System.Drawing.Point(180, 185)
+        Add_Click  = {
             Push-Location $env:SkyrimVRPath
             Start-Process ./SKSE64_loader.exe
             Pop-Location
@@ -275,9 +282,9 @@ if ($Mode -eq 'COPY') {
     
     $BtnBuildPapyrus = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'Build Papyrus'
-        Location = New-Object System.Drawing.Point(20, 240)
-        Add_Click = {
+        Text       = 'Build Papyrus'
+        Location   = New-Object System.Drawing.Point(20, 240)
+        Add_Click  = {
             $BtnBuildPapyrus.Text = 'Compiling...'
             
             $Invocation = "`"$($env:SkyrimSEPath)/Papyrus Compiler/PapyrusCompiler.exe`" `"$PSScriptRoot/Scripts/Source`" -f=`"$env:SkyrimSEPath/Papyrus Compiler/TESV_Papyrus_Flags.flg`" -i=`"$env:SkyrimSEPath/Data/Scripts/Source;$PSScriptRoot/Scripts;$PSScriptRoot/Scripts/Source`" -o=`"$PSScriptRoot/Scripts`" -a -op -enablecache -t=`"4`""
@@ -289,9 +296,9 @@ if ($Mode -eq 'COPY') {
     
     $BtnChangeVersion = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'Version'
-        Location = New-Object System.Drawing.Point(100, 240)
-        Add_Click = {
+        Text       = 'Version'
+        Location   = New-Object System.Drawing.Point(100, 240)
+        Add_Click  = {
             $NewVersion = $null
             while ($OldVersion -and !$NewVersion) {
                 $NewVersion = [Microsoft.VisualBasic.Interaction]::InputBox("Input the new versioning for $Project", 'Versioning', $OldVersion)
@@ -311,9 +318,9 @@ if ($Mode -eq 'COPY') {
     
     $BtnPublish = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'Publish Mod'
-        Location = New-Object System.Drawing.Point(180, 240)
-        Add_Click = {
+        Text       = 'Publish Mod'
+        Location   = New-Object System.Drawing.Point(180, 240)
+        Add_Click  = {
             $BtnPublish.Text = 'Zipping...'
 
             Copy-Mod "$PSScriptRoot/Tmp/Data"
@@ -329,9 +336,9 @@ if ($Mode -eq 'COPY') {
     
     $BtnExit = New-Object System.Windows.Forms.Button -Property @{
         ClientSize = '70, 50'
-        Text = 'Exit'
-        Location = New-Object System.Drawing.Point(260, 240)
-        Add_Click = {
+        Text       = 'Exit'
+        Location   = New-Object System.Drawing.Point(260, 240)
+        Add_Click  = {
             $MsgBox.Close()
         }
     }
@@ -371,7 +378,8 @@ if ($Mode -eq 'SOURCEGEN') {
 
 
 # @@DISTRIBUTE
-if ($Mode -eq 'DISTRIBUTE') { # update script to every project
+if ($Mode -eq 'DISTRIBUTE') {
+    # update script to every project
     Get-ChildItem "$PSScriptRoot/*/*" -Directory | Where-Object {
         $_.Name -notin @('vcpkg', 'Build', '.git', '.vs') -and
         (Test-Path "$_/CMakeLists.txt" -PathType Leaf)
