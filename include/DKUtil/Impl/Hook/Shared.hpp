@@ -351,7 +351,7 @@ namespace DKUtil
 		}
 
 		template <typename T, typename P>
-		constexpr T& AsPun(P* a_pointer) noexcept
+		inline constexpr T& AsPun(P* a_pointer) noexcept
 		{
 			if constexpr (std::is_const_v<P> && std::is_volatile_v<P>) {
 				return *std::bit_cast<std::add_cv_t<T>*>(a_pointer);
@@ -365,9 +365,18 @@ namespace DKUtil
 		}
 
 		template <typename T>
-		constexpr T& AsPun(const std::uintptr_t a_address) noexcept
+		inline constexpr T& AsPun(const std::uintptr_t a_address) noexcept
 		{
 			return AsPun<T>(AsPointer(a_address));
+		}
+
+		inline Disp32 ReDisp(const std::uintptr_t a_src, const Disp32 a_srcOffset, const std::uintptr_t a_dst, const Disp32 a_dstOffset)
+		{
+			Disp32* disp = std::bit_cast<Disp32*>(a_src + a_srcOffset);
+			Disp32* newDisp = std::bit_cast<Disp32*>(a_dst + a_dstOffset);
+			*newDisp = a_src + *disp - a_dst;
+
+			return *newDisp;
 		}
 	}  // namespace Hook
 }  // namespace DKUtil
