@@ -21,10 +21,6 @@ namespace DKUtil::Config::detail
 		{
 		}
 
-		const void* Data() noexcept override
-		{
-		}
-
 	private:
 		std::vector<std::string> _tokens;
 	};

@@ -139,9 +139,10 @@ namespace DKUtil::Hook::Assembly
 
 		OpCode Push = 0x50;  // id
 	};
-	static_assert(sizeof(PushR64<true>) == 0x1);
 	static_assert(sizeof(PushR64<false>) == 0x1);
+
 	using PopR64 = PushR64<true>;
+	static_assert(sizeof(PopR64) == 0x1);
 
 
 	template <bool POP = false>
@@ -166,8 +167,12 @@ namespace DKUtil::Hook::Assembly
 		REX B = 0x41;
 		OpCode Push = 0x50;  // id
 	};
-	static_assert(sizeof(PushR64W<true>) == 0x2);
 	static_assert(sizeof(PushR64W<false>) == 0x2);
+
 	using PopR64W = PushR64W<true>;
+	static_assert(sizeof(PopR64W) == 0x2);
+
+
+
 #pragma pack(pop)
-}  // namespace DKUtil::Hook
+}  // namespace DKUtil::Hook::Assembly

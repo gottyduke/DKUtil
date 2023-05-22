@@ -2,7 +2,7 @@
 
 
 #include "Assembly.hpp"
-#include "Shared.hpp"
+#include "JIT.hpp"
 #include "Trampoline.hpp"
 
 
@@ -57,15 +57,15 @@ namespace DKUtil::Hook
 
 		void Enable() noexcept override
 		{
-			WriteData(TramEntry, PatchBuf, PatchSize);
-			DEBUG("DKU_H: Enabled ASM patch"sv);
+			WriteData(TramEntry, PatchBuf, PatchSize, false);
+			DEBUG("DKU_H: Enabled ASM patch");
 		}
 
 
 		void Disable() noexcept override
 		{
-			WriteData(TramEntry, OldBytes, PatchSize);
-			DEBUG("DKU_H: Disabled ASM patch"sv);
+			WriteData(TramEntry, OldBytes, PatchSize, false);
+			DEBUG("DKU_H: Disabled ASM patch");
 		}
 
 
@@ -84,10 +84,10 @@ namespace DKUtil::Hook
 	 * @param a_forward : Skip the rest of NOPs until next valid opcode
 	 * @returns ASMPatchHandle
 	 */
-	inline auto AddASMPatch(
+	[[nodiscard]] inline auto AddASMPatch(
 		const std::uintptr_t a_address,
 		const offset_pair a_offset,
-		const unpacked_data a_patch,
+		const unpacked_data a_patch = std::make_pair(nullptr, 0),
 		const bool a_forward = true) noexcept
 	{
 		if (!a_address || !a_patch.first || !a_patch.second) {
@@ -97,8 +97,8 @@ namespace DKUtil::Hook
 		auto handle = std::make_unique<ASMPatchHandle>(a_address, a_offset);
 
 		if (a_patch.second > (a_offset.second - a_offset.first)) {
-			DEBUG("DKU_H: ASM patch size exceeds the patch capacity, enabled trampoline"sv);
-			if ((a_offset.second - a_offset.first) < 0x5) {
+			DEBUG("DKU_H: ASM patch size exceeds the patch capacity, enabled trampoline");
+			if ((a_offset.second - a_offset.first) < sizeof(JmpRel)) {
 				ERROR("DKU_H: ASM patch size exceeds the patch capacity & cannot fulfill the minimal trampoline requirement");
 			}
 
@@ -112,6 +112,7 @@ namespace DKUtil::Hook
 			std::memcpy(handle->PatchBuf, asmDetour.data(), asmDetour.size());
 
 			WriteData(handle->TramPtr, a_patch.first, a_patch.second);
+			handle->TramPtr += a_patch.second;
 
 			if (a_forward) {
 				asmReturn.Disp = static_cast<Disp32>(handle->TramEntry + handle->PatchSize - handle->TramPtr - asmReturn.size());
@@ -129,7 +130,7 @@ namespace DKUtil::Hook
 				asmForward.Disp = static_cast<Disp32>(handle->TramEntry + handle->PatchSize - handle->TramEntry - a_patch.second - asmForward.size());
 				std::memcpy(handle->PatchBuf + a_patch.second, asmForward.data(), asmForward.size());
 
-				DEBUG("DKU_H: ASM patch forwarded"sv);
+				DEBUG("DKU_H: ASM patch forwarded");
 			}
 		}
 
@@ -150,22 +151,25 @@ namespace DKUtil::Hook
 			std::memcpy(OldBytes, AsPointer(CaveEntry), CaveSize);
 			std::fill_n(CaveBuf, CaveSize, NOP);
 
-			DEBUG("DKU_H: Cave capacity: {} bytes\nCave entry @ {:X} | Tram entry @ {:X}", CaveSize, CaveEntry, TramEntry);
+			DEBUG("DKU_H: Cave capacity: {} bytes\n"
+				"cave entry : 0x{:X}\n"
+				"tram entry : 0x{:X}", CaveSize, CaveEntry, TramEntry);
 		}
 
 
 		void Enable() noexcept override
 		{
-			WriteData(CavePtr, CaveBuf, CaveSize, FORWARD_PTR, NO_ALLOC);
-			DEBUG("DKU_H: Enabled cave hook"sv);
+			WriteData(CavePtr, CaveBuf, CaveSize, false);
+			CavePtr += CaveSize;
+			DEBUG("DKU_H: Enabled cave hook");
 		}
 
 
 		void Disable() noexcept override
 		{
+			WriteData(CavePtr - CaveSize, OldBytes, CaveSize, false);
 			CavePtr -= CaveSize;
-			WriteData(CavePtr, OldBytes, CaveSize);
-			DEBUG("DKU_H: Disabled cave hook"sv);
+			DEBUG("DKU_H: Disabled cave hook");
 		}
 
 
@@ -190,12 +194,12 @@ namespace DKUtil::Hook
 	 * @param a_flag : Specifies operation on cave hook
 	 * @returns CaveHookHandle
 	 */
-	inline auto AddCaveHook(
+	[[nodiscard]] inline auto AddCaveHook(
 		const std::uintptr_t a_address,
 		const offset_pair a_offset,
 		const FuncInfo a_funcInfo,
-		const unpacked_data a_prolog,
-		const unpacked_data a_epilog,
+		const unpacked_data a_prolog = std::make_pair(nullptr, 0),
+		const unpacked_data a_epilog = std::make_pair(nullptr, 0),
 		model::enumeration<HookFlag> a_flag = HookFlag::kSkipNOP) noexcept
 	{
 		if (a_offset.second - a_offset.first == 5) {
@@ -220,11 +224,14 @@ namespace DKUtil::Hook
 		// [epilog]
 		// [stolen] <- kRestoreAfterEpilog
 		// [jmp rel32]
-
 		auto tramPtr = TRAM_ALLOC(0);
 
-		WriteImm(tramPtr, a_funcInfo.Address);
-		DEBUG("DKU_H: Detour {}.{:X} -> {} @ {}.{:X}", GetProcessName(), a_address + a_offset.first, a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
+		WriteImm(tramPtr, a_funcInfo.address());
+		tramPtr += sizeof(a_funcInfo.address());
+		DEBUG("DKU_H: Detouring...\n"
+			"from : {}.{:X}\n"
+			"to   : {} @ {}.{:X}",
+			GetProcessName(), a_address + a_offset.first, a_funcInfo.name(), PROJECT_NAME, a_funcInfo.address());
 
 		auto handle = std::make_unique<CaveHookHandle>(a_address, tramPtr, a_offset);
 
@@ -233,6 +240,7 @@ namespace DKUtil::Hook
 
 		if (a_flag.any(HookFlag::kRestoreBeforeProlog)) {
 			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
+			handle->TramPtr += handle->CaveSize;
 			asmBranch.Disp -= static_cast<Disp32>(handle->CaveSize);
 
 			a_flag.reset(HookFlag::kRestoreBeforeProlog);
@@ -240,11 +248,13 @@ namespace DKUtil::Hook
 
 		if (a_prolog.first && a_prolog.second) {
 			WriteData(handle->TramPtr, a_prolog.first, a_prolog.second);
+			handle->TramPtr += a_prolog.second;
 			asmBranch.Disp -= static_cast<Disp32>(a_prolog.second);
 		}
 
 		if (a_flag.any(HookFlag::kRestoreAfterProlog)) {
 			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
+			handle->TramPtr += handle->CaveSize;
 			asmBranch.Disp -= static_cast<Disp32>(handle->CaveSize);
 
 			a_flag.reset(HookFlag::kRestoreBeforeEpilog, HookFlag::kRestoreAfterEpilog);
@@ -255,28 +265,34 @@ namespace DKUtil::Hook
 		asmAdd.Size = ASM_STACK_ALLOC_SIZE;
 
 		WriteData(handle->TramPtr, asmSub.data(), asmSub.size());
+		handle->TramPtr += asmSub.size();
 		asmBranch.Disp -= static_cast<Disp32>(asmSub.size());
 
 		// write call
 		asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
 		asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
 		WriteData(handle->TramPtr, asmBranch.data(), asmBranch.size());
+		handle->TramPtr += asmBranch.size();
 
 		// dealloc stack space
 		WriteData(handle->TramPtr, asmAdd.data(), asmAdd.size());
+		handle->TramPtr += asmAdd.size();
 
 		if (a_flag.any(HookFlag::kRestoreBeforeEpilog)) {
 			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
+			handle->TramPtr += handle->CaveSize;
 
 			a_flag.reset(HookFlag::kRestoreAfterEpilog);
 		}
 
 		if (a_epilog.first && a_epilog.second) {
 			WriteData(handle->TramPtr, a_epilog.first, a_epilog.second);
+			handle->TramPtr += a_epilog.second;
 		}
 
 		if (a_flag.any(HookFlag::kRestoreAfterEpilog)) {
 			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
+			handle->TramPtr += handle->CaveSize;
 		}
 
 		if (a_flag.any(HookFlag::kSkipNOP)) {
@@ -286,6 +302,7 @@ namespace DKUtil::Hook
 		}
 
 		WriteData(handle->TramPtr, asmReturn.data(), asmReturn.size());
+		handle->TramPtr += asmReturn.size();
 
 		return std::move(handle);
 	}
@@ -307,15 +324,15 @@ namespace DKUtil::Hook
 
 		void Enable() noexcept override
 		{
-			WriteImm(Address, TramEntry);
-			DEBUG("DKU_H: Enabled VMT hook"sv);
+			WriteImm(Address, TramEntry, false);
+			DEBUG("DKU_H: Enabled VMT hook");
 		}
 
 
 		void Disable() noexcept override
 		{
-			WriteImm(Address, OldAddress);
-			DEBUG("DKU_H: Disabled VMT hook"sv);
+			WriteImm(Address, OldAddress, false);
+			DEBUG("DKU_H: Disabled VMT hook");
 		}
 
 
@@ -330,36 +347,39 @@ namespace DKUtil::Hook
 	 * @param a_patch : Prolog patch before detouring to target function
 	 * @return VMTHookHandle
 	 */
-	inline auto AddVMTHook(
+	[[nodiscard]] inline auto AddVMTHook(
 		const void* a_vtbl,
 		const std::uint16_t a_index,
 		const FuncInfo a_funcInfo,
-		const unpacked_data a_patch) noexcept
+		const unpacked_data a_patch = std::make_pair(nullptr, 0)) noexcept
 	{
-		if (!a_funcInfo.Address) {
+		if (!a_funcInfo.address()) {
 			ERROR("DKU_H: VMT hook must have a valid function pointer");
 		}
-		DEBUG("DKU_H: Detour -> {} @ {}.{:X}", a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
+		DEBUG("DKU_H: Detour -> {} @ {}.{:X}", a_funcInfo.name().data(), PROJECT_NAME, a_funcInfo.address());
 
 		if (a_patch.first && a_patch.second) {
 			auto tramPtr = TRAM_ALLOC(0);
 
 			CallRip asmBranch;
 
-			WriteImm(tramPtr, a_funcInfo.Address);
+			WriteImm(tramPtr, a_funcInfo.address());
+			tramPtr += sizeof(a_funcInfo.address());
 			asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
 
 			auto handle = std::make_unique<VMTHookHandle>(*std::bit_cast<std::uintptr_t*>(a_vtbl), tramPtr, a_index);
 
 			WriteData(tramPtr, a_patch.first, a_patch.second);
+			tramPtr += a_patch.second;
 			asmBranch.Disp -= static_cast<Disp32>(a_patch.second);
 
 			asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
 			WriteData(tramPtr, asmBranch.data(), asmBranch.size());
+			tramPtr += asmBranch.size();
 
 			return std::move(handle);
 		} else {
-			auto handle = std::make_unique<VMTHookHandle>(*std::bit_cast<std::uintptr_t*>(a_vtbl), a_funcInfo.Address, a_index);
+			auto handle = std::make_unique<VMTHookHandle>(*std::bit_cast<std::uintptr_t*>(a_vtbl), a_funcInfo.address(), a_index);
 			return std::move(handle);
 		}
 	}
@@ -371,26 +391,28 @@ namespace DKUtil::Hook
 		IATHookHandle(
 			const std::uintptr_t a_address,
 			const std::uintptr_t a_tramEntry,
-			const char* a_methodName,
-			const char* a_funcName) noexcept :
+			std::string_view a_importName,
+			std::string_view a_funcName) noexcept :
 			HookHandle(a_address, a_tramEntry),
-			OldAddress(*std::bit_cast<std::uintptr_t*>(Address))
+			OldAddress(*dku::Hook::unrestricted_cast<std::uintptr_t*>(Address))
 		{
-			DEBUG("DKU_H: IAT @ {:X}\nOld entry {} @ {:X} | New entry {} @ {}.{:X}", a_address, a_methodName, OldAddress, a_funcName, PROJECT_NAME, a_tramEntry);
+			DEBUG("DKU_H: IAT @ {:X}\n"
+				"old : {} @ {:X}\n"
+				"new : {} @ {}.{:X}", a_address, a_importName, OldAddress, a_funcName, PROJECT_NAME, a_tramEntry);
 		}
 
 
 		void Enable() noexcept override
 		{
-			WriteImm(Address, TramEntry);
-			DEBUG("DKU_H: Enabled IAT hook"sv);
+			WriteImm(Address, TramEntry, false);
+			DEBUG("DKU_H: Enabled IAT hook");
 		}
 
 
 		void Disable() noexcept override
 		{
-			WriteImm(Address, OldAddress);
-			DEBUG("DKU_H: Disabled IAT hook"sv);
+			WriteImm(Address, OldAddress, false);
+			DEBUG("DKU_H: Disabled IAT hook");
 		}
 
 
@@ -405,74 +427,39 @@ namespace DKUtil::Hook
 	 * @param a_patch : Prolog patch before detouring to target function
 	 * @return IATHookHandle
 	 */
-	inline auto AddIATHook(
-		const char* a_moduleName,
-		const char* a_methodName,
+	[[nodiscard]] inline auto AddIATHook(
+		std::string_view a_moduleName,
+		std::string_view a_libraryName,
+		std::string_view a_importName,
 		const FuncInfo a_funcInfo,
-		const unpacked_data a_patch) noexcept
+		const unpacked_data a_patch = std::make_pair(nullptr, 0)) noexcept
 	{
-		if (!a_moduleName || !a_methodName) {
-			ERROR("DKU_H: IAT hook must have valid module name & method name\nConsider using GetProcessName([Opt]HMODULE)");
+		const auto iat = AsAddress(GetImportAddress(a_moduleName, a_libraryName, a_importName));
+
+		if (a_patch.first && a_patch.second) {
+			auto tramPtr = TRAM_ALLOC(0);
+
+			CallRip asmBranch;
+
+			WriteImm(tramPtr, a_funcInfo.address());
+			tramPtr += sizeof(a_funcInfo.address());
+			asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
+
+			auto handle = std::make_unique<IATHookHandle>(iat, tramPtr, a_importName, a_funcInfo.name().data());
+
+			WriteData(tramPtr, a_patch.first, a_patch.second);
+			tramPtr += a_patch.second;
+			asmBranch.Disp -= static_cast<Disp32>(a_patch.second);
+
+			asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
+			WriteData(tramPtr, asmBranch.data(), asmBranch.size());
+			tramPtr += asmBranch.size();
+
+			return std::move(handle);
+		} else {
+			auto handle = std::make_unique<IATHookHandle>(iat, a_funcInfo.address(), a_importName, a_funcInfo.name().data());
+			return std::move(handle);
 		}
-
-		if (!a_funcInfo.Address) {
-			ERROR("DKU_H: IAT hook must have a valid function pointer");
-		}
-		DEBUG("DKU_H: Detour {} @ {} -> {} @ {}.{:X}", a_methodName, a_moduleName, a_funcInfo.Name.data(), PROJECT_NAME, a_funcInfo.Address);
-
-		auto base = AsAddress(GetModuleHandleA(a_moduleName));
-		auto* dosHeader = std::bit_cast<const IMAGE_DOS_HEADER*>(base);
-		auto* ntHeader = std::bit_cast<const IMAGE_NT_HEADERS64*>(dosHeader + dosHeader->e_lfanew);
-		auto* importDesc = std::bit_cast<const IMAGE_IMPORT_DESCRIPTOR*>(dosHeader + ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
-
-		for (auto index = 0; importDesc[index].Characteristics != 0; ++index) {
-			const char* moduleName = std::bit_cast<const char*>(dosHeader + importDesc[index].Name);
-			if (!string::iequals(a_moduleName, moduleName)) {
-				continue;
-			}
-
-			if (!importDesc[index].FirstThunk || !importDesc[index].OriginalFirstThunk) {
-				ERROR("DKU_H: IAT read invalid thunk pointer");
-			}
-
-			auto* thunk = std::bit_cast<const IMAGE_THUNK_DATA*>(dosHeader + importDesc[index].FirstThunk);
-			auto* oldThunk = std::bit_cast<const IMAGE_THUNK_DATA*>(dosHeader + importDesc[index].OriginalFirstThunk);
-
-			for (void(0); thunk->u1.Function; ++oldThunk, ++thunk) {
-				if (oldThunk->u1.Ordinal & IMAGE_ORDINAL_FLAG) {
-					continue;
-				}
-
-				auto* tbl = std::bit_cast<IMAGE_IMPORT_BY_NAME*>(dosHeader + oldThunk->u1.AddressOfData);
-
-				if (!string::iequals(a_methodName, std::bit_cast<const char*>(std::addressof(tbl->Name[0])))) {
-					continue;
-				}
-
-				if (a_patch.first && a_patch.second) {
-					auto tramPtr = TRAM_ALLOC(0);
-
-					CallRip asmBranch;
-
-					WriteImm(tramPtr, a_funcInfo.Address);
-					asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
-
-					auto handle = std::make_unique<IATHookHandle>(*std::bit_cast<std::uintptr_t*>(thunk->u1.Function), tramPtr, a_methodName, a_funcInfo.Name.data());
-
-					WriteData(tramPtr, a_patch.first, a_patch.second);
-					asmBranch.Disp -= static_cast<Disp32>(a_patch.second);
-
-					asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
-					WriteData(tramPtr, asmBranch.data(), asmBranch.size());
-
-					return std::move(handle);
-				} else {
-					auto handle = std::make_unique<IATHookHandle>(*std::bit_cast<std::uintptr_t*>(thunk->u1.Function), a_funcInfo.Address, a_methodName, a_funcInfo.Name.data());
-					return std::move(handle);
-				}
-			}
-		}
-
-		ERROR("DKU_H: IAT reached the end of table\n\nMethod {} not found", a_methodName);
+		ERROR("DKU_H: IAT reached the end of table\n\nMethod {} not found", a_importName);
 	}
 }  // namespace DKUtil::Hook

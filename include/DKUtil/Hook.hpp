@@ -2,6 +2,9 @@
 
 
 /*
+ * 2.5.3
+ * Fixed stack alignment, force 0x20 allocation;
+ * 
  * 2.5.2
  * Adaptation of file structural changes;
  * 
@@ -116,6 +119,7 @@ namespace DKUtil::Alias
 	using IATHandle = DKUtil::Hook::IATHookHandle;
 
 	using Reg = DKUtil::Hook::Assembly::Register;
+
 	using HookFlag = DKUtil::Hook::HookFlag;
 }  // namespace DKUtil::Alias
 
