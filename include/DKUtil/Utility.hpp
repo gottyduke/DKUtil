@@ -591,7 +591,7 @@ namespace DKUtil
 			using enum_type = Enum;
 			using underlying_type = Underlying;
 
-			static_assert(std::is_scoped_enum_v<enum_type>, "enum_type must be a scoped enum");
+			static_assert(std::is_enum_v<enum_type>, "enum_type must be a scoped enum");
 			static_assert(std::is_integral_v<underlying_type>, "underlying_type must be an integral");
 
 			struct Reflection
