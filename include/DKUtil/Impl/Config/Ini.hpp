@@ -41,10 +41,9 @@ namespace DKUtil::Config::detail
 						switch (data->get_type()) {
 						case DataType::kBoolean:
 							{
-								dku::string::tolower(raw);
-								if (raw == "0" || raw == "false") {
+								if (raw == "0" || dku::string::iequals(raw, "false")) {
 									data->As<bool>()->set_data(false);
-								} else if (raw == "1" || raw == "true") {
+								} else if (raw == "1" || dku::string::iequals(raw, "true")) {
 									data->As<bool>()->set_data(true);
 								} else {
 									err_mismatch("Invalid bool input", key.pItem, "Boolean", value);
@@ -56,7 +55,7 @@ namespace DKUtil::Config::detail
 							{
 								auto sv = dku::string::split(raw, ",", " ");
 								try {
-									if (sv.empty()) {
+									if (sv.size() <= 1) {
 										data->As<double>()->set_data(std::stod(value));
 									} else {
 										auto tv = sv | std::views::transform([](std::string str) { return std::stod(str); });
@@ -72,7 +71,7 @@ namespace DKUtil::Config::detail
 							{
 								auto sv = dku::string::split(raw, ",", " ");
 								try {
-									if (sv.empty()) {
+									if (sv.size() <= 1) {
 										data->As<std::int64_t>()->set_data(std::stoll(value));
 									} else {
 										auto tv = sv | std::views::transform([](std::string& str) { return std::stoll(str); });
@@ -92,7 +91,7 @@ namespace DKUtil::Config::detail
 
 								auto sv = dku::string::split(raw, ",");
 								try {
-									if (sv.empty()) {
+									if (sv.size() <= 1) {
 										dku::string::trim(old);
 										dku::string::replace_all(old, "\"");
 										data->As<std::basic_string<char>>()->set_data(old);

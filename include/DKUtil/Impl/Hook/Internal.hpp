@@ -111,7 +111,7 @@ namespace DKUtil::Hook
 			asmDetour.Disp = static_cast<Imm32>(handle->TramPtr - handle->TramEntry - asmDetour.size());
 			std::memcpy(handle->PatchBuf, asmDetour.data(), asmDetour.size());
 
-			WriteData(handle->TramPtr, a_patch.first, a_patch.second);
+			WriteData(handle->TramPtr, a_patch.first, a_patch.second, true);
 			handle->TramPtr += a_patch.second;
 
 			if (a_forward) {
@@ -120,7 +120,7 @@ namespace DKUtil::Hook
 				asmReturn.Disp = static_cast<Disp32>(handle->TramEntry + a_patch.second - handle->TramPtr - asmReturn.size());
 			}
 
-			WriteData(handle->TramPtr, asmReturn.data(), asmReturn.size());
+			WriteData(handle->TramPtr, asmReturn.data(), asmReturn.size(), true);
 		} else {
 			std::memcpy(handle->PatchBuf, a_patch.first, a_patch.second);
 
@@ -226,7 +226,7 @@ namespace DKUtil::Hook
 		// [jmp rel32]
 		auto tramPtr = TRAM_ALLOC(0);
 
-		WriteImm(tramPtr, a_funcInfo.address());
+		WriteImm(tramPtr, a_funcInfo.address(), true);
 		tramPtr += sizeof(a_funcInfo.address());
 		DEBUG("DKU_H: Detouring...\n"
 			"from : {}.{:X}\n"
@@ -239,7 +239,7 @@ namespace DKUtil::Hook
 		std::memcpy(handle->CaveBuf, asmDetour.data(), asmDetour.size());
 
 		if (a_flag.any(HookFlag::kRestoreBeforeProlog)) {
-			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
+			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize, true);
 			handle->TramPtr += handle->CaveSize;
 			asmBranch.Disp -= static_cast<Disp32>(handle->CaveSize);
 
@@ -247,13 +247,13 @@ namespace DKUtil::Hook
 		}
 
 		if (a_prolog.first && a_prolog.second) {
-			WriteData(handle->TramPtr, a_prolog.first, a_prolog.second);
+			WriteData(handle->TramPtr, a_prolog.first, a_prolog.second, true);
 			handle->TramPtr += a_prolog.second;
 			asmBranch.Disp -= static_cast<Disp32>(a_prolog.second);
 		}
 
 		if (a_flag.any(HookFlag::kRestoreAfterProlog)) {
-			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
+			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize, true);
 			handle->TramPtr += handle->CaveSize;
 			asmBranch.Disp -= static_cast<Disp32>(handle->CaveSize);
 
@@ -264,34 +264,34 @@ namespace DKUtil::Hook
 		asmSub.Size = ASM_STACK_ALLOC_SIZE;
 		asmAdd.Size = ASM_STACK_ALLOC_SIZE;
 
-		WriteData(handle->TramPtr, asmSub.data(), asmSub.size());
+		WriteData(handle->TramPtr, asmSub.data(), asmSub.size(), true);
 		handle->TramPtr += asmSub.size();
 		asmBranch.Disp -= static_cast<Disp32>(asmSub.size());
 
 		// write call
 		asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
 		asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
-		WriteData(handle->TramPtr, asmBranch.data(), asmBranch.size());
+		WriteData(handle->TramPtr, asmBranch.data(), asmBranch.size(), true);
 		handle->TramPtr += asmBranch.size();
 
 		// dealloc stack space
-		WriteData(handle->TramPtr, asmAdd.data(), asmAdd.size());
+		WriteData(handle->TramPtr, asmAdd.data(), asmAdd.size(), true);
 		handle->TramPtr += asmAdd.size();
 
 		if (a_flag.any(HookFlag::kRestoreBeforeEpilog)) {
-			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
+			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize, true);
 			handle->TramPtr += handle->CaveSize;
 
 			a_flag.reset(HookFlag::kRestoreAfterEpilog);
 		}
 
 		if (a_epilog.first && a_epilog.second) {
-			WriteData(handle->TramPtr, a_epilog.first, a_epilog.second);
+			WriteData(handle->TramPtr, a_epilog.first, a_epilog.second, true);
 			handle->TramPtr += a_epilog.second;
 		}
 
 		if (a_flag.any(HookFlag::kRestoreAfterEpilog)) {
-			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize);
+			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize, true);
 			handle->TramPtr += handle->CaveSize;
 		}
 
@@ -301,7 +301,7 @@ namespace DKUtil::Hook
 			asmReturn.Disp = static_cast<Disp32>(handle->CavePtr + asmDetour.size() - handle->TramPtr - asmReturn.size());
 		}
 
-		WriteData(handle->TramPtr, asmReturn.data(), asmReturn.size());
+		WriteData(handle->TramPtr, asmReturn.data(), asmReturn.size(), true);
 		handle->TramPtr += asmReturn.size();
 
 		return std::move(handle);
@@ -363,18 +363,18 @@ namespace DKUtil::Hook
 
 			CallRip asmBranch;
 
-			WriteImm(tramPtr, a_funcInfo.address());
+			WriteImm(tramPtr, a_funcInfo.address(), true);
 			tramPtr += sizeof(a_funcInfo.address());
 			asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
 
 			auto handle = std::make_unique<VMTHookHandle>(*std::bit_cast<std::uintptr_t*>(a_vtbl), tramPtr, a_index);
 
-			WriteData(tramPtr, a_patch.first, a_patch.second);
+			WriteData(tramPtr, a_patch.first, a_patch.second, true);
 			tramPtr += a_patch.second;
 			asmBranch.Disp -= static_cast<Disp32>(a_patch.second);
 
 			asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
-			WriteData(tramPtr, asmBranch.data(), asmBranch.size());
+			WriteData(tramPtr, asmBranch.data(), asmBranch.size(), true);
 			tramPtr += asmBranch.size();
 
 			return std::move(handle);
@@ -441,18 +441,18 @@ namespace DKUtil::Hook
 
 			CallRip asmBranch;
 
-			WriteImm(tramPtr, a_funcInfo.address());
+			WriteImm(tramPtr, a_funcInfo.address(), true);
 			tramPtr += sizeof(a_funcInfo.address());
 			asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
 
 			auto handle = std::make_unique<IATHookHandle>(iat, tramPtr, a_importName, a_funcInfo.name().data());
 
-			WriteData(tramPtr, a_patch.first, a_patch.second);
+			WriteData(tramPtr, a_patch.first, a_patch.second, true);
 			tramPtr += a_patch.second;
 			asmBranch.Disp -= static_cast<Disp32>(a_patch.second);
 
 			asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
-			WriteData(tramPtr, asmBranch.data(), asmBranch.size());
+			WriteData(tramPtr, asmBranch.data(), asmBranch.size(), true);
 			tramPtr += asmBranch.size();
 
 			return std::move(handle);

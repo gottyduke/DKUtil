@@ -250,7 +250,7 @@ namespace DKUtil
 		}
 
 		
-		inline void WriteData(const dku_h_addr_t auto& a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = true) noexcept
+		inline void WriteData(const dku_h_addr_t auto& a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = false) noexcept
 		{
 			if (a_requestAlloc) {
 				void(TRAM_ALLOC(a_size));
@@ -268,25 +268,25 @@ namespace DKUtil
 		}
 
 		// imm
-		inline void WriteImm(const dku_h_addr_t auto& a_dst, const dku_h_pod_t auto& a_data, bool a_requestAlloc = true) noexcept
+		inline void WriteImm(const dku_h_addr_t auto& a_dst, const dku_h_pod_t auto& a_data, bool a_requestAlloc = false) noexcept
 		{
 			return WriteData(a_dst, std::addressof(a_data), sizeof(a_data), a_requestAlloc);
 		}
 
 		// pair patch
-		inline void WritePatch(const dku_h_addr_t auto& a_dst, const unpacked_data a_patch, bool a_requestAlloc = true) noexcept
+		inline void WritePatch(const dku_h_addr_t auto& a_dst, const unpacked_data a_patch, bool a_requestAlloc = false) noexcept
 		{
 			return WriteData(a_dst, a_patch.first, a_patch.second, a_requestAlloc);
 		}
 
 		// xbyak patch
-		inline void WritePatch(const dku_h_addr_t auto& a_dst, const Xbyak::CodeGenerator* a_patch, bool a_requestAlloc = true) noexcept
+		inline void WritePatch(const dku_h_addr_t auto& a_dst, const Xbyak::CodeGenerator* a_patch, bool a_requestAlloc = false) noexcept
 		{
 			return WriteData(a_dst, a_patch->getCode(), a_patch->getSize(), a_requestAlloc);
 		}
 
 		// struct patch
-		inline void WritePatch(const dku_h_addr_t auto& a_dst, const Hook::Patch* a_patch, bool a_requestAlloc = true) noexcept
+		inline void WritePatch(const dku_h_addr_t auto& a_dst, const Hook::Patch* a_patch, bool a_requestAlloc = false) noexcept
 		{
 			return WriteData(a_dst, a_patch->Data, a_patch->Size, a_requestAlloc);
 		}
