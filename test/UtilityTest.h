@@ -13,7 +13,7 @@ namespace Test::Utility
 {
 	namespace Enum
 	{
-		enum class ContiguousFlag ENUM_TYPE
+		enum ContiguousFlag ENUM_TYPE
 		{
 			NONE = 0u,
 
@@ -147,7 +147,7 @@ namespace Test::Utility
 		dku::enumeration<SparseValue UNDERLYING> sValues{ 0, 2, 4, 5, 9, 15 };
 		dku::enumeration<ContiguousFlag UNDERLYING> cFlags{ 0, 2, 4, 5, 9, 15 };
 		dku::enumeration<SparseFlag UNDERLYING> sFlags{ SparseFlag::NONE, SparseFlag::RCX, SparseFlag::RBX, SparseFlag::RSI, SparseFlag::R9, SparseFlag::R14 };
-		
+
 		// static reflections
 		// 1) check for value-type enum reflection
 		// 2) check for flag-type enum reflection

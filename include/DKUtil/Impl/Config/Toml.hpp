@@ -16,7 +16,7 @@ namespace DKUtil::Config::detail
 
 		void Parse(const char* a_data) noexcept override
 		{
-			auto result = a_data ? toml::parse(a_data) : toml::parse_file(_filepath);
+			auto result = a_data ? toml::parse(a_data) : toml::parse_file(_filePath);
 			if (!result) {
 				ERROR("DKU_C: Parser#{}: Parsing failed!\nFile: {}\nDesc: {}", _id, *result.error().source().path.get(), result.error().description());
 			}
@@ -140,7 +140,7 @@ namespace DKUtil::Config::detail
 
 		void Write(const std::string_view a_filePath) noexcept override
 		{
-			auto filePath = a_filePath.empty() ? _filepath.c_str() : a_filePath.data();
+			auto filePath = a_filePath.empty() ? _filePath.c_str() : a_filePath.data();
 			std::basic_ofstream<char> file{ filePath };
 			if (!file.is_open() || !file) {
 				ERROR("DKU_C: Parser#{}: Writing file failed! -> {}\nofstream cannot be opened", _id, filePath);

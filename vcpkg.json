@@ -1,19 +1,19 @@
 {
     "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
-    "name":  "dkutil",
-    "version-string":  "2.0.0",
-    "description":  "An utilitarian library to help with SKSE plugin development.",
-    "license":  "MIT",
-    "dependencies":  [
-                         "nlohmann-json",
-                         "simpleini",
-                         "spdlog",
-                         "tomlplusplus",
-                         "xbyak"
-                     ],
-    "features":  {
-                     "mo2-install":  {
-                                         "description":  "DKUtilDebugger"
-                                     }
-                 }
+    "name": "dkutil",
+    "version-string": "2.0.0",
+    "description": "An utilitarian library to help with SKSE plugin development.",
+    "license": "MIT",
+    "dependencies": [
+        "glaze",
+        "simpleini",
+        "spdlog",
+        "tomlplusplus",
+        "xbyak"
+    ],
+    "features": {
+        "mo2-install": {
+            "description": "DKUtilDebugger"
+        }
+    }
 }

@@ -47,7 +47,7 @@ namespace DKUtil::Config
 		};
 
 		std::string dir(MAX_PATH + 1, ' ');
-		auto res = GetModuleFileNameA(nullptr, dir.data(), MAX_PATH + 1);
+		auto res = ::GetModuleFileNameA(nullptr, dir.data(), MAX_PATH + 1);
 		if (res == 0) {
 			ERROR("DKU_C: Unable to acquire valid path using default null path argument!\nExpected: Current directory\nResolved: NULL");
 		}
@@ -66,12 +66,6 @@ namespace DKUtil::Config
 		return files;
 	}
 
-	// clang-format off
-	// DEPRECATED
-	[[deprecated("Use template instantiation of GetAllFiles<RECURSIVE[true|false]>() instead")]]
-	inline constexpr std::vector<std::string> GetAllFiles(std::string_view a_path = {}, std::string_view a_ext = {}, std::string_view a_prefix = {}, std::string_view a_suffix = {}, const bool a_recursive = false) noexcept { return {}; }
-	// clang-format on
-
 
 	namespace detail
 	{
@@ -84,7 +78,7 @@ namespace DKUtil::Config
 		{
 		public:
 			explicit IParser(std::string_view a_file, const std::uint32_t a_id, manager& a_manager) :
-				_filename(a_file), _filepath(GetPath(a_file)), _id(a_id), _manager(a_manager)
+				_fileName(a_file), _filePath(GetPath(a_file)), _id(a_id), _manager(a_manager)
 			{}
 
 			constexpr IParser() = delete;
@@ -95,8 +89,8 @@ namespace DKUtil::Config
 			// accessor
 			[[nodiscard]] constexpr auto* data() noexcept { return _content.data(); }
 			[[nodiscard]] constexpr auto& content() const noexcept { return _content; }
-			[[nodiscard]] constexpr std::string_view filename() const noexcept { return _filename; }
-			[[nodiscard]] constexpr std::string_view filepath() const noexcept { return _filepath; }
+			[[nodiscard]] constexpr std::string_view filename() const noexcept { return _fileName; }
+			[[nodiscard]] constexpr std::string_view filepath() const noexcept { return _filePath; }
 
 
 			virtual void Parse(const char* = nullptr) noexcept = 0;
@@ -104,8 +98,8 @@ namespace DKUtil::Config
 
 		protected:
 			const std::uint32_t _id;
-			const std::string _filepath;
-			const std::string _filename;
+			const std::string _filePath;
+			const std::string _fileName;
 			std::string _content;
 			const manager& _manager;
 		};

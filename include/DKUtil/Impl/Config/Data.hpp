@@ -53,6 +53,12 @@ namespace DKUtil::Config::detail
 	template <typename data_t>
 	static constexpr auto data_trait_v = data_trait<data_t>::value();
 
+	template <DataType type>
+	using data_type = std::conditional_t<type == DataType::kBoolean, bool, 
+		std::conditional_t<type == DataType::kDouble, double, 
+		std::conditional_t<type == DataType::kInteger, std::int64_t, 
+		std::conditional_t<type == DataType::kString, std::basic_string<char>, std::nullopt_t>>>>;
+
 
 	class IData
 	{

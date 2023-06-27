@@ -1,4 +1,4 @@
-#define CONFIG_ENTRY "D:\\WorkSpace\\SKSEPlugins\\Build\\bin\\Debug"
+//#define CONFIG_ENTRY "D:\\WorkSpace\\SKSEPlugins\\Build\\bin\\Debug"
 #include "DKUtil/Config.hpp"
 
 
@@ -7,14 +7,13 @@ namespace Test::Config
 	using namespace DKUtil::Alias;
 
 
-	static Integer iA{ "iAwesome" };
-	static String sA{ "sAwesome" };
-	static Boolean bA{ "bAwesome" };
-	static Double dA{ "dAwesome" };
-
-
-	void Run()
+	void TestGeneric()
 	{
+		static Integer iA{ "iAwesome" };
+		static String sA{ "sAwesome" };
+		static Boolean bA{ "bAwesome" };
+		static Double dA{ "dAwesome" };
+
 		auto MainIni = COMPILE_PROXY("DKUtilDebugger.ini"sv);
 		auto MainJson = COMPILE_PROXY("DKUtilDebugger.json"sv);
 		auto MainToml = COMPILE_PROXY("DKUtilDebugger.toml"sv);
@@ -30,7 +29,7 @@ namespace Test::Config
 
 		INFO("{} {} {} {}", *iA, *sA, *bA, *dA);
 
-		std::string someRandomeName = DKUtil::Config::GetPath("AnotherBiteTheConfig.ini");		
+		std::string someRandomeName = DKUtil::Config::GetPath("AnotherBiteTheConfig.ini");
 		static auto runtime = RUNTIME_PROXY(someRandomeName);
 
 		runtime.Load();
@@ -40,5 +39,11 @@ namespace Test::Config
 		for (auto& fi : f) {
 			INFO("File -> {}", fi);
 		}
+	}
+
+
+	void Run()
+	{
+		
 	}
 } // namespace Test::Config

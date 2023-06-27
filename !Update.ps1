@@ -388,7 +388,3 @@ if ($Mode -eq 'DISTRIBUTE') {
         Robocopy.exe "$PSScriptRoot" "$_" '!Update.ps1' /MT /NJS /NFL /NDL /NJH | Out-Null
     }
 }
-
-
-
-

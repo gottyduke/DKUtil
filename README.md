@@ -48,7 +48,7 @@ Some utilitarian headers to help with SKSE64 plugin development
     + Config
         + [tomlplusplus](https://github.com/marzer/tomlplusplus)
         + [SimpleIni](https://github.com/brofield/simpleini)
-        + [nlohmann-json](https://github.com/nlohmann/json)
+        + [glaze(*new*)](https://github.com/stephenberry/glaze)
     + Logger
         + [spdlog](https://github.com/gabime/spdlog)
     + Extra

@@ -29,7 +29,7 @@ if(${PROJECT_SOURCE_DIR} STREQUAL ${PROJECT_BINARY_DIR})
 endif()
 
 # dependencies
-find_package(nlohmann_json CONFIG REQUIRED)
+find_package(glaze CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
 find_package(xbyak CONFIG REQUIRED)
@@ -122,7 +122,7 @@ source_group(
 
 # dependencies
 add_subdirectory($ENV{CommonLibSSEPath} CommonLibSSE)
-find_package(nlohmann_json CONFIG REQUIRED)
+find_package(glaze CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
 find_package(xbyak CONFIG REQUIRED)
@@ -163,7 +163,7 @@ target_link_libraries(
 	${PROJECT_NAME} 
 	PRIVATE
 		CommonLibSSE::CommonLibSSE
-		nlohmann_json::nlohmann_json
+		glaze::glaze
 		spdlog::spdlog
 		tomlplusplus::tomlplusplus
 		xbyak::xbyak
@@ -218,7 +218,7 @@ add_custom_command(
 		${PROJECT_NAME}
 	POST_BUILD
 		COMMAND 
-			powershell -NoProfile -ExecutionPolicy Bypass -File "${CMAKE_CURRENT_SOURCE_DIR}/!Update.ps1" "COPY" "${PROJECT_VERSION}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$(ConfigurationName)" "${PROJECT_NAME}" "${ANNIVERSARY_EDITION}"
+			powershell -NoProfile -ExecutionPolicy Bypass -File "${CMAKE_CURRENT_SOURCE_DIR}/!Update.ps1" "COPY" "${PROJECT_VERSION}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$(ConfigurationName)" "${PROJECT_NAME}"
 		COMMENT 
 			"Updating project :))"
 )
