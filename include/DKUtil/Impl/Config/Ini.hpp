@@ -128,7 +128,7 @@ namespace DKUtil::Config::detail
 
 		void Write(const std::string_view a_filePath) noexcept override
 		{
-			auto result = a_filePath.empty() ? _ini.SaveFile(_filePath.c_str()) : _ini.SaveFile(a_filePath.data());
+			auto result = a_filePath.empty() ? _ini.SaveFile(_filePath.data()) : _ini.SaveFile(a_filePath.data());
 			if (result < 0) {
 				ERROR("DKU_C: Parser#{}: Writing file failed!\n{}", _id, err_getmsg());
 			}
@@ -146,7 +146,7 @@ namespace DKUtil::Config::detail
 
 		void err_mismatch(std::string_view a_key, std::string_view a_type, std::string_view a_value, std::string_view a_what) noexcept
 		{
-			ERROR("DKU_C: Parser#{}: {}\nValue type mismatch!\nFile: {}\nKey: {}, Expected: {}, Value: {}", _id, a_what, _filePath.c_str(), a_key, a_type, a_value);
+			ERROR("DKU_C: Parser#{}: {}\nValue type mismatch!\nFile: {}\nKey: {}, Expected: {}, Value: {}", _id, a_what, _filePath, a_key, a_type, a_value);
 		}
 
 

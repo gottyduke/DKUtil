@@ -35,7 +35,7 @@ namespace Test::Config
 		runtime.Load();
 		INFO("ini#{} json#{} toml#{} runtime#{}", MainIni.get_id(), MainJson.get_id(), MainToml.get_id(), runtime.get_id());
 
-		auto f = dku::Config::GetAllFiles({}, ".ini"sv, {}, {}, true);
+		auto f = dku::Config::GetAllFiles<false>({}, ".ini"sv, {}, {});
 		for (auto& fi : f) {
 			INFO("File -> {}", fi);
 		}
