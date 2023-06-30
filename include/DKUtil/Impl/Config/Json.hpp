@@ -13,10 +13,15 @@ namespace DKUtil::Config::detail
 	public:
 		using IParser::IParser;
 
-		void check_glz_error(glz::parse_error a_ec)
+		[[noreturn]] void err_nullable(std::string_view a_key, DataType a_type)
 		{
-			if (a_ec != glz::error_code::none) {
-				ERROR("DKU_C: Parser#{}: Loading failed! -> {}\n{}", _id, _filePath.c_str(), glz::format_error(a_pe, _buffer));
+			ERROR("DKU_C: Parser#{}: Parsing failed! -> {}\n\nKey : {}\nType : {}", _id, _filePath, a_key, dku::print_enum(a_type));
+		}
+
+		void err_check(glz::parse_error a_pe) 
+		{
+			if (a_pe) {
+				ERROR("DKU_C: Parser#{}: Parsing failed! -> {}\n{}", _id, _filePath, glz::format_error(a_pe, _buffer));
 			}
 		}
 
@@ -25,7 +30,7 @@ namespace DKUtil::Config::detail
 		void Parse(const char* a_data) noexcept override
 		{
 			_buffer.clear();
-			check_glz_error(glz::read_file_json(_json, _filePath, _buffer));
+			err_check(glz::read_file_json(_json, _filePath, _buffer));
 
 			const auto& value = std::get<glz::json_t::object_t>(_json.data);
 			for (auto& [key, data] : _manager) {
@@ -33,38 +38,60 @@ namespace DKUtil::Config::detail
 					switch (data->get_type()) {
 					case DataType::kBoolean:
 						{
-							data->As<bool>()->set_data(raw->second.get<bool>());
-							break;
+							auto* config = data->As<bool>();
+							if (const auto* json = raw->second.get_if<bool>(); json) {
+								config->set_data(*json);
+								break;
+							}
+							err_nullable(key, DataType::kBoolean);
 						}
 					case DataType::kDouble:
 						{
-							auto* def_data = data->As<double>();
-							if (def_data->is_collection()) {
-								def_data->set_data(raw->second.get<std::vector<double>>());
+							auto* config = data->As<double>();
+							if (config->is_collection()) {
+								if (const auto* json = raw->second.get_if<std::vector<double>>(); json) {
+									config->set_data(*json);
+									break;
+								}
 							} else {
-								def_data->set_data(raw->second.get<double>());
+								if (const auto* json = raw->second.get_if<double>(); json) {
+									config->set_data(*json);
+									break;
+								}
 							}
-							break;
+							err_nullable(key, DataType::kDouble);
 						}
 					case DataType::kInteger:
 						{
-							auto* def_data = data->As<std::int64_t>();
-							if (def_data->is_collection()) {
-								def_data->set_data(raw->second.get<std::vector<std::int64_t>>());
+							auto* config = data->As<std::int64_t>();
+							if (config->is_collection()) {
+								if (const auto* json = raw->second.get_if<std::vector<std::int64_t>>(); json) {
+									config->set_data(*json);
+									break;
+								}
 							} else {
-								def_data->set_data(raw->second.get<std::int64_t>());
+								if (const auto* json = raw->second.get_if<std::int64_t>(); json) {
+									config->set_data(*json);
+									break;
+								}
 							}
-							break;
+							err_nullable(key, DataType::kInteger);
 						}
 					case DataType::kString:
 						{
-							auto* def_data = data->As<std::basic_string<char>>();
-							if (def_data->is_collection()) {
-								def_data->set_data(raw->second.get<std::vector<std::basic_string<char>>>());
+							auto* config = data->As<std::basic_string<char>>();
+							if (config->is_collection()) {
+								if (const auto* json = raw->second.get_if<std::vector<std::basic_string<char>>>(); json) {
+									config->set_data(*json);
+									break;
+								}
 							} else {
-								def_data->set_data(raw->second.get<std::basic_string<char>>());
+								if (const auto* json = raw->second.get_if<std::basic_string<char>>(); json) {
+									config->set_data(*json);
+									break;
+								}
 							}
-							break;
+							err_nullable(key, DataType::kString);
 						}
 					case DataType::kError:
 					default:
@@ -76,7 +103,7 @@ namespace DKUtil::Config::detail
 
 		void Write(const std::string_view a_filePath) noexcept override
 		{
-			check_glz_error({ glz::write_file_json(_json, a_filePath.empty() ? _filePath : std::string{ a_filePath }, _buffer).ec, 0});
+			err_check({ glz::write_file_json(_json, a_filePath.empty() ? _filePath : std::string{ a_filePath }, _buffer).ec, 0 });
 		}
 
 	private:
