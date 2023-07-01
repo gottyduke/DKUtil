@@ -714,7 +714,7 @@ namespace DKUtil
 					std::string shortName = name.substr(_reflection.type.length() + 2, name.length() - _reflection.type.length());
 					if ((a_caseSensitive && shortName.compare(a_enumString) == 0) ||
 						(!a_caseSensitive && string::iequals(shortName, a_enumString))) {
-						return static_cast<enum_type>(idx);
+						return is_flag() ? static_cast<enum_type>(1 << idx) : static_cast<enum_type>(idx);
 					} else {
 						continue;
 					}
