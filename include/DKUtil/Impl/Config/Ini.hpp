@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Data.hpp"
+#include "data.hpp"
 
 #include "SimpleIni.h"
 
@@ -86,20 +86,20 @@ namespace DKUtil::Config::detail
 						case DataType::kString:
 							{
 								std::string old{ raw };
-								dku::string::replace_all(raw, "\\,", "_dku_comma_");
-								dku::string::replace_all(raw, "\\\"", "_dku_quote_");
+								dku::string::replace_nth_instance(raw, 0, "\\,", "_dku_comma_");
+								dku::string::replace_nth_instance(raw,0,  "\\\"", "_dku_quote_");
 
 								auto sv = dku::string::split(raw, ",");
 								try {
 									if (sv.size() <= 1) {
 										dku::string::trim(old);
-										dku::string::replace_all(old, "\"");
+										dku::string::replace_nth_instance(old, 0, "\"");
 										data->As<std::basic_string<char>>()->set_data(old);
 									} else {
 										std::ranges::for_each(sv, [](std::string& str) {
-											dku::string::replace_all(str, "\"");
-											dku::string::replace_all(str, "_dku_comma_", "\\,");
-											dku::string::replace_all(str, "_dku_quote_", "\\\"");
+											dku::string::replace_nth_instance(str, 0, "\"");
+											dku::string::replace_nth_instance(str, 0, "_dku_comma_", "\\,");
+											dku::string::replace_nth_instance(str, 0, "_dku_quote_", "\\\"");
 											dku::string::trim(str);
 										});
 										data->As<std::basic_string<char>>()->set_data(sv);

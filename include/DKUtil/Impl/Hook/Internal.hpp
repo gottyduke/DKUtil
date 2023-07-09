@@ -1,9 +1,9 @@
 #pragma once
 
 
-#include "Assembly.hpp"
-#include "JIT.hpp"
-#include "Trampoline.hpp"
+#include "assembly.hpp"
+#include "jit.hpp"
+#include "trampoline.hpp"
 
 
 namespace DKUtil::Hook

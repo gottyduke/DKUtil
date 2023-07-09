@@ -46,7 +46,7 @@
 #pragma warning(disable: 4244)
 
 
-#include "Impl/PCH.hpp"
+#include "Impl/pch.hpp"
 
 
 #ifndef CONFIG_ENTRY
@@ -68,16 +68,16 @@ namespace DKUtil
 }  // namespace DKUtil
 
 
-#include "Impl/Config/Shared.hpp"
+#include "Impl/Config/shared.hpp"
 
-#include "Impl/Config/Data.hpp"
+#include "Impl/Config/data.hpp"
 
-#include "Impl/Config/Ini.hpp"
-#include "Impl/Config/Json.hpp"
-#include "Impl/Config/Schema.hpp"
-#include "Impl/Config/Toml.hpp"
+#include "Impl/Config/ini.hpp"
+#include "Impl/Config/json.hpp"
+#include "Impl/Config/schema.hpp"
+#include "Impl/Config/toml.hpp"
 
-#include "Impl/Config/Proxy.hpp"
+#include "Impl/Config/proxy.hpp"
 
 
 namespace DKUtil::Alias

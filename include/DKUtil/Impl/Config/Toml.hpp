@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Data.hpp"
+#include "data.hpp"
 
 #define TOML_EXCEPTIONS 0
 #include "toml++/toml.h"

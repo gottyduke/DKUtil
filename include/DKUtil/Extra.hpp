@@ -11,7 +11,7 @@
 #include <SKSE/SKSE.h>
 
 
-#include "Impl/PCH.hpp"
+#include "Impl/pch.hpp"
 #include "Logger.hpp"
 #include "Utility.hpp"
 
@@ -20,6 +20,7 @@
 	{                                                         \
 		if (auto* console = RE::ConsoleLog::GetSingleton()) { \
 			auto fmt = fmt::format(__VA_ARGS__);              \
+			INFO("[console] {}", fmt);                        \
 			fmt = PROJECT_NAME + " -> "s + fmt;               \
 			console->Print(fmt.c_str());                      \
 		}                                                     \

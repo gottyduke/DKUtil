@@ -96,7 +96,7 @@
 #pragma warning(disable: 4244)
 
 
-#include "Impl/PCH.hpp"
+#include "Impl/pch.hpp"
 
 
 namespace DKUtil
@@ -105,9 +105,9 @@ namespace DKUtil
 }  // namespace DKUtil
 
 
-#include "Impl/Hook/Shared.hpp"
+#include "Impl/Hook/shared.hpp"
 
-#include "Impl/Hook/API.hpp"
+#include "Impl/Hook/api.hpp"
 
 
 namespace DKUtil::Alias

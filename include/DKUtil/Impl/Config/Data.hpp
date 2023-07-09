@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Shared.hpp"
+#include "shared.hpp"
 
 
 namespace DKUtil::Config::detail

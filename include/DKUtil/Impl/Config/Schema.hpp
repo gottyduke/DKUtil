@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Data.hpp"
+#include "data.hpp"
 
 #include "SimpleIni.h"
 
