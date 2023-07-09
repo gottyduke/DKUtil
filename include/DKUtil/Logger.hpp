@@ -2,6 +2,11 @@
 
 
 /*
+ * 1.2.3
+ * Preceded ERROR logging macro;
+ * Added FATAL logging macro;
+ * Various code refactoring;
+ * 
  * 1.2.2
  * Adaptation of file structural changes;
  * Init log statement changed to INFO level;
@@ -26,37 +31,34 @@
 #define DKU_L_VERSION_REVISION 2
 
 
-#include "Impl/PCH.hpp"
+#include "Impl/pch.hpp"
 
 
 #ifndef DKU_DISABLE_LOGGING
 #	include <spdlog/sinks/basic_file_sink.h>
 #	include <spdlog/spdlog.h>
 
-#	define LOG(LEVEL, ...)                                                                \
-		{                                                                                  \
-			std::source_location src = std::source_location::current();                    \
-			spdlog::log(spdlog::source_loc{ src.file_name(), static_cast<int>(src.line()), \
-							src.function_name() },                                         \
-				spdlog::level::LEVEL, __VA_ARGS__);                                        \
+
+#	define __LOG(LEVEL, ...)                                                                       \
+		{                                                                                           \
+			const auto src = DKUtil::Logger::detail::make_current(std::source_location::current()); \
+			spdlog::log(src, spdlog::level::LEVEL, __VA_ARGS__);                                    \
 		}
-#	define INFO(...) LOG(info, __VA_ARGS__)
-#	define DEBUG(...) LOG(debug, __VA_ARGS__)
-#	define WARN(...) LOG(warn, __VA_ARGS__)
+
 #	define __SHORTF__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
-#	define ERROR(...)                                                                            \
-		{                                                                                         \
-			std::source_location src = std::source_location::current();                           \
-			const auto msg = fmt::format(__VA_ARGS__);                                            \
-			const auto error = fmt::format("Error occured at code -> [{}:{}]\n{}\n{}\n",          \
-				__SHORTF__, src.line(), __FUNCTION__, msg);                                       \
-			spdlog::default_logger_raw()->log(                                                    \
-				spdlog::source_loc{ src.file_name(), static_cast<int>(src.line()),                \
-					src.function_name() },                                                        \
-				spdlog::level::critical, __VA_ARGS__);                                            \
-			MessageBoxA(nullptr, error.c_str(), Plugin::NAME.data(), MB_OK | MB_ICONEXCLAMATION); \
-			ExitProcess('EXIT');                                                                  \
+#	define __REPORT(DO_EXIT, PROMPT, ...)                                                   \
+		{                                                                                    \
+			__LOG(critical, __VA_ARGS__);                                                    \
+			const auto src = std::source_location::current();                                \
+			const auto fmt = fmt::format(DKUtil::Logger::detail::prompt::PROMPT,             \
+				src.file_name(), src.line(), src.function_name(), fmt::format(__VA_ARGS__)); \
+			DKUtil::Logger::detail::report_error(DO_EXIT, fmt);                              \
 		}
+#	define INFO(...) __LOG(info, __VA_ARGS__)
+#	define DEBUG(...) __LOG(debug, __VA_ARGS__)
+#	define WARN(...) __LOG(warn, __VA_ARGS__)
+#	define ERROR(...) __REPORT(false, error, __VA_ARGS__)
+#	define FATAL(...) __REPORT(true, fatal, __VA_ARGS__)
 
 #	define ENABLE_DEBUG DKUtil::Logger::SetLevel(spdlog::level::debug);
 #	define DISABLE_DEBUG DKUtil::Logger::SetLevel(spdlog::level::info);
@@ -99,55 +101,91 @@ namespace DKUtil
 
 namespace DKUtil::Logger
 {
-	// From CommonLibSSE https://github.com/Ryan-rsm-McKenzie/CommonLibSSE
-	inline std::filesystem::path docs_directory() noexcept
+	namespace detail
 	{
-		wchar_t* buffer{ nullptr };
-		const auto result = SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, nullptr, std::addressof(buffer));
-		std::unique_ptr<wchar_t[], decltype(&CoTaskMemFree)> knownPath{ buffer, CoTaskMemFree };
+		// file, line, callstack, error
+		namespace prompt
+		{
+			inline constexpr auto error = FMT_STRING(
+				"Error occured at code ->\n[{}:{}]\n\nCallsite ->\n{}\n\nDetail ->\n{}\n\n"
+				"Continuing may result in undesired behavior.\n"
+				"Exit game? (yes highly suggested)\n\n");
 
-		return (!knownPath || result != S_OK) ? std::filesystem::path{} : std::filesystem::path{ knownPath.get() };
-	}
+			inline constexpr auto fatal = FMT_STRING(
+				"Error occured at code ->\n[{}:{}]\n\nCallsite ->\n{}\n\nDetail ->\n{}\n\n"
+				"Process cannot continue and will now exit.\n");
+		}  // namespace prompt
+
+		// From CommonLibSSE https://github.com/Ryan-rsm-McKenzie/CommonLibSSE
+		inline std::filesystem::path docs_directory() noexcept
+		{
+			wchar_t* buffer{ nullptr };
+			const auto result = ::SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, nullptr, std::addressof(buffer));
+			std::unique_ptr<wchar_t[], decltype(&::CoTaskMemFree)> knownPath{ buffer, ::CoTaskMemFree };
+
+			return (!knownPath || result != S_OK) ? std::filesystem::path{} : std::filesystem::path{ knownPath.get() };
+		}
 
 
-#ifndef DKU_DISABLE_LOGGING
+		inline spdlog::source_loc make_current(std::source_location a_loc) noexcept
+		{
+			return spdlog::source_loc{ a_loc.file_name(), static_cast<int>(a_loc.line()), a_loc.function_name() };
+		}
+
+
+		inline void report_error(bool a_fatal, std::string_view a_fmt)  // noexcept
+		{
+			if (a_fatal) {
+				::MessageBoxA(nullptr, a_fmt.data(), Plugin::NAME.data(), MB_OK | MB_ICONSTOP);
+			} else {
+				auto result = ::MessageBoxA(nullptr, a_fmt.data(), Plugin::NAME.data(), MB_YESNO | MB_ICONEXCLAMATION);
+				if (result != IDYES) {
+					return;
+				}
+			}
+
+			::TerminateProcess(::GetCurrentProcess(), 'FAIL');
+		}
+	}  // namespace detail
+
+
 	inline void Init(const std::string_view a_name, const std::string_view a_version) noexcept
 	{
 		std::filesystem::path path;
-#	ifdef PLUGIN_MODE
-		path = std::move(docs_directory());
-#	endif
+#ifdef PLUGIN_MODE
+		path = std::move(detail::docs_directory());
+#endif
 		path /= IS_VR ? LOG_PATH_VR : LOG_PATH;
 		path /= a_name;
 		path += ".log"sv;
 
 		auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path.string(), true);
 
-#	ifndef NDEBUG
+#ifndef NDEBUG
 		sink->set_pattern("[%i][%l](%s:%#) %v"s);
-#	else
+#else
 		sink->set_pattern("[%D %T][%l](%s:%#) %v"s);
-#	endif
+#endif
 
 		auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
 
-#	ifndef NDEBUG
+#ifndef NDEBUG
 		log->set_level(spdlog::level::debug);
-#	else
+#else
 		log->set_level(spdlog::level::info);
-#	endif
+#endif
 		log->flush_on(spdlog::level::debug);
 
 		set_default_logger(std::move(log));
 
-#	if defined(F4SEAPI)
-#		define MODE "Fallout 4"
-#	elif defined(SKSEAPI)
-#		define MODE "Skyrim Special Edition"
-#		define MODE_VR "Skyrim VR"
-#	else
-#		define MODE "DKUtil"
-#	endif
+#if defined(F4SEAPI)
+#	define MODE "Fallout 4"
+#elif defined(SKSEAPI)
+#	define MODE "Skyrim Special Edition"
+#	define MODE_VR "Skyrim VR"
+#else
+#	define MODE "DKUtil"
+#endif
 
 		INFO("Logger init - {} {}", IS_VR ? MODE_VR : MODE, a_version);
 	}
@@ -163,5 +201,4 @@ namespace DKUtil::Logger
 	{
 		SetLevel(a_enable ? spdlog::level::level_enum::debug : spdlog::level::level_enum::info);
 	}
-#endif
 }  // namespace DKUtil::Logger
