@@ -117,12 +117,12 @@ using namespace REL::literals;
 #include "DKUtil/Logger.hpp"
 
 
-#define __do_test_run(HEADER)                                    \
-	{                                                            \
-		INFO("++++++ Running library: {}", #HEADER);             \
-		auto start = std::chrono::steady_clock::now();           \
-		Test::HEADER::Run();                                     \
-		auto end = std::chrono::steady_clock::now();             \
-		std::chrono::duration<double> elapsed = end - start;     \
-		INFO("++++++ Testing complete in {}s", elapsed.count()); \
+#define __do_test_run(HEADER)                                            \
+	{                                                                    \
+		INFO("++++++ Running library: {}", #HEADER);                     \
+		auto start = std::chrono::steady_clock::now();                   \
+		Test::HEADER::Run();                                             \
+		auto end = std::chrono::steady_clock::now();                     \
+		std::chrono::duration<double> elapsed = end - start;             \
+		INFO("++++++ Testing complete in {:.5f}ms", elapsed.count() * 1000); \
 	}
