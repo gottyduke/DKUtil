@@ -87,7 +87,7 @@ namespace DKUtil::Config::detail
 							{
 								std::string old{ raw };
 								dku::string::replace_nth_instance(raw, 0, "\\,", "_dku_comma_");
-								dku::string::replace_nth_instance(raw,0,  "\\\"", "_dku_quote_");
+								dku::string::replace_nth_instance(raw, 0, "\\\"", "_dku_quote_");
 
 								auto sv = dku::string::split(raw, ",");
 								try {

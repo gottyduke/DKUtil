@@ -173,6 +173,5 @@ namespace DKUtil::Hook::Assembly
 	static_assert(sizeof(PopR64W) == 0x2);
 
 
-
 #pragma pack(pop)
 }  // namespace DKUtil::Hook::Assembly

@@ -151,9 +151,11 @@ namespace DKUtil::Hook
 			std::memcpy(OldBytes, AsPointer(CaveEntry), CaveSize);
 			std::fill_n(CaveBuf, CaveSize, NOP);
 
-			DEBUG("DKU_H: Cave capacity: {} bytes\n"
+			DEBUG(
+				"DKU_H: Cave capacity: {} bytes\n"
 				"cave entry : 0x{:X}\n"
-				"tram entry : 0x{:X}", CaveSize, CaveEntry, TramEntry);
+				"tram entry : 0x{:X}",
+				CaveSize, CaveEntry, TramEntry);
 		}
 
 
@@ -228,7 +230,8 @@ namespace DKUtil::Hook
 
 		WriteImm(tramPtr, a_funcInfo.address(), true);
 		tramPtr += sizeof(a_funcInfo.address());
-		DEBUG("DKU_H: Detouring...\n"
+		DEBUG(
+			"DKU_H: Detouring...\n"
 			"from : {}.{:X}\n"
 			"to   : {} @ {}.{:X}",
 			GetProcessName(), a_address + a_offset.first, a_funcInfo.name(), PROJECT_NAME, a_funcInfo.address());
@@ -396,9 +399,11 @@ namespace DKUtil::Hook
 			HookHandle(a_address, a_tramEntry),
 			OldAddress(*dku::Hook::unrestricted_cast<std::uintptr_t*>(Address))
 		{
-			DEBUG("DKU_H: IAT @ {:X}\n"
+			DEBUG(
+				"DKU_H: IAT @ {:X}\n"
 				"old : {} @ {:X}\n"
-				"new : {} @ {}.{:X}", a_address, a_importName, OldAddress, a_funcName, PROJECT_NAME, a_tramEntry);
+				"new : {} @ {}.{:X}",
+				a_address, a_importName, OldAddress, a_funcName, PROJECT_NAME, a_tramEntry);
 		}
 
 

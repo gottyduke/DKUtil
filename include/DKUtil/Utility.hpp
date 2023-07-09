@@ -36,7 +36,7 @@ namespace std::ranges::views
 namespace DKUtil
 {
 	constexpr auto DKU_U_VERSION = DKU_U_VERSION_MAJOR * 10000 + DKU_U_VERSION_MINOR * 100 + DKU_U_VERSION_REVISION;
-} // namespace DKUtil
+}  // namespace DKUtil
 
 
 #include "Impl/Utility/enumeration.hpp"
@@ -50,7 +50,7 @@ namespace DKUtil
 {
 	template <class Derived>
 	using Singleton = model::Singleton<Derived>;
-	
+
 	template <class Enum, class Underlying = std::underlying_type_t<Enum>>
 	using enumeration = model::enumeration<Enum, Underlying>;
 
@@ -70,4 +70,4 @@ namespace DKUtil
 		auto& tbl = static_enum<Enum>();
 		return tbl.to_string(a_enum);
 	}
-} // namespace DKUtil::Alias
+}  // namespace DKUtil::Alias

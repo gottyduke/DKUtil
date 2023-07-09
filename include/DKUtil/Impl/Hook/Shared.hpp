@@ -236,7 +236,7 @@ namespace DKUtil
 			return { fileName.c_str(), res };
 		}
 
-		
+
 		inline std::string_view GetProcessPath(HMODULE a_handle = 0) noexcept
 		{
 			static std::string fileName(MAX_PATH + 1, ' ');
@@ -249,7 +249,7 @@ namespace DKUtil
 			return { fileName.c_str(), res };
 		}
 
-		
+
 		inline void WriteData(const dku_h_addr_t auto& a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = false) noexcept
 		{
 			if (a_requestAlloc) {
@@ -374,7 +374,7 @@ namespace DKUtil
 			return *newDisp;
 		}
 
-		
+
 		class Module
 		{
 		public:
@@ -503,7 +503,7 @@ namespace DKUtil
 			return nullptr;
 		}
 
-		[[nodiscard]] inline std::uintptr_t GetFuncPrologAddr(std::uintptr_t a_addr) 
+		[[nodiscard]] inline std::uintptr_t GetFuncPrologAddr(std::uintptr_t a_addr)
 		{
 			static std::unordered_map<std::uintptr_t, std::uintptr_t> func;
 			constexpr auto maxWalkableOpSeq = static_cast<size_t>(1) << 12;

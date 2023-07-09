@@ -25,16 +25,14 @@ namespace DKUtil::Hook
 		public:
 			JitActionExpr(Assembly::Register reg)
 			{
-
 			}
 
 			JitActionExpr(const JitActionExpr&){};
 			JitActionExpr(JitActionExpr&&){};
 
 		private:
-
 		};
-	} // namespace JIT
+	}  // namespace JIT
 
 
 	class FuncInfo
@@ -72,4 +70,4 @@ namespace DKUtil::Hook
 		std::span<OpCode> _prolog;
 		std::span<OpCode> _epilog;
 	};
-} // namespace DKUtil::Hook
+}  // namespace DKUtil::Hook
