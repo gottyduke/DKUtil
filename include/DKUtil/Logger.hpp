@@ -107,12 +107,12 @@ namespace DKUtil::Logger
 		namespace prompt
 		{
 			inline constexpr auto error = FMT_STRING(
-				"Error occured at code ->\n[{}:{}]\n\nCallsite ->\n{}\n\nDetail ->\n{}\n\n"
+				"Error occurred at code ->\n[{}:{}]\n\nCallsite ->\n{}\n\nDetail ->\n{}\n\n"
 				"Continuing may result in undesired behavior.\n"
 				"Exit game? (yes highly suggested)\n\n");
 
 			inline constexpr auto fatal = FMT_STRING(
-				"Error occured at code ->\n[{}:{}]\n\nCallsite ->\n{}\n\nDetail ->\n{}\n\n"
+				"Error occurred at code ->\n[{}:{}]\n\nCallsite ->\n{}\n\nDetail ->\n{}\n\n"
 				"Process cannot continue and will now exit.\n");
 		}  // namespace prompt
 
