@@ -56,6 +56,7 @@
 		}
 #	define INFO(...) __LOG(info, __VA_ARGS__)
 #	define DEBUG(...) __LOG(debug, __VA_ARGS__)
+#	define TRACE(...) __LOG(trace, __VA_ARGS__)
 #	define WARN(...) __LOG(warn, __VA_ARGS__)
 #	define ERROR(...) __REPORT(false, error, __VA_ARGS__)
 #	define FATAL(...) __REPORT(true, fatal, __VA_ARGS__)
@@ -83,6 +84,7 @@
 
 #else
 
+#	define TRACE(...) void(0)
 #	define DEBUG(...) void(0)
 #	define ERROR(...) void(0)
 #	define INFO(...) void(0)
