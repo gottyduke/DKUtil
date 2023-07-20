@@ -56,6 +56,7 @@
 		}
 #	define INFO(...) __LOG(info, __VA_ARGS__)
 #	define DEBUG(...) __LOG(debug, __VA_ARGS__)
+#	define TRACE(...) __LOG(trace, __VA_ARGS__)
 #	define WARN(...) __LOG(warn, __VA_ARGS__)
 #	define ERROR(...) __REPORT(false, error, __VA_ARGS__)
 #	define FATAL(...) __REPORT(true, fatal, __VA_ARGS__)
@@ -83,6 +84,7 @@
 
 #else
 
+#	define TRACE(...) void(0)
 #	define DEBUG(...) void(0)
 #	define ERROR(...) void(0)
 #	define INFO(...) void(0)
@@ -170,11 +172,11 @@ namespace DKUtil::Logger
 		auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
 
 #ifndef NDEBUG
-		log->set_level(spdlog::level::debug);
+		log->set_level(spdlog::level::trace);
 #else
 		log->set_level(spdlog::level::info);
 #endif
-		log->flush_on(spdlog::level::debug);
+		log->flush_on(spdlog::level::trace);
 
 		set_default_logger(std::move(log));
 
@@ -199,6 +201,6 @@ namespace DKUtil::Logger
 
 	inline void EnableDebug(bool a_enable = true) noexcept
 	{
-		SetLevel(a_enable ? spdlog::level::level_enum::debug : spdlog::level::level_enum::info);
+		SetLevel(a_enable ? spdlog::level::level_enum::trace : spdlog::level::level_enum::info);
 	}
 }  // namespace DKUtil::Logger
