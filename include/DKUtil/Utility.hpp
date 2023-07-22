@@ -20,12 +20,6 @@
 /* Bunch of stuff taken from CommonLibSSE-Util */
 
 
-// pass PROJECT_NAME to compiler definitions
-#ifndef PROJECT_NAME
-#	define PROJECT_NAME Plugin::NAME.data()
-#endif
-
-
 namespace std::ranges::views
 {
 	inline constexpr auto drop_last = [](std::size_t count) { return std::views::reverse | std::views::drop(count) | std::views::reverse; };

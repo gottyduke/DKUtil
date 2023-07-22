@@ -34,6 +34,11 @@
 #include "Impl/pch.hpp"
 
 
+#ifndef PROJECT_NAME
+#	define PROJECT_NAME Plugin::NAME.data()
+#endif
+
+
 #ifndef DKU_DISABLE_LOGGING
 #	include <spdlog/sinks/basic_file_sink.h>
 #	include <spdlog/spdlog.h>
@@ -140,7 +145,7 @@ namespace DKUtil::Logger
 			if (a_fatal) {
 				::MessageBoxA(nullptr, a_fmt.data(), Plugin::NAME.data(), MB_OK | MB_ICONSTOP);
 			} else {
-				auto result = ::MessageBoxA(nullptr, a_fmt.data(), Plugin::NAME.data(), MB_YESNO | MB_ICONEXCLAMATION);
+				auto result = ::MessageBoxA(nullptr, a_fmt.data(), PROJECT_NAME, MB_YESNO | MB_ICONEXCLAMATION);
 				if (result != IDYES) {
 					return;
 				}
