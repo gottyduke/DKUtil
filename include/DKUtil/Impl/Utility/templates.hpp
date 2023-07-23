@@ -264,19 +264,20 @@ namespace DKUtil::model
 #define IMPLICIT_PARAM(n) static_cast<std::remove_cvref_t<decltype(t##n)>>(p##n)
 	// clang-format on
 
-#define MAKE_TUPLE_PARAM(n, macro)                        \
+#define MAKE_TUPLE_PARAM(n, macro)                    \
 	if constexpr (number_of_bindables<type>() == n) { \
-		auto&& [macro(PARGS_MACRO)] = object;             \
-		return std::make_tuple(macro(PARGS_MACRO));       \
+		auto&& [macro(PARGS_MACRO)] = object;         \
+		return std::make_tuple(macro(PARGS_MACRO));   \
 	} else
 
 
-#define MAKE_STRUCT_PARAM(n, macro)                          \
+#define MAKE_STRUCT_PARAM(n, macro)                      \
 	if constexpr (number_of_bindables<to_type>() == n) { \
-		auto&& [macro(TARGS_MACRO)] = to_type{};             \
-		auto&& [macro(PARGS_MACRO)] = object;                \
-		return to_type{ macro(IMPLICIT_PARAM) };             \
+		auto&& [macro(TARGS_MACRO)] = to_type{};         \
+		auto&& [macro(PARGS_MACRO)] = object;            \
+		return to_type{ macro(IMPLICIT_PARAM) };         \
 	} else
+
 
 	template <typename T>
 	inline constexpr auto tuple_cast(T&& object) noexcept
@@ -303,9 +304,9 @@ namespace DKUtil::model
 		using to_type = std::remove_cvref_t<T>;
 		using from_type = std::remove_cvref_t<F>;
 
-		if constexpr (number_of_bindables<to_type>() != number_of_bindables<from_type>()) {
-			return to_type{};
-		} else
+		static_assert(number_of_bindables<to_type>() == number_of_bindables<from_type>(), 
+			"number of bindables of <F> and <T> must equal.");
+
 		MAKE_STRUCT_PARAM(9, PARAMS_MACRO_9)
 		MAKE_STRUCT_PARAM(8, PARAMS_MACRO_8)
 		MAKE_STRUCT_PARAM(7, PARAMS_MACRO_7)
@@ -320,3 +321,5 @@ namespace DKUtil::model
 		}
 	}
 };  // namespace DKUtil::model
+
+#undef MAKE_STRUCT_CAST_ERROR
