@@ -101,7 +101,7 @@ namespace DKUtil::model
 
 		// clang-format off
 		if constexpr (requires { type{ any{}, any{}, any{}, any{}, any{}, any{}, any{}, any{}, any{}}; }) { return 9; } else if constexpr (requires { type{ any{}, any{}, any{}, any{}, any{}, any{}, any{}, any{}}; }) { return 8; } else if constexpr (requires { type{ any{}, any{}, any{}, any{}, any{}, any{}, any{}}; }) { return 7; } else if constexpr (requires { type{ any{}, any{}, any{}, any{}, any{}, any{}}; }) { return 6; } else if constexpr (requires { type{ any{}, any{}, any{}, any{}, any{}}; }) { return 5; } else if constexpr (requires { type{any{}, any{}, any{}, any{}}; }) { return 4; } else if constexpr (requires { type{any{}, any{}, any{}}; }) { return 3; } else if constexpr (requires { type{any{}, any{}}; }) { return 2; } else if constexpr (requires { type{any{}}; }) { return 1;
-		// clang-format on
+			// clang-format on
 		} else {
 			return 0;
 		}
@@ -304,7 +304,7 @@ namespace DKUtil::model
 		using to_type = std::remove_cvref_t<T>;
 		using from_type = std::remove_cvref_t<F>;
 
-		static_assert(number_of_bindables<to_type>() == number_of_bindables<from_type>(), 
+		static_assert(number_of_bindables<to_type>() == number_of_bindables<from_type>(),
 			"number of bindables of <F> and <T> must equal.");
 
 		MAKE_STRUCT_PARAM(9, PARAMS_MACRO_9)
