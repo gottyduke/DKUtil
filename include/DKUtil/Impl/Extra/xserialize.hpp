@@ -16,7 +16,13 @@
 #include "DKUtil/Utility.hpp"
 
 
-#define DKU_X_MOCK
+//#define DKU_X_MOCK
+
+
+#ifndef DKU_X_STRICT_SERIALIZATION
+#define DKU_X_STRICT_SERIALIZATION false
+#endif
+
 
 #include "Serialization/shared.hpp"
 #include "Serialization/exception.hpp"
@@ -28,42 +34,23 @@
 
 namespace DKUtil::serialization
 {
-	namespace colliding
-	{
-		inline static constexpr hash_type KnownHash[] = {
-			'ISCR',
-			'COMP',
-		};
-
-		inline constexpr auto make_hash_key(const char* a_key)
-		{
-			key_type key = dku::string::join({ PROJECT_NAME, a_key }, "_");
-
-			while (std::ranges::contains(KnownHash, dku::numbers::FNV_1A_32(key))) {
-				key += "_";
-			}
-
-			return std::make_pair(key, dku::numbers::FNV_1A_32(key));
-		}
-	}  // namespace colliding
-
-
 	template <typename T, dku::string::static_string HEADER, version_type VERSION = 1>
 	struct Serializable : ISerializable
 	{
 		using type = std::remove_cvref_t<T>;
-		using resolver_func_t = std::add_pointer_t<void(type&, ResolveOrder, SKSE::SerializationInterface*)>;
+		using resolver_func_t = std::add_pointer_t<void(type&, ResolveOrder)>;
 
 		constexpr Serializable() noexcept
 		{
 			auto&& [name, hash] = colliding::make_hash_key(HEADER.c);
 
-			_header.name = name;
-			_header.hash = hash;
-			_header.version = VERSION;
+			header.name = name;
+			header.hash = hash;
+			header.version = VERSION;
+
+			typeInfo = typeid(type).name();
 
 			ISerializable::enable();
-			INFO("{} {}", _header.name, ManagedSerializables.size());
 		}
 
 		constexpr Serializable(const type& a_data) noexcept :
@@ -95,77 +82,62 @@ namespace DKUtil::serialization
 		constexpr auto* operator->() noexcept { return std::addressof(_data); }
 		constexpr auto& operator*() noexcept { return _data; }
 		constexpr auto get() noexcept { return _data; }
-
+		
 		constexpr void add_resolver(resolver_func_t a_func) noexcept
 		{
 			_resolvers.emplace_back(a_func);
 		}
 
-	protected:
-		void do_save(SKSE::SerializationInterface* a_intfc) override
+		virtual void try_save() noexcept override
 		{
-			INFO("saving {}...", _header.name);
+			DEBUG("saving {}...", header.name);
 
-			resolver::resolve_save(a_intfc, _header, _data);
+			resolver::resolve_save(header, _data);
 
 			for (auto& resolver : _resolvers) {
-				resolver(_data, ResolveOrder::kSave, a_intfc);
+				resolver(_data, ResolveOrder::kSave);
 			}
 
-			INFO("...done saving {}", _header.name);
-			DKU_X_MOCK_REPORT();
+			DEBUG("...done saving {}", header.name);
 		}
 
-		void do_load(SKSE::SerializationInterface* a_intfc) override
+		virtual void try_load(hash_type a_hash, version_type a_version) noexcept override
 		{
-			INFO("loading {}...", _header.name);
-
-			for (auto& resolver : _resolvers) {
-				resolver(_data, ResolveOrder::kLoad, a_intfc);
+			if (a_hash != header.hash) {
+				return;
 			}
 
-			INFO("...done loading {}", _header.name);
+			if (a_version != header.version) {
+				// TODO: handle version variant
+				return;
+			}
+
+			DEBUG("loading {}...", header.name);
+
+			_data = resolver::resolve_load(header, _data);
+
+			for (auto& resolver : _resolvers) {
+				resolver(_data, ResolveOrder::kLoad);
+			}
+
+			DEBUG("...done loading {}", header.name);
 		}
 
-		void do_revert(SKSE::SerializationInterface* a_intfc) override
+		virtual void try_revert() noexcept override
 		{
-			INFO("reverting {}...", _header.name);
-
-
-			for (auto& resolver : _resolvers) {
-				resolver(_data, ResolveOrder::kRevert, a_intfc);
-			}
+			DEBUG("reverting {}...", header.name);
 
 			_data = type{};
 
-			INFO("...done reverting {}", _header.name);
+			for (auto& resolver : _resolvers) {
+				resolver(_data, ResolveOrder::kRevert);
+			}
+
+			DEBUG("...done reverting {}", header.name);
 		}
 
 	private:
-		/// revert interface
-
-		// clear data
-		void revert([[maybe_unused]] SKSE::SerializationInterface* a_intfc, T a_data) noexcept
-		{
-			INFO(" revert");
-
-			_data = type{};
-		}
-
-
 		type _data;
-		Header _header;
 		std::vector<resolver_func_t> _resolvers;
 	};
-
-
-	inline static void RegisterSerializable() noexcept
-	{
-		const auto* serialization = SKSE::GetSerializationInterface();
-		serialization->SetSaveCallback(ISerializable::SaveAll);
-		serialization->SetLoadCallback(ISerializable::LoadAll);
-		serialization->SetRevertCallback(ISerializable::RevertAll);
-
-		INFO("DKU_X: Registered serializables");
-	}
 } // namespace DKUtil::serialization

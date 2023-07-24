@@ -25,6 +25,33 @@ namespace DKUtil::serialization
 	using version_type = std::uint32_t;
 
 
+	namespace colliding
+	{
+		inline static constexpr hash_type KnownHash[] = {
+			'COMP', // CompletionistNG
+			'ISCR', // IndividualSoutCooldownRemake
+			'SAMS', // achievement system for skyrim
+			'SPIS', // SplitItemStacks
+			0xFD34899E, // NPCsUsePotions & AlchemyExpansion
+			0x68ED6325, // DiseaseOverhaul
+		};
+
+		inline static index_type HashIndex = 0;
+
+		inline constexpr auto make_hash_key(const char* a_key)
+		{
+			key_type key = dku::string::join({ PROJECT_NAME, a_key }, "_");
+
+			while (std::ranges::contains(KnownHash, dku::numbers::FNV_1A_32(key) + HashIndex)) {
+				key += "_";
+				HashIndex++;
+			}
+
+			return std::make_pair(key, dku::numbers::FNV_1A_32(key) + HashIndex);
+		}
+	}  // namespace colliding
+
+
 	enum class ResolveOrder : std::uint32_t
 	{
 		kSave = 0,
@@ -56,35 +83,15 @@ namespace DKUtil::serialization
 		virtual ~ISerializable() noexcept
 		{
 			disable();
-			TRACE("{}", ManagedSerializables.size());
 		}
 
-		static void SaveAll(SKSE::SerializationInterface* a_intfc) noexcept
-		{
-			for (auto* serializable : ManagedSerializables) {
-				serializable->do_save(a_intfc);
-			}
-		}
-
-		static void LoadAll(SKSE::SerializationInterface* a_intfc) noexcept
-		{
-			for (auto* serializable : ManagedSerializables) {
-				serializable->do_load(a_intfc);
-			}
-		}
-
-		static void RevertAll(SKSE::SerializationInterface* a_intfc) noexcept
-		{
-			for (auto* serializable : ManagedSerializables) {
-				serializable->do_revert(a_intfc);
-			}
-		}
-
-	protected:
-		virtual void do_save(SKSE::SerializationInterface* a_intfc) = 0;
-		virtual void do_load(SKSE::SerializationInterface* a_intfc) = 0;
-		virtual void do_revert(SKSE::SerializationInterface* a_intfc) = 0;
+		virtual void try_save() noexcept = 0;
+		virtual void try_load(hash_type, version_type) noexcept = 0;
+		virtual void try_revert() noexcept = 0;
 
 		inline static std::vector<ISerializable*> ManagedSerializables = {};
+
+		Header header;
+		std::string typeInfo;
 	};
 } // namespace DKUtil::Serialization

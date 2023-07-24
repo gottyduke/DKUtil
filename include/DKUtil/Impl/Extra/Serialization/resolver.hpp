@@ -13,11 +13,14 @@ namespace DKUtil::serialization
 		namespace detail
 		{
 #ifdef DKU_X_MOCK
+			inline static std::unordered_map<key_type, std::uint32_t> ResolvedLayoutMap = {};
 #	define DKU_X_ENTER_LAYOUT(t) INFO("\t{:->{}}"##t, "", ++detail::ResolvedLayoutMap[a_res.header.name])
 #	define DKU_X_LEAVE_LAYOUT() --detail::ResolvedLayoutMap[a_res.header.name]
+#	define DKU_X_CLEAR_LAYOUT() detail::ResolvedLayoutMap[a_header.name] = 0;
 #else
 #	define DKU_X_ENTER_LAYOUT(t)
 #	define DKU_X_LEAVE_LAYOUT()
+#	define DKU_X_CLEAR_LAYOUT()
 #endif
 
 #ifndef DKU_X_BUFFER_SIZE
@@ -48,9 +51,6 @@ namespace DKUtil::serialization
 				size_type pos = 0;
 				std::array<std::byte, DKU_X_BUFFER_SIZE> data = {};
 			};
-
-
-			inline static std::unordered_map<key_type, std::uint32_t> ResolvedLayoutMap = {};
 		} // namespace detail
 
 		
@@ -58,7 +58,6 @@ namespace DKUtil::serialization
 		{
 			ResolveOrder order;
 			ISerializable::Header header;
-			SKSE::SerializationInterface* intfc;
 		};
 
 
@@ -80,16 +79,12 @@ namespace DKUtil::serialization
 			requires(dku_bindable<T>)
 		auto resolve(const ResolveInfo& a_res, T a_data) noexcept;
 
-		template <typename T, std::size_t N>
-			requires(dku_bindable<T>)
-		auto resolve(const ResolveInfo& a_res, T a_data) noexcept;
-
 		template <typename T>
 			requires(dku_string<T>)
 		auto resolve(const ResolveInfo& a_res, T a_data) noexcept;
 
 		template <typename T>
-			requires(std::is_void_v<T>)
+			requires(dku_queue<T>)
 		auto resolve(const ResolveInfo& a_res, T a_data) noexcept;
 
 		template <typename T>
@@ -103,12 +98,12 @@ namespace DKUtil::serialization
 		{
 			DKU_X_ENTER_LAYOUT("trivial");
 
-			T data = a_data;
+			auto data = a_data;
 
 			if (a_res.order == ResolveOrder::kSave) {
-				DKU_X_MOCK_WRITE(&data, sizeof(data));
+				DKU_X_WRITE(&data, sizeof(data), decltype(data));
 			} else {
-				DKU_X_MOCK_READ(&data, sizeof(data));
+				DKU_X_READ(&data, sizeof(data), decltype(data));
 			}
 
 			DKU_X_LEAVE_LAYOUT();
@@ -126,37 +121,42 @@ namespace DKUtil::serialization
 			auto data = model::vector_cast(a_data);
 			auto size = static_cast<size_type>(data.size());
 
-			if constexpr (dku_trivial_ranges<T> && size == std::extent_v<T>) {
+			if constexpr (dku_trivial_ranges<decltype(a_data)> && size == std::extent_v<decltype(a_data)>) {
 				DKU_X_ENTER_LAYOUT("trivial range");
 
 				if (a_res.order == ResolveOrder::kSave) {
-					DKU_X_MOCK_WRITE(&data, sizeof(data));
+					DKU_X_WRITE(&data, sizeof(data), decltype(data));
 				} else {
-					DKU_X_MOCK_READ(&data, sizeof(data));
+					DKU_X_READ(&data, sizeof(data), decltype(data));
+					
+					if constexpr (std::is_same_v<decltype(data), RE::FormID>) {
+						data = DKU_X_FORMID(data);
+					}
 				}
 
 				DKU_X_LEAVE_LAYOUT();
 			} else {
 				if (a_res.order == ResolveOrder::kSave) {
-					DKU_X_MOCK_WRITE(&size, sizeof(size));
+					DKU_X_WRITE_SIZE(size);
 
 					for (auto elem : data) {
 						resolve(a_res, elem);
 					}
 				} else {
-					DKU_X_MOCK_READ(&size, sizeof(size));
-					data.clear();
-					data.resize(size);
+					DKU_X_READ_SIZE(size);
 
+					data.clear();
+
+					auto deduction = dku_value_type<decltype(data)>{};
 					for (index_type i = 0; i < size; ++i) {
-						data.emplace_back(resolve(a_res, data[i]));
+						data.emplace_back(resolve(a_res, deduction));
 					};
 				}
 			}
 
 			DKU_X_LEAVE_LAYOUT();
 
-			return model::range_cast<T>(data);
+			return model::range_cast<decltype(a_data)>(data);
 		}
 
 		// aggregate bindables
@@ -166,22 +166,21 @@ namespace DKUtil::serialization
 		{
 			DKU_X_ENTER_LAYOUT("aggregate");
 
-			T data = a_data;
+			auto data = a_data;
 			auto size = static_cast<size_type>(sizeof(data));
-
+			
 			if (a_res.order == ResolveOrder::kSave) {
-				DKU_X_MOCK_WRITE(&size, sizeof(size));
+				DKU_X_WRITE_SIZE(size);
 				resolve(a_res, model::tuple_cast(data));
 			} else {
-				DKU_X_MOCK_READ(&size, sizeof(size));
+				DKU_X_READ_SIZE(size);
 
 				if (size != sizeof(data)) {
-					exception::report<T>(exception::code::unexpected_type_mismatch, a_res.header, 
-						fmt::format("expected size: {}B\nread size: {}B", sizeof(data), size));
+					exception::report<decltype(data)>(exception::code::unexpected_type_mismatch, 
+						fmt::format("expected size: {}B\nread size: {}B", sizeof(data), size), a_res.header);
 				};
 
-				resolve(a_res, model::tuple_cast(data));
-				DKU_X_MOCK_READ(&data, size);
+				data = model::struct_cast<decltype(data)>(resolve(a_res, model::tuple_cast(data)));
 			}
 
 			DKU_X_LEAVE_LAYOUT();
@@ -189,46 +188,19 @@ namespace DKUtil::serialization
 			return data;
 		}
 
-		// bindables base
+		// bindables
 		template <typename T>
 			requires(dku_bindable<T>)
 		auto resolve(const ResolveInfo& a_res, T a_data) noexcept
 		{
-			DKU_X_ENTER_LAYOUT("bindable base");
+			DKU_X_ENTER_LAYOUT("bindable");
 
-			T data = a_data;
-			auto size = static_cast<size_type>(sizeof(data));
-
-			if (a_res.order == ResolveOrder::kSave) {
-				DKU_X_MOCK_WRITE(&size, sizeof(size));
-
-				resolve<T, std::tuple_size_v<T>>(a_res, data);
-			} else {
-				DKU_X_MOCK_READ(&size, sizeof(size));
-
-			}
+			auto data = std::apply([&](auto&&... args) {
+				return decltype(a_data)(resolve(a_res, args)...);
+			},
+				std::forward<decltype(a_data)>(a_data));
 
 			DKU_X_LEAVE_LAYOUT();
-
-			return data;
-		}
-
-		// bindables iterator
-		template <typename T, std::size_t N>
-			requires(dku_bindable<T>)
-		auto resolve(const ResolveInfo& a_res, T a_data) noexcept
-		{
-			DKU_X_ENTER_LAYOUT("bindable iterator");
-
-			T data = a_data;
-
-			resolve(a_res, std::get<N - 1>(a_data));
-
-			DKU_X_LEAVE_LAYOUT();
-
-			if constexpr (N > 1) {
-				resolve<T, N - 1>(a_res, a_data);
-			}
 
 			return data;
 		}
@@ -244,12 +216,47 @@ namespace DKUtil::serialization
 			auto size = static_cast<size_type>(data.size());
 
 			if (a_res.order == ResolveOrder::kSave) {
-				DKU_X_MOCK_WRITE(&size, sizeof(size));
-				DKU_X_MOCK_WRITE(data.data(), size);
+				DKU_X_WRITE_SIZE(size);
+				DKU_X_WRITE(data.data(), size, decltype(data));
 			} else {
-				DKU_X_MOCK_READ(&size, sizeof(size));
+				DKU_X_READ_SIZE(size);
 				data.resize(size);
-				DKU_X_MOCK_READ(data.data(), size);
+				DKU_X_READ(data.data(), size, decltype(data));
+			}
+
+			DKU_X_LEAVE_LAYOUT();
+
+			return data;
+		}
+
+		// queue
+		template <typename T>
+			requires(dku_queue<T>)
+		auto resolve(const ResolveInfo& a_res, T a_data) noexcept
+		{
+			DKU_X_ENTER_LAYOUT("queue");
+
+			auto data = a_data;
+			auto size = static_cast<size_type>(data.size());
+
+			if (a_res.order == ResolveOrder::kSave) {
+				DKU_X_WRITE_SIZE(size);
+
+				while (!data.empty()) {
+					resolve(a_res, data.front());
+					data.pop();
+				}
+			} else {
+				DKU_X_READ_SIZE(size);
+
+				decltype(data) copy{};
+
+				while (!data.empty()) {
+					copy.push(resolve(a_res, data.front()));
+					data.pop();
+				}
+
+				data = copy;
 			}
 
 			DKU_X_LEAVE_LAYOUT();
@@ -261,27 +268,34 @@ namespace DKUtil::serialization
 		template <typename T>
 		auto resolve(const ResolveInfo& a_res, T a_data) noexcept
 		{
-			if (dku_queue<T>) {
-				exception::report<T>(exception::code::unsupported_type_queue, a_res.header,
-					"std::queue<T> is not supported by DKU_X serializer.\n"
-					"consider using a different type.");
-			} else {
-				exception::report<T>(exception::code::bindable_type_unpackable, a_res.header,
-					"type unpacking is using fallback resolver, which is disabled.\n"
-					"consider using a different type that has flatter data representation.");
-			}
+			exception::report<T>(exception::code::bindable_type_unpackable,
+				"type unpacking is using fallback resolver, which is disabled.\n"
+				"consider using a different type that has flatter data representation.",
+				a_res.header);
+
+			return a_data;
 		}
 
 		template <typename T>
-		auto resolve_save(SKSE::SerializationInterface* a_intfc, ISerializable::Header& a_header, T a_data) noexcept
+		auto resolve_save(ISerializable::Header& a_header, T a_data) noexcept
 		{
 			using type = std::remove_cvref_t<T>;
 
-			DEBUG("DKU_X: resolving for saving -> {}\n{}", a_header.name, typeid(type).name());
+			DEBUG("DKU_X: saving resolver -> {}\n{}", a_header.name, typeid(type).name());
+			DKU_X_CLEAR_LAYOUT();
 
-			detail::ResolvedLayoutMap[a_header.name] = 0;
+			resolve<type>({ ResolveOrder::kSave, a_header }, a_data);
+		}
 
-			resolve<type>({ ResolveOrder::kSave, a_header, a_intfc }, a_data);
+		template <typename T>
+		auto resolve_load(ISerializable::Header& a_header, T a_data) noexcept
+		{
+			using type = std::remove_cvref_t<T>;
+
+			DEBUG("DKU_X: loading resolver -> {}\n{}", a_header.name, typeid(type).name());
+			DKU_X_CLEAR_LAYOUT();
+
+			return resolve<type>({ ResolveOrder::kLoad, a_header }, a_data);
 		}
 	}  // namespace resolver
 } // namespace DKUtil::serialization
