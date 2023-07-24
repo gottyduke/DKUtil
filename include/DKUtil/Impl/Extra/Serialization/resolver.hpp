@@ -197,8 +197,7 @@ namespace DKUtil::serialization
 
 			auto data = std::apply([&](auto&&... args) {
 				return decltype(a_data)(resolve(a_res, args)...);
-			},
-				std::forward<decltype(a_data)>(a_data));
+			}, std::forward<decltype(a_data)>(a_data));
 
 			DKU_X_LEAVE_LAYOUT();
 
@@ -284,7 +283,11 @@ namespace DKUtil::serialization
 			DEBUG("DKU_X: saving resolver -> {}\n{}", a_header.name, typeid(type).name());
 			DKU_X_CLEAR_LAYOUT();
 
-			resolve<type>({ ResolveOrder::kSave, a_header }, a_data);
+			auto info = ResolveInfo{ ResolveOrder::kSave, a_header };
+
+			// type enforcement
+			resolve(info, a_header.typeInfo);
+			resolve<type>(info, a_data);
 		}
 
 		template <typename T>
@@ -295,7 +298,18 @@ namespace DKUtil::serialization
 			DEBUG("DKU_X: loading resolver -> {}\n{}", a_header.name, typeid(type).name());
 			DKU_X_CLEAR_LAYOUT();
 
-			return resolve<type>({ ResolveOrder::kLoad, a_header }, a_data);
+			auto info = ResolveInfo{ ResolveOrder::kLoad, a_header };
+
+			auto check = resolve(info, a_header.typeInfo);
+			if (!dku::string::iequals(check, a_header.typeInfo)) {
+				exception::report<type, true>(exception::code::unexpected_type_mismatch, 
+					fmt::format("ambiguous type with same hash encountered!\n"
+						"this is likely an error in plugin where updated data type is still using old id.\n"
+						"this is fatal, please contact the mod author.\n"
+						"expected type: {}\nencountered type: {}", a_header.typeInfo, check), a_header);
+			}
+
+			return resolve<type>(info, a_data);
 		}
 	}  // namespace resolver
 }  // namespace DKUtil::serialization

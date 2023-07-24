@@ -31,7 +31,7 @@ namespace DKUtil::serialization
 				for (auto* serializable : ISerializable::ManagedSerializables) {
 					if (!a_intfc->OpenRecord(serializable->header.hash, serializable->header.version)) {
 						exception::report<decltype(serializable)>(exception::code::failed_to_open_record,
-							fmt::format("type: {}", serializable->typeInfo));
+							fmt::format("type: {}", serializable->header.typeInfo));
 						continue;
 					} else {
 						serializable->try_save();

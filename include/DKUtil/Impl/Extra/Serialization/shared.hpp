@@ -67,6 +67,7 @@ namespace DKUtil::serialization
 			key_type name;
 			hash_type hash;
 			version_type version;
+			std::string typeInfo;
 		};
 
 		virtual void enable() noexcept
@@ -92,6 +93,5 @@ namespace DKUtil::serialization
 		inline static std::vector<ISerializable*> ManagedSerializables = {};
 
 		Header header;
-		std::string typeInfo;
 	};
 }  // namespace DKUtil::Serialization

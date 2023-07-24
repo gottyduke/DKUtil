@@ -47,8 +47,7 @@ namespace DKUtil::serialization
 			header.name = name;
 			header.hash = hash;
 			header.version = VERSION;
-
-			typeInfo = typeid(type).name();
+			header.typeInfo = typeid(type).name();
 
 			ISerializable::enable();
 		}
