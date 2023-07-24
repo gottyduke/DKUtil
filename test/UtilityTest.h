@@ -188,7 +188,28 @@ namespace Test::Utility
 
 	void TestModel() noexcept
 	{
-		// enumeration tests
+		struct TestAggregate
+		{
+			int i;
+			std::string s;
+			char c;
+			bool b;
+		};
+
+		auto tv = dku::model::tuple_cast(TestAggregate{});
+		auto sv = dku::model::struct_cast<TestAggregate>(tv);
+		int av[] = { 1, 2, 3, 4 };
+
+		// bindables
+		static_assert(dku::model::number_of_bindables<TestAggregate>() == 4);
+		static_assert(dku::model::number_of_bindables<decltype(tv)>() == 4);
+		static_assert(dku::model::number_of_bindables<decltype(av)>() == 4);
+
+		// concepts
+		static_assert(dku::model::concepts::dku_aggregate<TestAggregate>);
+		static_assert(dku::model::concepts::dku_bindable<decltype(tv)>);
+		static_assert(dku::model::concepts::dku_ranges<decltype(av)>);
+		static_assert(dku::model::concepts::dku_trivial_ranges<decltype(av)>);
 	}
 
 
