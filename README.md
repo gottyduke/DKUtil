@@ -30,14 +30,18 @@ Some utilitarian headers to help with SKSE64 plugin development
             + static reflection for enum name, type name and value name, support value_type(`n`) and flag_type(`1<<n`)
             + `std::ranges` iterator for value_range(`n`) and flag_range(`1<<n`)
             + concept auto templated functions
+        + `concepts` useful concepts for contraining function templates
+        + `struct_cast`, `tuple_cast` compile time conversion for same aligned structs/tuples using structure binding (up to 9 bindable members)
+        + `vector_cast`, `range_cast` constexpr conversion for `std::ranges::range` and `std::vector`
     + numbers
         + FNV-1A compile time string hashing with 32bit/64bit implementation.
     + string
         + `to_wstring` method
         + `concat` compile time string concatenation.
-        + various string related functions taken from CommonLibSSE.
+        + various string related functions using `std::ranges`
 + [Extra](/docs/Extra.md)  
     + `CONSOLE` logging macro but for in-game console.
+    + `serializable` painless, all-in-one serialization solution for SKSE plugins.
 
 # Consumption
 
