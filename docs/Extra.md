@@ -15,8 +15,12 @@ CONSOLE("This will be logged to in game console", a, b, c);
 ```
 
 ## serializable
-All in one, painless serialization solution
-
+All in one, painless serialization solution. All serializables are automatically registered to internal handler, and unregistered upon destruction(although probably not needed). All reasonable data types are supported, they are flattened first with internal resolvers, then serialized with SKSE.  
+Common Types:
++ STL containers
++ user defined aggregate types
++ all trivial types
++ string
 ### declaration
 ```C++
 struct MyDataType
@@ -95,6 +99,8 @@ void CustomCallback(type& a_data, dku::serialization::ResolveOrder a_order)
         }
     }
 }
+
+myDataMap.add_resolver(CustomCallback);
 ```
 
 ---
