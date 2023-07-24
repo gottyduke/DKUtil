@@ -302,7 +302,7 @@ namespace DKUtil::model
 		using to_type = std::remove_cvref_t<T>;
 		using from_type = std::remove_cvref_t<F>;
 
-		static_assert(number_of_bindables_v<to_type> == number_of_bindables_v<from_type>, 
+		static_assert(number_of_bindables_v<to_type> == number_of_bindables_v<from_type>,
 			"number of bindables of <F> and <T> must equal.");
 
 		MAKE_STRUCT_PARAM(9, PARAMS_MACRO_9)

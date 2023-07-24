@@ -28,12 +28,12 @@ namespace DKUtil::serialization
 	namespace colliding
 	{
 		inline static constexpr hash_type KnownHash[] = {
-			'COMP', // CompletionistNG
-			'ISCR', // IndividualSoutCooldownRemake
-			'SAMS', // achievement system for skyrim
-			'SPIS', // SplitItemStacks
-			0xFD34899E, // NPCsUsePotions & AlchemyExpansion
-			0x68ED6325, // DiseaseOverhaul
+			'COMP',      // CompletionistNG
+			'ISCR',      // IndividualSoutCooldownRemake
+			'SAMS',      // achievement system for skyrim
+			'SPIS',      // SplitItemStacks
+			0xFD34899E,  // NPCsUsePotions & AlchemyExpansion
+			0x68ED6325,  // DiseaseOverhaul
 		};
 
 		inline static index_type HashIndex = 0;
@@ -94,4 +94,4 @@ namespace DKUtil::serialization
 		Header header;
 		std::string typeInfo;
 	};
-} // namespace DKUtil::Serialization
+}  // namespace DKUtil::Serialization

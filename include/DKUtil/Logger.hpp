@@ -41,11 +41,11 @@
 
 #ifndef DKU_DISABLE_LOGGING
 
-#ifdef DKU_CONSOLE
-#	include <spdlog/sinks/stdout_color_sinks.h>
-#else
-#	include <spdlog/sinks/basic_file_sink.h>
-#endif
+#	ifdef DKU_CONSOLE
+#		include <spdlog/sinks/stdout_color_sinks.h>
+#	else
+#		include <spdlog/sinks/basic_file_sink.h>
+#	endif
 
 #	include <spdlog/spdlog.h>
 

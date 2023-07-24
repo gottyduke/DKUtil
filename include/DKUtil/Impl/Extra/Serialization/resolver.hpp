@@ -1,9 +1,9 @@
 #pragma once
 
 
-#include "shared.hpp"
 #include "exception.hpp"
 #include "mock.hpp"
+#include "shared.hpp"
 
 
 namespace DKUtil::serialization
@@ -51,9 +51,9 @@ namespace DKUtil::serialization
 				size_type pos = 0;
 				std::array<std::byte, DKU_X_BUFFER_SIZE> data = {};
 			};
-		} // namespace detail
+		}  // namespace detail
 
-		
+
 		struct ResolveInfo
 		{
 			ResolveOrder order;
@@ -128,7 +128,7 @@ namespace DKUtil::serialization
 					DKU_X_WRITE(&data, sizeof(data), decltype(data));
 				} else {
 					DKU_X_READ(&data, sizeof(data), decltype(data));
-					
+
 					if constexpr (std::is_same_v<decltype(data), RE::FormID>) {
 						data = DKU_X_FORMID(data);
 					}
@@ -168,7 +168,7 @@ namespace DKUtil::serialization
 
 			auto data = a_data;
 			auto size = static_cast<size_type>(sizeof(data));
-			
+
 			if (a_res.order == ResolveOrder::kSave) {
 				DKU_X_WRITE_SIZE(size);
 				resolve(a_res, model::tuple_cast(data));
@@ -176,7 +176,7 @@ namespace DKUtil::serialization
 				DKU_X_READ_SIZE(size);
 
 				if (size != sizeof(data)) {
-					exception::report<decltype(data)>(exception::code::unexpected_type_mismatch, 
+					exception::report<decltype(data)>(exception::code::unexpected_type_mismatch,
 						fmt::format("expected size: {}B\nread size: {}B", sizeof(data), size), a_res.header);
 				};
 
@@ -298,4 +298,4 @@ namespace DKUtil::serialization
 			return resolve<type>({ ResolveOrder::kLoad, a_header }, a_data);
 		}
 	}  // namespace resolver
-} // namespace DKUtil::serialization
+}  // namespace DKUtil::serialization

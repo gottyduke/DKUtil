@@ -1,8 +1,8 @@
 #pragma once
 
 
-#include "shared.hpp"
 #include "exception.hpp"
+#include "shared.hpp"
 
 
 #ifdef DKU_X_MOCK
@@ -31,7 +31,7 @@ namespace DKUtil::serialization
 			std::memcpy(a_buf, Buffer.data() + ReadPos, a_length);
 			ReadPos += a_length;
 			INFO(fmt::format(
-				fmt::bg(fmt::terminal_color::green) | fmt::fg(fmt::terminal_color::black), 
+				fmt::bg(fmt::terminal_color::green) | fmt::fg(fmt::terminal_color::black),
 				"[mock] read {}B", a_length));
 		}
 
@@ -40,7 +40,7 @@ namespace DKUtil::serialization
 			std::memcpy(Buffer.data() + WritePos, a_buf, a_length);
 			WritePos += a_length;
 			INFO(fmt::format(
-				fmt::bg(fmt::terminal_color::cyan) | fmt::fg(fmt::terminal_color::black), 
+				fmt::bg(fmt::terminal_color::cyan) | fmt::fg(fmt::terminal_color::black),
 				"[mock] write {}B", a_length));
 		}
 
@@ -57,5 +57,5 @@ namespace DKUtil::serialization
 			INFO("[mock] current write {}B", WritePos);
 		}
 	}  // namespace mock
-} // namespace DKUtil::serialization
+}  // namespace DKUtil::serialization
 #endif

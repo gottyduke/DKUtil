@@ -20,16 +20,16 @@
 
 
 #ifndef DKU_X_STRICT_SERIALIZATION
-#define DKU_X_STRICT_SERIALIZATION false
+#	define DKU_X_STRICT_SERIALIZATION false
 #endif
 
 
-#include "Serialization/shared.hpp"
 #include "Serialization/exception.hpp"
 #include "Serialization/interface.hpp"
-#include "Serialization/resolver.hpp"
-#include "Serialization/variant.hpp"
 #include "Serialization/mock.hpp"
+#include "Serialization/resolver.hpp"
+#include "Serialization/shared.hpp"
+#include "Serialization/variant.hpp"
 
 
 namespace DKUtil::serialization
@@ -82,7 +82,7 @@ namespace DKUtil::serialization
 		constexpr auto* operator->() noexcept { return std::addressof(_data); }
 		constexpr auto& operator*() noexcept { return _data; }
 		constexpr auto get() noexcept { return _data; }
-		
+
 		constexpr void add_resolver(resolver_func_t a_func) noexcept
 		{
 			_resolvers.emplace_back(a_func);
@@ -140,4 +140,4 @@ namespace DKUtil::serialization
 		type _data;
 		std::vector<resolver_func_t> _resolvers;
 	};
-} // namespace DKUtil::serialization
+}  // namespace DKUtil::serialization

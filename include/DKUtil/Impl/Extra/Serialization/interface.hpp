@@ -1,8 +1,8 @@
 #pragma once
 
 
-#include "shared.hpp"
 #include "exception.hpp"
+#include "shared.hpp"
 
 
 namespace DKUtil::serialization
@@ -30,7 +30,7 @@ namespace DKUtil::serialization
 
 				for (auto* serializable : ISerializable::ManagedSerializables) {
 					if (!a_intfc->OpenRecord(serializable->header.hash, serializable->header.version)) {
-						exception::report<decltype(serializable)>(exception::code::failed_to_open_record, 
+						exception::report<decltype(serializable)>(exception::code::failed_to_open_record,
 							fmt::format("type: {}", serializable->typeInfo));
 						continue;
 					} else {
@@ -81,7 +81,7 @@ namespace DKUtil::serialization
 		{
 			const auto* intfc = detail::check_skse_intfc();
 			if (!intfc->WriteRecordData(a_buf, a_length)) {
-				exception::report<T>(exception::code::failed_to_write_data, 
+				exception::report<T>(exception::code::failed_to_write_data,
 					fmt::format("size: {}B", a_length), a_header);
 			}
 		}

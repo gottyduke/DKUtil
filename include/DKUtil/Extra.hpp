@@ -34,4 +34,4 @@ namespace DKUtil
 	using serializable = DKUtil::serialization::Serializable<T, H>;
 
 	using ResolveType = DKUtil::serialization::ResolveOrder;
-} // DKUtil
+}  // DKUtil
