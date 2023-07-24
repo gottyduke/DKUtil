@@ -117,21 +117,19 @@ namespace DKUtil::model
 	}
 
 	template <typename T>
-		requires(concepts::dku_trivial_ranges<T>)
 	inline consteval auto number_of_bindables() noexcept
 	{
 		using type = std::remove_cvref_t<T>;
 
-		return std::extent_v<type>;
+		if constexpr (requires { std::extent_v<type>; }) {
+			return std::extent_v<type>;
+		} else {
+			return std::size(type{});
+		}
 	}
 
 	template <typename T>
-	inline consteval auto number_of_bindables() noexcept
-	{
-		using type = std::remove_cvref_t<T>;
-
-		return std::size(type{});
-	}
+	inline constexpr auto number_of_bindables_v = number_of_bindables<T>();
 
 	template <typename First, typename... T>
 	[[nodiscard]] inline bool is_in(First&& first, T&&... t)
@@ -265,14 +263,14 @@ namespace DKUtil::model
 	// clang-format on
 
 #define MAKE_TUPLE_PARAM(n, macro)                    \
-	if constexpr (number_of_bindables<type>() == n) { \
+	if constexpr (number_of_bindables_v<type> == n) { \
 		auto&& [macro(PARGS_MACRO)] = object;         \
 		return std::make_tuple(macro(PARGS_MACRO));   \
 	} else
 
 
 #define MAKE_STRUCT_PARAM(n, macro)                      \
-	if constexpr (number_of_bindables<to_type>() == n) { \
+	if constexpr (number_of_bindables_v<to_type> == n) { \
 		auto&& [macro(TARGS_MACRO)] = to_type{};         \
 		auto&& [macro(PARGS_MACRO)] = object;            \
 		return to_type{ macro(IMPLICIT_PARAM) };         \
@@ -304,7 +302,7 @@ namespace DKUtil::model
 		using to_type = std::remove_cvref_t<T>;
 		using from_type = std::remove_cvref_t<F>;
 
-		static_assert(number_of_bindables<to_type>() == number_of_bindables<from_type>(),
+		static_assert(number_of_bindables_v<to_type> == number_of_bindables_v<from_type>, 
 			"number of bindables of <F> and <T> must equal.");
 
 		MAKE_STRUCT_PARAM(9, PARAMS_MACRO_9)
@@ -318,6 +316,26 @@ namespace DKUtil::model
 		MAKE_STRUCT_PARAM(1, PARAMS_MACRO_1)
 		{
 			return to_type{};
+		}
+	}
+
+	template <typename T>
+		requires(concepts::dku_ranges<T>)
+	inline constexpr auto vector_cast(T&& object) noexcept
+	{
+		using type = concepts::dku_value_type<std::remove_cvref_t<T>>;
+		return object | std::ranges::to<std::vector<type>>();
+	}
+
+	template <typename T, typename F>
+		requires(concepts::dku_ranges<T> && concepts::dku_ranges<F>)
+	inline constexpr auto range_cast(F&& object) noexcept
+	{
+		using to_type = std::remove_cvref_t<T>;
+		if constexpr (requires { object | std::ranges::to<to_type>(); }) {
+			return object | std::ranges::to<to_type>();
+		} else {
+			return to_type{ std::begin(object), std::end(object) };
 		}
 	}
 };  // namespace DKUtil::model

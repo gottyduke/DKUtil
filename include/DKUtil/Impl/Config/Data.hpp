@@ -6,18 +6,6 @@
 
 namespace DKUtil::Config::detail
 {
-	template <typename data_t>
-	concept dku_c_numeric =
-		(std::convertible_to<data_t, std::int64_t> || std::convertible_to<data_t, double>) && !
-	std::convertible_to<data_t, std::basic_string<char>>;
-
-
-	template <typename data_t>
-	concept dku_c_trivial_t =
-		(dku_c_numeric<data_t> || std::convertible_to<data_t, bool>) && !
-	std::convertible_to<data_t, std::basic_string<char>>;
-
-
 	enum class DataType
 	{
 		kBoolean,
@@ -174,14 +162,14 @@ namespace DKUtil::Config::detail
 
 		constexpr void set_range(std::pair<double, double> a_range)
 		{
-			if constexpr (dku_c_numeric<data_t>) {
+			if constexpr (model::concepts::dku_numeric<data_t>) {
 				_range = a_range;
 			}
 		}
 
 		constexpr void clamp()
 		{
-			if (!dku_c_numeric<data_t> || _range.first > _range.second) {
+			if (!model::concepts::dku_numeric<data_t> || _range.first > _range.second) {
 				return;
 			}
 

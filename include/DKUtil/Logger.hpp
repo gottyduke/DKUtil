@@ -40,7 +40,13 @@
 
 
 #ifndef DKU_DISABLE_LOGGING
+
+#ifdef DKU_CONSOLE
+#	include <spdlog/sinks/stdout_color_sinks.h>
+#else
 #	include <spdlog/sinks/basic_file_sink.h>
+#endif
+
 #	include <spdlog/spdlog.h>
 
 
@@ -166,7 +172,11 @@ namespace DKUtil::Logger
 		path /= a_name;
 		path += ".log"sv;
 
+#ifdef DKU_CONSOLE
+		auto sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+#else
 		auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path.string(), true);
+#endif
 
 #ifndef NDEBUG
 		sink->set_pattern("[%i][%l](%s:%#) %v"s);

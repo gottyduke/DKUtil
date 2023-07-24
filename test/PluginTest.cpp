@@ -2,11 +2,13 @@
 #include "HookTest.h"
 #include "LoggerTest.h"
 #include "UtilityTest.h"
+#include "SSEExtraTest.h"
 
 //#define TEST_CONFIG
 //#define TEST_HOOK
 //#define TEST_LOGGER
-#define TEST_UTILITY
+//#define TEST_UTILITY
+#define TEST_CUSTOM
 //#define TEST_AND_EXIT
 
 namespace
@@ -52,7 +54,7 @@ int main()
 #endif
 
 #ifdef TEST_CUSTOM
-
+	__do_test_run(Extra);
 #endif
 
 #ifdef TEST_AND_EXIT
