@@ -324,7 +324,7 @@ namespace DKUtil::model
 	inline constexpr auto vector_cast(T&& object) noexcept
 	{
 		using type = concepts::dku_value_type<std::remove_cvref_t<T>>;
-		return std::vector<type>{ std::ranges::begin(object), std::ranges::begin(object) };
+		return object | std::ranges::to<std::vector<type>>();
 	}
 
 	template <typename T, typename F>
@@ -332,8 +332,11 @@ namespace DKUtil::model
 	inline constexpr auto range_cast(F&& object) noexcept
 	{
 		using to_type = std::remove_cvref_t<T>;
-
-		return object | std::ranges::to<to_type>();
+		if constexpr (requires { object | std::ranges::to<to_type>(); }) {
+			return object | std::ranges::to<to_type>();
+		} else {
+			return to_type{ std::begin(object), std::end(object) };
+		}
 	}
 };  // namespace DKUtil::model
 
