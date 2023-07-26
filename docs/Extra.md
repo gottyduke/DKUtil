@@ -16,12 +16,14 @@ CONSOLE("This will be logged to in game console", a, b, c);
 
 ## serializable
 All in one, painless serialization solution. All serializables are automatically registered to internal handler, and unregistered upon destruction(although probably not needed). All reasonable data types are supported, they are flattened first with internal resolvers, then serialized with SKSE.  
-Common Types:
+Common types:
 + STL containers
 + user defined aggregate types
 + all trivial types
 + string
+
 ### declaration
+Wrap the data type in `dku::serializable<>`, with the second template parameter giving it a unique hash identifier. This identifier is used in the future for variant updating/backwards compatibility feature.
 ```C++
 struct MyDataType
 {
@@ -47,7 +49,7 @@ dku::serializable<MyComplexDataType, "ComplexDataMap"> myDataMap;
 ```
 
 ### using, modifying
-The data can be accessed by prepending the asterisk symbol `*` as if it were a pointer type, or the getter method `get()`, or using arrow operator `->`  
+The data can be accessed by prepending the asterisk symbol `*` or using arrow operator `->` as if it were a pointer type, or the getter method `get()`.  
 ```C++
 for (auto& [id, data] : *myDataMap) {
     // ...
@@ -65,16 +67,16 @@ DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 	
 	INFO("{} v{} loaded", Plugin::NAME, Plugin::Version);
 
-    // this
+	// this
 	dku::serialization::api::RegisterSerializable();
 
 	return true;
 }
 ```
-You can also pass in optional plugin identifier, although the internal hash function already makes an unique id.
+You can also pass in optional plugin identifier, although the internal hash function already makes a unique id.
 
 ### custom resolver
-You can attach custom resolver callbacks to the `dku::serializable<>` types and they'll be called during `Save`, `Load`, `Revert` state.
+You can attach custom resolver callbacks to the `dku::serializable<>` types and they'll be called during `Save`, `Load`, `Revert` state, **after** they are resolved.
 ```C++
 dku::serializable<MyComplexDataType, "ComplexDataMap"> myDataMap;
 using type = decltype(myDataMap)::type;
@@ -83,25 +85,22 @@ using type = decltype(myDataMap)::type;
 void CustomCallback(type& a_data, dku::serialization::ResolveOrder a_order)
 {
     if (a_order == dku::serialization::ResolveOrder::kSave) {
-        INFO("Saving");
-        for (auto& [f, d] : a_data) {
-            INFO("{} {}", f, d.s);
-        }
+        INFO("Saved");
     } else if (a_order == dku::serialization::ResolveOrder::kLoad) {
-        INFO("Loading");
+        INFO("Loaded");
         for (auto& [f, d] : a_data) {
             INFO("{} {}", f, d.s);
         }
     } else {
-        INFO("Reverting");
-        for (auto& [f, d] : a_data) {
-            INFO("{} {}", f, d.s);
-        }
+        INFO("Reverted");
     }
 }
 
 myDataMap.add_resolver(CustomCallback);
 ```
+
+### flattened layout map
+Tweak the preprocessor definitions a bit, define `DKU_X_MOCK` will redirect all read/write calls to its internal buffer for testing, and generate a flattened layout map of the data type it's operating on.  
 
 ---
 <a href="/docs/Config.md">Config</a> | <a href="/docs/Hook.md">Hook</a> | <a href="/docs/Logger.md">Logger</a> | <a href="/docs/Utility.md">Utility</a> | <a href="/docs/Extra.md">Extra</a></p>
