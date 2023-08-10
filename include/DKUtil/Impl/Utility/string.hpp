@@ -198,7 +198,7 @@ namespace DKUtil::string
 		std::string_view chunk{};
 		std::size_t p{ 0 }, n{ 0 };
 
-		constexpr auto slide_split = [&](std::string_view delim) {
+		const auto slide_split = [&](std::string_view delim) {
 			if (auto pos = chunk.rfind(delim); pos != std::string_view::npos) {
 				p = n;
 				if (pos) {

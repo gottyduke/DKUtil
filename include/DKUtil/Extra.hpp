@@ -6,6 +6,9 @@
 #define DKU_E_VERSION_REVISION 0
 
 
+#if defined(SKSEAPI)
+
+
 #include <RE/Skyrim.h>
 #include <REL/Relocation.h>
 #include <SKSE/SKSE.h>
@@ -35,3 +38,6 @@ namespace DKUtil
 
 	using ResolveType = DKUtil::serialization::ResolveOrder;
 }  // DKUtil
+
+
+#endif

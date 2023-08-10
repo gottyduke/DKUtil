@@ -23,7 +23,7 @@ namespace Test::Extra
 		}); /**/
 		dku::serializable<ActorDeathInfo, "SingleInfo"> actorDeathInfoSerial({ 1234, "test" });
 
-		/**/
+		/**
 		dku::serializable<std::map<int, int>, "MapInfo"> actorDeathInfoMapSerial({
 			{ 0, 1 },
 			{ 1, 2 },

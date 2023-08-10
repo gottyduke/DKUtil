@@ -221,6 +221,9 @@ namespace DKUtil
 				}
 			}
 		}
+#elif defined(F4SEAPI)
+#elif defined(PLUGIN_MODE)
+#	define TRAM_ALLOC(SIZE)
 #endif
 
 
