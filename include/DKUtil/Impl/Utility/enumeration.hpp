@@ -29,7 +29,7 @@ namespace DKUtil::model
 	// clang-format on
 
 
-	// taken from CommonLib, added ranged based view iterator for additive/flag enums
+	// taken from CommonLib, added reflection + range adaptors
 	template <class Enum,
 		class Underlying = std::conditional_t<
 			std::is_signed_v<std::underlying_type_t<Enum>>,

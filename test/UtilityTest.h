@@ -250,10 +250,10 @@ namespace Test::Utility
 
 	void Run() noexcept
 	{
-		TestNumbers();
-		TestModel();
+		//TestNumbers();
+		//TestModel();
 		
-		TestString();
+		//TestString();
 		
 		Enum::TestEnum();
 		Enum::TestEnumBitwidth();

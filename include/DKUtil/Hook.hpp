@@ -2,6 +2,10 @@
 
 
 /*
+ * 2.6.0
+ * Added pattern scan modules;
+ * Completed trampoline implementation;
+ * 
  * 2.5.3
  * Fixed stack alignment, force 0x20 allocation;
  * 
@@ -119,6 +123,8 @@ namespace DKUtil::Alias
 	using IATHandle = DKUtil::Hook::IATHookHandle;
 
 	using Reg = DKUtil::Hook::Assembly::Register;
+	template <class... Rules>
+	using Pattern = DKUtil::Hook::Assembly::Pattern::PatternMatcher<Rules...>;
 
 	using HookFlag = DKUtil::Hook::HookFlag;
 }  // namespace DKUtil::Alias

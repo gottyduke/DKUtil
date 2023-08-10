@@ -12,7 +12,7 @@ param (
 $ErrorActionPreference = "Stop"
 
 $Folder = $PSScriptRoot | Split-Path -Leaf
-$SourceExt = @('.c', '.cpp', '.cxx', '.h', '.hpp', '.hxx', '.inl', '.ixx')
+$SourceExt = @('.c', '.cc', '.cpp', '.cxx', '.h', '.hpp', '.hxx', '.inl', 'inc', '.ixx')
 $ConfigExt = @('.ini', '.json', '.toml')
 $DocsExt = @('.md')
 $env:ScriptCulture = (Get-Culture).Name -eq 'zh-CN'
@@ -388,7 +388,3 @@ if ($Mode -eq 'DISTRIBUTE') {
         Robocopy.exe "$PSScriptRoot" "$_" '!Update.ps1' /MT /NJS /NFL /NDL /NJH | Out-Null
     }
 }
-
-
-
-

@@ -197,10 +197,35 @@ namespace Test::Hook
 	}  // namespace Impl
 
 
+	void TestPattern()
+	{
+		namespace assembly = DKUtil::Hook::Assembly;
+		namespace pattern = DKUtil::Hook::Assembly::Pattern;
+		namespace rules = DKUtil::Hook::Assembly::Pattern::rules;
+
+		static_assert(rules::Hexadecimal<'E', 'B'>::match(std::byte{ 0xEB }));
+		static_assert(rules::Hexadecimal<'9', '0'>::match(std::byte{ 0x90 }));
+		static_assert(rules::Hexadecimal<'0', 'F'>::match(std::byte{ 0x0F }));
+		static_assert(rules::Hexadecimal<'C', 'C'>::match(std::byte{ 0xCC }));
+		static_assert(rules::Hexadecimal<'1', '2'>::match(std::byte{ 0x12 }));
+		static_assert(rules::Wildcard::match(std::byte{ 0xCC }));
+		static_assert(rules::Wildcard::match(std::byte{ 0xEB }));
+		static_assert(rules::Wildcard::match(std::byte{ 0x90 }));
+
+		
+		static_assert(assembly::make_pattern<"40 10 F2 ??">().match(
+			pattern::make_byte_array(0x40, 0x10, 0xF2, 0x41)));
+		static_assert(assembly::make_pattern<"B8 D0 ?? ?? D4 6E">().match(
+			pattern::make_byte_array(0xB8, 0xD0, 0x35, 0x2A, 0xD4, 0x6E)));
+	}
+
+
 	void Run()
 	{
 		Impl::RecalculateCombatRadiusHook::InstallHook();
 		Impl::RescaleCircleChanceHook::InstallHook();
 		Impl::FallbackDistanceHook::InstallHook();
+
+		TestPattern();
 	}
 }

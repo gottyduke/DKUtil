@@ -6,6 +6,33 @@
 #include "trampoline.hpp"
 
 
+#if defined(SKSEAPI)
+
+// CommonLib - DKUtil should only be integrated into project using the designated SKSEPlugins/F4SEPlugins workspace
+#	if defined(F4SEAPI)
+#		include "F4SE/API.h"
+#	elif defined(SKSEAPI)
+#		include "SKSE/API.h"
+#		define IS_AE REL::Module::IsAE()
+#		define IS_SE REL::Module::IsSE()
+#		define IS_VR REL::Module::IsVR()
+
+#	else
+#		error "Neither CommonLib nor custom TRAMPOLINE defined"
+#	endif
+
+#	define TRAMPOLINE SKSE::GetTrampoline()
+#	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
+#	define PAGE_ALLOC(SIZE) SKSE::AllocTrampoline((SIZE))
+
+#elif defined(F4SEAPI)
+#elif defined(PLUGIN_MODE)
+#	define TRAMPOLINE Trampoline::GetTrampoline()
+#	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
+#	define PAGE_ALLOC(SIZE) Trampoline::AllocTrampoline((SIZE))
+#endif
+
+
 namespace DKUtil::Hook
 {
 	using namespace Assembly;
