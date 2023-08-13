@@ -9,6 +9,19 @@
 
 namespace DKUtil::Hook
 {
+	// wrapped write_call APIs in CLib style
+	template <std::size_t N, class F>
+	inline F write_branch(std::uintptr_t a_src, F a_dst)
+	{
+		return std::bit_cast<F>(AddRelHook<N, false>(a_src, unrestricted_cast<std::uintptr_t>(a_dst)));
+	}
+
+	template <std::size_t N, class F>
+	inline F write_call(std::uintptr_t a_src, F a_dst)
+	{
+		return std::bit_cast<F>(AddRelHook<N, true>(a_src, unrestricted_cast<std::uintptr_t>(a_dst)));
+	}
+
 	inline auto AddASMPatch(
 		const std::uintptr_t a_address,
 		const offset_pair a_offset,

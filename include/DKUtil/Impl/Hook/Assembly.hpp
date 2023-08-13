@@ -46,24 +46,29 @@ namespace DKUtil::Hook::Assembly
 		return sizeof(*this);                   \
 	}
 
-	struct JmpRel
+
+	template <bool RETN = false>
+	struct BranchRel
 	{
-		constexpr JmpRel(Disp32 disp = 0) :
-			Disp(disp)
+		constexpr BranchRel(Disp32 disp = 0) :
+			Jmp(RETN ? 0xE8 : 0xE9), Disp(disp)
 		{}
 
 		DEF_ASM
 
-		OpCode Jmp = 0xE9;  // cd
+		OpCode Jmp = 0xE8;  // cd
 		Disp32 Disp = 0x00000000;
 	};
+	using CallRel = BranchRel<true>;
+	using JmpRel = BranchRel<false>;
+	static_assert(sizeof(CallRel) == 0x5);
 	static_assert(sizeof(JmpRel) == 0x5);
 
 
 	template <bool RETN = false>
-	struct JmpRip
+	struct BranchRip
 	{
-		constexpr JmpRip(Disp32 disp = 0) :
+		constexpr BranchRip(Disp32 disp = 0) :
 			Rip(RETN ? 0x15 : 0x25), Disp(disp)
 		{}
 
@@ -73,9 +78,10 @@ namespace DKUtil::Hook::Assembly
 		ModRM Rip = 0x25;   // 1 0 1
 		Disp32 Disp = 0x00000000;
 	};
-	static_assert(sizeof(JmpRip<true>) == 0x6);
-	static_assert(sizeof(JmpRip<false>) == 0x6);
-	using CallRip = JmpRip<true>;
+	using CallRip = BranchRip<true>;
+	using JmpRip = BranchRip<false>;
+	static_assert(sizeof(CallRip) == 0x6);
+	static_assert(sizeof(JmpRip) == 0x6);
 
 
 	struct PushImm64

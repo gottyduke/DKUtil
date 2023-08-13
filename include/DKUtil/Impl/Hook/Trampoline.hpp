@@ -11,7 +11,7 @@ namespace DKUtil::Hook::Trampoline
 	{
 	public:
 		// https://stackoverflow.com/a/54732489/17295222
-		static void* PageAlloc(const std::size_t a_size, std::uintptr_t a_from = 0) noexcept
+		std::byte* PageAlloc(const std::size_t a_size, std::uintptr_t a_from = 0) noexcept
 		{
 			static ::DWORD dwAllocationGranularity;
 
@@ -43,15 +43,19 @@ namespace DKUtil::Hook::Trampoline
 					addr = (AsAddress(mbi.BaseAddress) + add) & mask;
 
 					if (addr < min && a_size <= (min - addr)) {
-						if (addr = AsAddress(::VirtualAlloc(AsPointer(addr), a_size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE))) {
-							return AsPointer(addr);
+						if (auto* data = ::VirtualAlloc(AsPointer(addr), a_size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE)) {
+							_capacity = a_size;
+							_data = static_cast<std::byte*>(data);
+							return _data;
 						}
 					}
 				}
 
 			} while (min < max);
 
-			return nullptr;
+			_capacity = 0;
+			_data = nullptr;
+			return _data;
 		}
 
 		[[nodiscard]] void* allocate(std::size_t a_size)
@@ -105,15 +109,16 @@ namespace DKUtil::Hook::Trampoline
 
 	inline Trampoline& GetTrampoline() noexcept
 	{
-		static Trampoline trampoline;
-		return trampoline;
+		return *Trampoline::GetSingleton();
 	}
 
 	inline Trampoline& AllocTrampoline(std::size_t a_size)
 	{
 		auto& trampoline = GetTrampoline();
-		trampoline.release();
-		trampoline.PageAlloc(a_size);
+		if (!trampoline.capacity()) {
+			trampoline.release();
+			trampoline.PageAlloc(a_size);
+		}
 		return trampoline;
 	}
 }  // namespace DKUtil::Hook

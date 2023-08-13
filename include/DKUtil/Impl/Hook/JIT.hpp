@@ -28,7 +28,7 @@ namespace DKUtil::Hook
 			}
 
 			JitActionExpr(const JitActionExpr&){};
-			JitActionExpr(JitActionExpr&&){};
+			JitActionExpr(JitActionExpr&&) noexcept {};
 
 		private:
 		};

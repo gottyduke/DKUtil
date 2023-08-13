@@ -75,8 +75,10 @@ namespace DKUtil::Hook
 			HookHandle(a_address, a_address + a_offset.first),
 			Offset(a_offset), PatchSize(a_offset.second - a_offset.first)
 		{
-			std::memcpy(OldBytes, AsPointer(TramEntry), PatchSize);
-			std::fill_n(PatchBuf, PatchSize, NOP);
+			OldBytes.reserve(PatchSize);
+			PatchBuf.reserve(PatchSize);
+			std::memcpy(OldBytes.data(), AsPointer(TramEntry), PatchSize);
+			std::ranges::fill(PatchBuf, NOP);
 
 			DEBUG("DKU_H: Patch capacity: {} bytes\nPatch entry @ {:X}", PatchSize, TramEntry);
 		}
@@ -84,14 +86,14 @@ namespace DKUtil::Hook
 
 		void Enable() noexcept override
 		{
-			WriteData(TramEntry, PatchBuf, PatchSize, false);
+			WriteData(TramEntry, PatchBuf.data(), PatchSize, false);
 			DEBUG("DKU_H: Enabled ASM patch");
 		}
 
 
 		void Disable() noexcept override
 		{
-			WriteData(TramEntry, OldBytes, PatchSize, false);
+			WriteData(TramEntry, OldBytes.data(), PatchSize, false);
 			DEBUG("DKU_H: Disabled ASM patch");
 		}
 
@@ -99,8 +101,8 @@ namespace DKUtil::Hook
 		const offset_pair Offset;
 		const std::size_t PatchSize;
 
-		OpCode OldBytes[CAVE_BUF_SIZE]{};
-		OpCode PatchBuf[CAVE_BUF_SIZE]{};
+		std::vector<OpCode> OldBytes{};
+		std::vector<OpCode> PatchBuf{};
 	};
 
 
@@ -136,7 +138,7 @@ namespace DKUtil::Hook
 			DEBUG("DKU_H: ASM patch tramoline entry -> {:X}", handle->TramPtr);
 
 			asmDetour.Disp = static_cast<Imm32>(handle->TramPtr - handle->TramEntry - asmDetour.size());
-			std::memcpy(handle->PatchBuf, asmDetour.data(), asmDetour.size());
+			std::memcpy(handle->PatchBuf.data(), asmDetour.data(), asmDetour.size());
 
 			WriteData(handle->TramPtr, a_patch.first, a_patch.second, true);
 			handle->TramPtr += a_patch.second;
@@ -149,13 +151,13 @@ namespace DKUtil::Hook
 
 			WriteData(handle->TramPtr, asmReturn.data(), asmReturn.size(), true);
 		} else {
-			std::memcpy(handle->PatchBuf, a_patch.first, a_patch.second);
+			std::memcpy(handle->PatchBuf.data(), a_patch.first, a_patch.second);
 
 			if (a_forward && handle->PatchSize > (a_patch.second * ASM_MINIMUM_SKIP + sizeof(JmpRel))) {
 				JmpRel asmForward;
 
 				asmForward.Disp = static_cast<Disp32>(handle->TramEntry + handle->PatchSize - handle->TramEntry - a_patch.second - asmForward.size());
-				std::memcpy(handle->PatchBuf + a_patch.second, asmForward.data(), asmForward.size());
+				std::memcpy(handle->PatchBuf.data() + a_patch.second, asmForward.data(), asmForward.size());
 
 				DEBUG("DKU_H: ASM patch forwarded");
 			}
@@ -175,8 +177,10 @@ namespace DKUtil::Hook
 			HookHandle(a_address, a_tramPtr),
 			Offset(a_offset), CaveSize(a_offset.second - a_offset.first), CaveEntry(Address + a_offset.first), CavePtr(Address + a_offset.first)
 		{
-			std::memcpy(OldBytes, AsPointer(CaveEntry), CaveSize);
-			std::fill_n(CaveBuf, CaveSize, NOP);
+			OldBytes.resize(CaveSize);
+			CaveBuf.resize(CaveSize);
+			std::memcpy(OldBytes.data(), AsPointer(CaveEntry), CaveSize);
+			std::ranges::fill(CaveBuf, NOP);
 
 			DEBUG(
 				"DKU_H: Cave capacity: {} bytes\n"
@@ -188,7 +192,7 @@ namespace DKUtil::Hook
 
 		void Enable() noexcept override
 		{
-			WriteData(CavePtr, CaveBuf, CaveSize, false);
+			WriteData(CavePtr, CaveBuf.data(), CaveSize, false);
 			CavePtr += CaveSize;
 			DEBUG("DKU_H: Enabled cave hook");
 		}
@@ -196,20 +200,31 @@ namespace DKUtil::Hook
 
 		void Disable() noexcept override
 		{
-			WriteData(CavePtr - CaveSize, OldBytes, CaveSize, false);
+			WriteData(CavePtr - CaveSize, OldBytes.data(), CaveSize, false);
 			CavePtr -= CaveSize;
 			DEBUG("DKU_H: Disabled cave hook");
+		}
+
+
+		template <typename F = std::uintptr_t>
+		F ReDisp(const std::ptrdiff_t a_offset = 0) noexcept
+		{
+			Disp32 rel{ 0 };
+			if (a_offset <= CaveSize - sizeof(Assembly::JmpRel)) {
+				rel = *adjust_pointer<Disp32>(OldBytes.data(), a_offset + sizeof(OpCode));
+				rel += sizeof(Assembly::JmpRel);
+			}
+
+			return std::bit_cast<F>(CaveEntry + a_offset + rel);
 		}
 
 
 		const offset_pair Offset;
 		const std::size_t CaveSize;
 		const std::uintptr_t CaveEntry;
-
 		std::uintptr_t CavePtr{ 0x0 };
-
-		OpCode OldBytes[CAVE_BUF_SIZE]{};
-		OpCode CaveBuf[CAVE_BUF_SIZE]{};
+		std::vector<OpCode> OldBytes{};
+		std::vector<OpCode> CaveBuf{};
 	};
 
 
@@ -266,10 +281,10 @@ namespace DKUtil::Hook
 		auto handle = std::make_unique<CaveHookHandle>(a_address, tramPtr, a_offset);
 
 		asmDetour.Disp = static_cast<Disp32>(handle->TramPtr - handle->CavePtr - asmDetour.size());
-		std::memcpy(handle->CaveBuf, asmDetour.data(), asmDetour.size());
+		std::memcpy(handle->CaveBuf.data(), asmDetour.data(), asmDetour.size());
 
 		if (a_flag.any(HookFlag::kRestoreBeforeProlog)) {
-			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize, true);
+			WriteData(handle->TramPtr, handle->OldBytes.data(), handle->CaveSize, true);
 			handle->TramPtr += handle->CaveSize;
 			asmBranch.Disp -= static_cast<Disp32>(handle->CaveSize);
 
@@ -283,7 +298,7 @@ namespace DKUtil::Hook
 		}
 
 		if (a_flag.any(HookFlag::kRestoreAfterProlog)) {
-			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize, true);
+			WriteData(handle->TramPtr, handle->OldBytes.data(), handle->CaveSize, true);
 			handle->TramPtr += handle->CaveSize;
 			asmBranch.Disp -= static_cast<Disp32>(handle->CaveSize);
 
@@ -309,7 +324,7 @@ namespace DKUtil::Hook
 		handle->TramPtr += asmAdd.size();
 
 		if (a_flag.any(HookFlag::kRestoreBeforeEpilog)) {
-			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize, true);
+			WriteData(handle->TramPtr, handle->OldBytes.data(), handle->CaveSize, true);
 			handle->TramPtr += handle->CaveSize;
 
 			a_flag.reset(HookFlag::kRestoreAfterEpilog);
@@ -321,7 +336,7 @@ namespace DKUtil::Hook
 		}
 
 		if (a_flag.any(HookFlag::kRestoreAfterEpilog)) {
-			WriteData(handle->TramPtr, handle->OldBytes, handle->CaveSize, true);
+			WriteData(handle->TramPtr, handle->OldBytes.data(), handle->CaveSize, true);
 			handle->TramPtr += handle->CaveSize;
 		}
 
@@ -493,5 +508,47 @@ namespace DKUtil::Hook
 			return std::move(handle);
 		}
 		ERROR("DKU_H: IAT reached the end of table\n\nMethod {} not found", a_importName);
+	}
+
+
+	// CLib API
+	template <std::size_t N, bool RETN>
+	std::uintptr_t AddRelHook(std::uintptr_t a_src, std::uintptr_t a_dst)  // noexcept
+	{
+		static_assert(N == 5 || N == 6, "unsupported instruction size");
+		using DetourAsm = std::conditional_t<N == 5, BranchRel<RETN>, BranchRip<RETN>>;
+
+		auto tramPtr = TRAM_ALLOC(0);
+
+		// assumes assembly is safe to read
+		// 7FF6813A2D7F
+		auto rel = *adjust_pointer<Disp32>(AsPointer(a_src), N - sizeof(Disp32));
+		rel += N;
+		const Imm64 func = a_src + rel;
+
+		// tram entry
+		WriteImm(tramPtr, a_dst, true);
+		tramPtr += sizeof(a_dst);
+
+		// detour
+		DetourAsm asmDetour{};
+		asmDetour.Disp = static_cast<Disp32>(tramPtr - a_src - sizeof(asmDetour));
+		WriteData(a_src, asmDetour.data(), asmDetour.size(), false);
+
+		// branch
+		JmpRip asmBranch;
+		asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
+		asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
+		WriteData(tramPtr, asmBranch.data(), asmBranch.size(), true);
+		tramPtr += asmBranch.size();
+
+		DEBUG(
+			"DKU_H: Detouring...\n"
+			"from : {}.{:X}\n"
+			"call : {:X}\n"
+			"to   : {}.{:X}",
+			GetProcessName(), a_src, func, PROJECT_NAME, a_dst);
+
+		return func;
 	}
 }  // namespace DKUtil::Hook
