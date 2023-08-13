@@ -121,4 +121,10 @@ namespace DKUtil::Hook::Trampoline
 		}
 		return trampoline;
 	}
+
+	inline void* Allocate(std::size_t a_size)
+	{
+		auto& trampoline = GetTrampoline();
+		return trampoline.allocate(a_size);
+	}
 }  // namespace DKUtil::Hook

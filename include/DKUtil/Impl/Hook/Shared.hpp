@@ -223,7 +223,11 @@ namespace DKUtil
 		}
 #elif defined(F4SEAPI)
 #elif defined(PLUGIN_MODE)
-#	define TRAM_ALLOC(SIZE)
+		namespace Trampoline
+		{
+			extern inline void* Allocate(std::size_t a_size);
+		}
+#	define TRAM_ALLOC(SIZE) Trampoline::Allocate(SIZE)
 #endif
 
 

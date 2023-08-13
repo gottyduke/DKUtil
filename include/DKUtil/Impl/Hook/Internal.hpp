@@ -521,7 +521,6 @@ namespace DKUtil::Hook
 		auto tramPtr = TRAM_ALLOC(0);
 
 		// assumes assembly is safe to read
-		// 7FF6813A2D7F
 		auto rel = *adjust_pointer<Disp32>(AsPointer(a_src), N - sizeof(Disp32));
 		rel += N;
 		const Imm64 func = a_src + rel;
