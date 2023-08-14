@@ -27,7 +27,8 @@ namespace DKUtil::Config::detail
 					INFO("DKU_C: WARNING\nParser#{}: Sectionless configuration present and skipped.\nPossible inappropriate formatting at [{}]", _id, section.str());
 					continue;
 				} else {
-					for (auto& [key, data] : _manager) {
+					for (auto& [key, value] : _manager) {
+						auto* data = value.first;
 						auto raw = table.as_table()->find(key.data());
 						if (table.as_table()->begin() != table.as_table()->end() &&
 							raw == table.as_table()->end()) {
@@ -150,6 +151,63 @@ namespace DKUtil::Config::detail
 			file.close();
 
 			DEBUG("DKU_C: Parser#{}: Writing finished", _id);
+		}
+
+		void Generate() noexcept override
+		{
+			auto tableGnt = []<typename RNG>(RNG && a_rng) {
+				toml::array collection;
+				std::ranges::for_each(a_rng, [&collection](auto value) {
+					collection.push_back(value);
+				});
+				return collection;
+			};
+
+			_toml.clear();
+			for (auto& [key, value] : _manager) {
+				auto* data = value.first;
+				std::string sanitized = value.second.empty() ? "Global" : value.second.data();
+				auto [section, success] = _toml.insert(sanitized, toml::table{});
+				auto* table = section->second.as_table();
+
+				switch (data->get_type()) {
+				case DataType::kBoolean:
+					{
+						table->insert(key, data->As<bool>()->get_data());
+						break;
+					}
+				case DataType::kDouble:
+					{
+						if (auto* raw = data->As<double>(); raw->is_collection()) {
+							table->insert(key, tableGnt(raw->get_collection()));
+						} else {
+							table->insert(key, raw->get_data());
+						}
+						break;
+					}
+				case DataType::kInteger:
+					{
+						if (auto* raw = data->As<std::int64_t>(); raw->is_collection()) {
+							table->insert(key, tableGnt(raw->get_collection()));
+						} else {
+							table->insert(key, raw->get_data());
+						}
+						break;
+					}
+				case DataType::kString:
+					{
+						if (auto* raw = data->As<std::basic_string<char>>(); raw->is_collection()) {
+							table->insert(key, tableGnt(raw->get_collection()));
+						} else {
+							table->insert(key, raw->get_data());
+						}
+						break;
+					}
+				case DataType::kError:
+				default:
+					continue;
+				}
+			}
 		}
 
 	private:

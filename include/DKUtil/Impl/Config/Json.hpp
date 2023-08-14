@@ -28,7 +28,8 @@ namespace DKUtil::Config::detail
 				file.close();
 			}
 
-			for (auto& [key, data] : _manager) {
+			for (auto& [key, value] : _manager) {
+				auto* data = value.first;
 				auto raw = _json.find(key.data());
 				if (raw == _json.end()) {
 					ERROR("DKU_C: Parser#{}: Retrieving config failed!\nFile: {}\nKey: {}", _id, _filepath.c_str(), key);
@@ -85,10 +86,55 @@ namespace DKUtil::Config::detail
 				ERROR("DKU_C: Parser#{}: Writing file failed! -> {}\nofstream cannot be opened", _id, filePath);
 			}
 
-			file << _json;
+			file << _json.dump(4);
 			file.close();
 
 			DEBUG("DKU_C: Parser#{}: Writing finished", _id);
+		}
+
+		void Generate() noexcept override
+		{
+			_json.clear();
+			for (auto& [key, value] : _manager) {
+				auto* data = value.first;
+				switch (data->get_type()) {
+				case DataType::kBoolean:
+					{
+						_json[key.data()] = data->As<bool>()->get_data();
+						break;
+					}
+				case DataType::kDouble:
+					{
+						if (auto* raw = data->As<double>(); raw->is_collection()) {
+							_json[key.data()] = raw->get_collection();
+						} else {
+							_json[key.data()] = raw->get_data();
+						}
+						break;
+					}
+				case DataType::kInteger:
+					{
+						if (auto* raw = data->As<std::int64_t>(); raw->is_collection()) {
+							_json[key.data()] = raw->get_collection();
+						} else {
+							_json[key.data()] = raw->get_data();
+						}
+						break;
+					}
+				case DataType::kString:
+					{
+						if (auto* raw = data->As<std::basic_string<char>>(); raw->is_collection()) {
+							_json[key.data()] = raw->get_collection();
+						} else {
+							_json[key.data()] = raw->get_data();
+						}
+						break;
+					}
+				case DataType::kError:
+				default:
+					continue;
+				}
+			}
 		}
 
 	private:

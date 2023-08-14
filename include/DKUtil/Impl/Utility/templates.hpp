@@ -83,7 +83,8 @@ namespace DKUtil::model
 		template <typename T>
 		concept dku_numeric =
 			dku_trivial<T> && 
-			!dku_string<T>;
+			!dku_string<T> &&
+			!std::is_same_v<T, bool>;
 	} // namespace concepts
 	// clang-format on
 

@@ -76,7 +76,8 @@ namespace DKUtil::Config
 	namespace detail
 	{
 		class IData;
-		using manager = std::unordered_map<std::string_view, detail::IData*>;
+		// key, <data*, section?>
+		using manager = std::unordered_map<std::string_view, std::pair<detail::IData*, std::string_view>>;
 
 		inline static std::uint32_t _Count{ 0 };
 
@@ -101,6 +102,7 @@ namespace DKUtil::Config
 
 			virtual void Parse(const char* = nullptr) noexcept = 0;
 			virtual void Write(const std::string_view) noexcept = 0;
+			virtual void Generate() noexcept = 0;
 
 		protected:
 			const std::uint32_t _id;

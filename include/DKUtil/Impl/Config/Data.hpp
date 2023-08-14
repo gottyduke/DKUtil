@@ -113,6 +113,7 @@ namespace DKUtil::Config::detail
 		[[nodiscard]] constexpr auto get_type() const noexcept { return typeid(data_t).name(); }
 		constexpr void debug_dump() const noexcept
 		{
+#ifndef NDEBUG
 			if (_isCollection) {
 				std::ranges::for_each(*_collection, [&](data_t val) {
 					DEBUG("Setting collection value [{}] to [{}]", val, _key);
@@ -120,6 +121,7 @@ namespace DKUtil::Config::detail
 			} else {
 				DEBUG("Setting value [{}] to [{}]", _data, _key);
 			}
+#endif
 		}
 
 		constexpr void set_data(data_t a_value) noexcept
@@ -153,7 +155,7 @@ namespace DKUtil::Config::detail
 			_isCollection = (a_collection.size() > 1);
 			[[likely]] if (_isCollection) {
 				_collection = std::make_unique<collection>(std::move(a_collection));
-				_data = a_collection.front();
+				_data = _collection->front();
 			}
 
 			clamp();
@@ -180,7 +182,7 @@ namespace DKUtil::Config::detail
 			};
 
 			if (_isCollection) {
-				*_collection | std::views::transform(single_clamp);
+				*_collection = std::move(*_collection | std::views::transform(single_clamp) | std::ranges::to<collection>());
 				_data = _collection->front();
 			} else {
 				_data = single_clamp(_data);

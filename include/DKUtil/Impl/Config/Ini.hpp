@@ -37,7 +37,7 @@ namespace DKUtil::Config::detail
 					if (_manager.contains(key.pItem)) {
 						std::string raw{ value };
 
-						auto* data = _manager.at(key.pItem);
+						auto& [data, section] = _manager.at(key.pItem);
 						switch (data->get_type()) {
 						case DataType::kBoolean:
 							{
@@ -92,7 +92,7 @@ namespace DKUtil::Config::detail
 								auto sv = dku::string::split(raw, ",");
 								try {
 									if (sv.size() <= 1) {
-										dku::string::trim(old);
+										old = dku::string::trim(old);
 										dku::string::replace_nth_occurrence(old, 0, "\"");
 										data->As<std::basic_string<char>>()->set_data(old);
 									} else {
@@ -100,7 +100,7 @@ namespace DKUtil::Config::detail
 											dku::string::replace_nth_occurrence(str, 0, "\"");
 											dku::string::replace_nth_occurrence(str, 0, "_dku_comma_", "\\,");
 											dku::string::replace_nth_occurrence(str, 0, "_dku_quote_", "\\\"");
-											dku::string::trim(str);
+											str = dku::string::trim(str);
 										});
 										data->As<std::basic_string<char>>()->set_data(sv);
 									}
@@ -134,6 +134,63 @@ namespace DKUtil::Config::detail
 			}
 
 			DEBUG("DKU_C: Parser#{}: Writing finished", _id);
+		}
+
+		void Generate() noexcept override
+		{
+			CSimpleIniA::TNamesDepend sections;
+			_ini.GetAllSections(sections);
+
+			for (auto& section : sections) {
+				_ini.Delete(section.pItem, nullptr);
+			}
+			
+			for (auto& [key, value] : _manager) {
+				auto* data = value.first;
+				auto sanitized = value.second.empty() ? "Global"sv : value.second;
+				std::string raw{};
+				switch (data->get_type()) {
+				case DataType::kBoolean:
+					{
+						raw = data->As<bool>()->get_data() ? "true" : "false";
+						break;
+					}
+				case DataType::kDouble:
+					{
+						raw = std::to_string(data->As<double>()->get_data());
+						break;
+					}
+				case DataType::kInteger:
+					{
+						raw = std::to_string(data->As<std::int64_t>()->get_data());
+						break;
+					}
+				case DataType::kString:
+					{
+						auto* str = data->As<std::basic_string<char>>();
+						if (str->is_collection()) {
+							raw = dku::string::join(str->get_collection(), ", "sv);
+						} else {
+							raw = str->get_data();
+						}
+
+						break;
+					}
+				case DataType::kError:
+				default:
+					continue;
+				}
+
+				auto rc = _ini.SetValue(sanitized.data(), key.data(), raw.data());
+				if (rc == SI_FAIL) {
+					ERROR("DKU_C: Parser#{}: failed generating default value\n"
+						"File: {}\nKey: {}, Section: {}\Type: {}\nValue: {}", 
+						_id, _filepath.data(), key, sanitized, dku::print_enum(data->get_type()), raw.data());
+				}
+			}
+
+
+			DEBUG("DKU_C: Parser#{}: Generating finished", _id);
 		}
 
 	private:
