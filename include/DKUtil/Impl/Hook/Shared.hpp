@@ -86,24 +86,14 @@ namespace DKUtil
 
 		using namespace Alias;
 
-#ifdef SKSEAPI
-
-// CommonLib - DKUtil should only be integrated into project using the designated SKSEPlugins/F4SEPlugins workspace
-#	if defined(F4SEAPI)
-#		include "F4SE/API.h"
-#	elif defined(SKSEAPI)
-#		include "SKSE/API.h"
-#		define IS_AE REL::Module::IsAE()
-#		define IS_SE REL::Module::IsSE()
-#		define IS_VR REL::Module::IsVR()
-
-#	else
-#		error "Neither CommonLib nor custom TRAMPOLINE defined"
-#	endif
+#if defined(SKSEAPI)
+#	include "SKSE/API.h"
+#	define IS_AE REL::Module::IsAE()
+#	define IS_SE REL::Module::IsSE()
+#	define IS_VR REL::Module::IsVR()
 
 #	define TRAMPOLINE SKSE::GetTrampoline()
 #	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
-#	define PAGE_ALLOC(SIZE) SKSE::AllocTrampoline((SIZE))
 
 
 		inline std::uintptr_t IDToAbs([[maybe_unused]] std::uint64_t a_ae, [[maybe_unused]] std::uint64_t a_se, [[maybe_unused]] std::uint64_t a_vr = 0) noexcept
@@ -222,6 +212,9 @@ namespace DKUtil
 			}
 		}
 #elif defined(F4SEAPI)
+#	include "F4SE/API.h"
+#	define TRAMPOLINE F4SE::GetTrampoline()
+#	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
 #elif defined(PLUGIN_MODE)		
 namespace Trampoline
 		{
