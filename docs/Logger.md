@@ -7,6 +7,12 @@ Some SKSE style macro loggers with `spdlog` backend.
 
 ## Init
 ```C++
+// by default the log directory is current process directory
+// this can be manually overriden
+#define LOG_PATH "logs\\"
+#include "DKUtil/Logger.hpp"
+
+
 DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 {
     // this

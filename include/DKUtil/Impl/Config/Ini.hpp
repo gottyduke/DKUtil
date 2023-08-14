@@ -144,7 +144,7 @@ namespace DKUtil::Config::detail
 			for (auto& section : sections) {
 				_ini.Delete(section.pItem, nullptr);
 			}
-			
+
 			for (auto& [key, value] : _manager) {
 				auto* data = value.first;
 				auto sanitized = value.second.empty() ? "Global"sv : value.second;
@@ -183,8 +183,9 @@ namespace DKUtil::Config::detail
 
 				auto rc = _ini.SetValue(sanitized.data(), key.data(), raw.data());
 				if (rc == SI_FAIL) {
-					ERROR("DKU_C: Parser#{}: failed generating default value\n"
-						"File: {}\nKey: {}, Section: {}\Type: {}\nValue: {}", 
+					ERROR(
+						"DKU_C: Parser#{}: failed generating default value\n"
+						"File: {}\nKey: {}, Section: {}\Type: {}\nValue: {}",
 						_id, _filepath.data(), key, sanitized, dku::print_enum(data->get_type()), raw.data());
 				}
 			}

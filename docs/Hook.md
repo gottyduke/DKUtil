@@ -12,7 +12,7 @@ Some personal APIs to write hooks and memory patches with enable/disable control
 
 ## Forewords
 Since this library is mainly used to help with SKSE64 plugin developments, and to clarify the usage between `DKUtil::Hook` and `CommonLibSSE::REL`:  
-They are designed for different use scenarios. To just replace a game `call/jmp subroutine` instruction with a `call/jmp` to designated hook function, by all means, use the `trampoline::write_call/write_branch`. To weave a function call in assembly that do not have `call/jmp` type of instructions, then use `DKUtil::Hook`.  
+They are designed for different use scenarios. ~~To just replace a game `call/jmp subroutine` instruction with a `call/jmp` to designated hook function, by all means, use the `trampoline::write_call/write_branch`.~~ `DKUtil::Hook` now also offers `write_call/write_branch`. To weave a function call in assembly that do not have `call/jmp` type of instructions, then use `DKUtil::Hook`.  
 
 ## API
 
@@ -20,15 +20,73 @@ They are designed for different use scenarios. To just replace a game `call/jmp 
 `DKUtil::Hook` offers some memory writing methods like other library does.
 ```C++
 // write raw data with size
-void WriteData(std::uintptr_t& a_dst, const void* a_data, const std::size_t a_size, bool a_forwardPtr = false, bool a_requestAlloc = false) noexcept;
-// write immediate value
-void WriteImm(std::uintptr_t& a_dst, const dku_h_pod_t auto& a_data, bool a_forwardPtr = false, bool a_requestAlloc = false) noexcept;
+void WriteData(std::uintptr_t& a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = false) noexcept;
+// write immediate value (trivial, integral or standard layout)
+void WriteImm(std::uintptr_t& a_dst, const dku_h_pod_t auto& a_data, bool a_requestAlloc = false) noexcept;
 // write packed memory structure
-void WritePatch(std::uintptr_t& a_dst, const Patch* a_patch, bool a_forwardPtr = false, bool a_requestAlloc = false) noexcept;
+void WritePatch(std::uintptr_t& a_dst, const Patch* a_patch, bool a_requestAlloc = false) noexcept;
+void WritePatch(std::uintptr_t& a_dst, const Xbyak::CodeGenerator* a_patch, bool a_requestAlloc = false) noexcept;
 ```
-`forwardPtr` parameter will adjust the destination address by size of memory written, default is `false`. 
 `requestAlloc` parameter will request allocation from trampoline, this is meant to increase the internal trampoline pointer of next operable assembly space.
 
+---
+### Page allocation
+Before committing any action that requires a trampoline (e.g. detour hooks, cave hooks, asm patches with exceeding sizes), `DKUtil::Hook` requires a manual `dku::Hook::Trampoline::AllocTrampoline([size])` call to initiate a page allocation. This should be called only once, with sufficient size.
+
+---
+### Pattern scan
+To do a pattern scan, simple call:
+```C++
+auto* addr = dku::Hook::Assembly::search_pattern<
+				  "40 57 " // each pattern is separated by whitespace " "
+				  "48 83 EC 30 "
+				  "48 8B 0D ?? ?? ?? ?? " // wildcard is ??
+				  "48 8B FA "
+				  "48 81 C1 D0 00 00 00 "
+				  "E8 ?? ?? ?? ?? "
+				  "48 8B C8 "
+				  "E8 ?? ?? ?? ??">();
+INFO("found address at {:X}", AsAddress(addr));
+
+// delayed search
+auto TestAlByte = dku::Hook::Assembly::make_pattern<"84 C0">();
+auto addr = 0x7FF712345678;
+if (TestAlByte.match(addr)) {}
+```
+
+---
+### Detours
+Very simple relocation hooks that replaces `call/jmp` instruction with a hook.
+```C++
+// target instruction:
+// ...
+// 0x7FF712345675   mov rcx, rax 
+// 0x7FF712345678   call Game.exe+0x123456
+// ....
+
+class Hook
+{
+    static bool Hook_123456(void* a_gameInstance)
+    {
+        return func(a_gameInstance);
+    }
+
+    static inline std::add_pointer_t<decltype(Hook_123456)> func;
+
+public:
+    static void Install()
+    {
+        dku::Hook::Trampoline::AllocTrampoline(1 << 6); // this is global, once
+        auto addr = dku::Hook::Module::get().base() + 0x345678;
+        // or absolute
+        auto addr = 0x7FF712345678;
+
+        func = dku::Hook::write_call<5>(addr, Hook_IsAddonLoaded);
+    }
+};
+```
+
+---
 ### HookHandle
 `HookHandle` class is the result object of a succesful hook operation. `HookHandle` is used to access the hook related data and enable/disable the hook that created it.
 ```C++
@@ -149,10 +207,12 @@ float __cdecl Hook_MyAwesomeFunc(int a_awesomeInt) {
 }
 
 const auto funcAddr = REL::Relocation<std::uintptr_t>(REL::RelocationID(SE_FuncID, AE_FuncID)).address();
-// or 
+// or using with SKSE development
 const auto funcAddr = DKUtil::Hook::IDToAbs(AE_FuncID, SE_FuncID); // DKUtil uses alphabetical order so AE ID goes first
-// or
+// or absolute
 constexpr std::uintptr_t funcAddr = 0x7FF712345678;
+// or offset from module base
+constexpr std::uintptr_t funcAddr = dku::Hook::Module::get().base() + 0x345678;
 
 constexpr std::uintptr_t OffsetL = 0x120;
 constexpr std::uintptr_t OffsetH = 0x130;
@@ -172,7 +232,7 @@ _Hook_MAF = DKUtil::Hook::AddCaveHook(funcAddr, { OffsetL, OffsetH }, FUNC_INFO(
 
 _Hook_MAF->Enable();
 ```
-NOTE: If manually relocating fifth argument or more for hook function, use `mov [rsp-0x8*(argc-4)], [...]` instead of `push` because the stack space is pre-allocated within `DKUtil::Hook`.
+When composing arguments for custom cave functions, do follow [x64 calling convention](https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170)
 
 ---
 ### Virtual method table swap

@@ -197,7 +197,8 @@ namespace DKUtil::serialization
 
 			auto data = std::apply([&](auto&&... args) {
 				return decltype(a_data)(resolve(a_res, args)...);
-			}, std::forward<decltype(a_data)>(a_data));
+			},
+				std::forward<decltype(a_data)>(a_data));
 
 			DKU_X_LEAVE_LAYOUT();
 
@@ -302,11 +303,13 @@ namespace DKUtil::serialization
 
 			auto check = resolve(info, a_header.typeInfo);
 			if (!dku::string::iequals(check, a_header.typeInfo)) {
-				exception::report<type, true>(exception::code::unexpected_type_mismatch, 
+				exception::report<type, true>(exception::code::unexpected_type_mismatch,
 					fmt::format("ambiguous type with same hash encountered!\n"
-						"this is likely an error in plugin where updated data type is still using old id.\n"
-						"this is fatal, please contact the mod author.\n"
-						"expected type: {}\nencountered type: {}", a_header.typeInfo, check), a_header);
+								"this is likely an error in plugin where updated data type is still using old id.\n"
+								"this is fatal, please contact the mod author.\n"
+								"expected type: {}\nencountered type: {}",
+						a_header.typeInfo, check),
+					a_header);
 			}
 
 			return resolve<type>(info, a_data);

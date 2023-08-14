@@ -180,7 +180,7 @@ namespace DKUtil::Hook::Assembly
 
 #pragma pack(pop)
 
-	
+
 	namespace Pattern
 	{
 		namespace characters

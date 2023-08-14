@@ -155,7 +155,7 @@ namespace DKUtil::Config::detail
 
 		void Generate() noexcept override
 		{
-			auto tableGnt = []<typename RNG>(RNG && a_rng) {
+			auto tableGnt = []<typename RNG>(RNG&& a_rng) {
 				toml::array collection;
 				std::ranges::for_each(a_rng, [&collection](auto value) {
 					collection.push_back(value);

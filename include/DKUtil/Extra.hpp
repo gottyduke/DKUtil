@@ -9,20 +9,20 @@
 #if defined(SKSEAPI)
 
 
-#include <RE/Skyrim.h>
-#include <REL/Relocation.h>
-#include <SKSE/SKSE.h>
+#	include <RE/Skyrim.h>
+#	include <REL/Relocation.h>
+#	include <SKSE/SKSE.h>
 
 
-#include "Impl/pch.hpp"
+#	include "Impl/pch.hpp"
 
-#include "Impl/Extra/xconsole.hpp"
-#include "Impl/Extra/xserialize.hpp"
+#	include "Impl/Extra/xconsole.hpp"
+#	include "Impl/Extra/xserialize.hpp"
 
 
-#define DKU_X_VERSION_MAJOR 1
-#define DKU_X_VERSION_MINOR 0
-#define DKU_X_VERSION_REVISION 0
+#	define DKU_X_VERSION_MAJOR 1
+#	define DKU_X_VERSION_MINOR 0
+#	define DKU_X_VERSION_REVISION 0
 
 
 namespace DKUtil
