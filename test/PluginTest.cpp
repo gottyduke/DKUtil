@@ -1,8 +1,8 @@
 #include "ConfigTest.h"
 #include "HookTest.h"
 #include "LoggerTest.h"
-#include "UtilityTest.h"
 #include "SSEExtraTest.h"
+#include "UtilityTest.h"
 
 #define TEST_CONFIG
 #define TEST_HOOK

@@ -49,4 +49,4 @@ namespace Test::Extra
 
 		constexpr auto ss = dku::model::concepts::dku_aggregate<ActorDeathInfo>;
 	}
-} // namespace Test::Extra
+}  // namespace Test::Extra

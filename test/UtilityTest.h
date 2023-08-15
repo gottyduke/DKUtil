@@ -222,7 +222,7 @@ namespace Test::Utility
 		// 1) replace_nth
 		INFO("replace all \\ with |");
 		INFO(dku::string::replace_nth_occurrence(str, 0, pat, rep));
-		
+
 		INFO("remove all \\");
 		INFO(dku::string::replace_nth_occurrence(str, 0, pat));
 
@@ -235,7 +235,7 @@ namespace Test::Utility
 		INFO("replace 100th \\ with | (out of bound)");
 		INFO(dku::string::replace_nth_occurrence(str, 100, pat, rep));
 
-		
+
 		// 2) split, join
 		constexpr std::string_view words{ "DKUtil|TestUsage|Schema|String 002| That " };
 		auto token = dku::string::split(words, "|");
@@ -252,9 +252,9 @@ namespace Test::Utility
 	{
 		//TestNumbers();
 		//TestModel();
-		
+
 		//TestString();
-		
+
 		Enum::TestEnum();
 		Enum::TestEnumBitwidth();
 	}

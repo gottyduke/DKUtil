@@ -1,5 +1,5 @@
-#include "DKUtil/Logger.hpp"
 #include "DKUtil/Extra.hpp"
+#include "DKUtil/Logger.hpp"
 
 
 namespace Test::Logger
@@ -15,6 +15,5 @@ namespace Test::Logger
 
 	void RunError()
 	{
-
 	}
 }

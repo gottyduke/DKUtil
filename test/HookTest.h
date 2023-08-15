@@ -130,9 +130,11 @@ namespace Test::Hook
 
 				REL::Relocation<std::uintptr_t> AttackDistanceBase{ REL::RelocationID(49720, 50647) };
 				auto handle = DKUtil::Hook::AddASMPatch(
-					AttackDistanceBase.address(), 
-					{ 0x22, 0x2C }, 
-					{ "\x4C\x8B\x4C\x24\xB8""\xE9\x89\xFC\xFF\xFF", 10 });
+					AttackDistanceBase.address(),
+					{ 0x22, 0x2C },
+					{ "\x4C\x8B\x4C\x24\xB8"
+					  "\xE9\x89\xFC\xFF\xFF",
+						10 });
 
 				// recalculate displacement
 				const auto _originalFunc = *std::bit_cast<std::uintptr_t*>(AttackDistanceBase.address() + 0x23);
@@ -182,11 +184,11 @@ namespace Test::Hook
 
 
 				auto handle = DKUtil::Hook::AddCaveHook(
-					funcAddr, 
+					funcAddr,
 					{ OffsetL, OffsetH },
-					FUNC_INFO(RecalculateFallbackDistance), 
-					&RelocatePointer, 
-					&RelocateReturn, 
+					FUNC_INFO(RecalculateFallbackDistance),
+					&RelocatePointer,
+					&RelocateReturn,
 					HookFlag::kNoFlag);
 
 				handle->Enable();
@@ -212,7 +214,7 @@ namespace Test::Hook
 		static_assert(rules::Wildcard::match(std::byte{ 0xEB }));
 		static_assert(rules::Wildcard::match(std::byte{ 0x90 }));
 
-		
+
 		static_assert(assembly::make_pattern<"40 10 F2 ??">().match(
 			pattern::make_byte_array(0x40, 0x10, 0xF2, 0x41)));
 		static_assert(assembly::make_pattern<"B8 D0 ?? ?? D4 6E">().match(

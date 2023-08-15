@@ -215,8 +215,8 @@ namespace DKUtil
 #	include "F4SE/API.h"
 #	define TRAMPOLINE F4SE::GetTrampoline()
 #	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
-#elif defined(PLUGIN_MODE)		
-namespace Trampoline
+#elif defined(PLUGIN_MODE)
+		namespace Trampoline
 		{
 			extern inline void* Allocate(std::size_t a_size);
 		}

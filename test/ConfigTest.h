@@ -30,7 +30,7 @@ namespace Test::Config
 
 		INFO("{} {} {} {}", *iA, *sA, *bA, *dA);
 
-		std::string someRandomeName = DKUtil::Config::GetPath("AnotherBiteTheConfig.ini");		
+		std::string someRandomeName = DKUtil::Config::GetPath("AnotherBiteTheConfig.ini");
 		static auto runtime = RUNTIME_PROXY(someRandomeName);
 
 		runtime.Load();
@@ -41,4 +41,4 @@ namespace Test::Config
 			INFO("File -> {}", fi);
 		}
 	}
-} // namespace Test::Config
+}  // namespace Test::Config
