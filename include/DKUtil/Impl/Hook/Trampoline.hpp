@@ -13,48 +13,53 @@ namespace DKUtil::Hook::Trampoline
 		// https://stackoverflow.com/a/54732489/17295222
 		std::byte* PageAlloc(const std::size_t a_size, std::uintptr_t a_from = 0) noexcept
 		{
-			static ::DWORD dwAllocationGranularity;
+			release();
 
-			if (!dwAllocationGranularity) {
-				::SYSTEM_INFO si;
-				::GetSystemInfo(&si);
-				dwAllocationGranularity = si.dwAllocationGranularity;
-			}
+			constexpr std::size_t gigabyte = static_cast<std::size_t>(1) << 30;
+			constexpr std::size_t minRange = gigabyte * 2;
+			constexpr std::uintptr_t maxAddr = std::numeric_limits<std::uintptr_t>::max();
 
-			std::uintptr_t min, max, addr, add = static_cast<uintptr_t>(dwAllocationGranularity) - 1, mask = ~add;
+			::DWORD granularity;
+			::SYSTEM_INFO si;
+			::GetSystemInfo(&si);
+			granularity = si.dwAllocationGranularity;
 
 			if (!a_from) {
 				const auto textx = Module::get().section(Module::Section::textx);
-				a_from = textx.first + textx.second / 2;
+				a_from = textx.first + textx.second;
 			}
 
-			min = a_from >= 0x80000000 ? (a_from - 0x80000000 + add) & mask : 0;
-			max = a_from < (std::numeric_limits<uintptr_t>::max() - 0x80000000) ? (a_from + 0x80000000) & mask : std::numeric_limits<uintptr_t>::max();
+			std::uintptr_t min = a_from >= minRange ? numbers::roundup(a_from - minRange, granularity) : 0;
+			const std::uintptr_t max = a_from < (maxAddr - minRange) ? numbers::rounddown(a_from + minRange, granularity) : maxAddr;
+			std::uintptr_t addr = 0;
 
 			::MEMORY_BASIC_INFORMATION mbi;
 			do {
 				if (!::VirtualQuery(AsPointer(min), &mbi, sizeof(mbi))) {
-					return nullptr;
+					break;
 				}
 
 				min = AsAddress(mbi.BaseAddress) + mbi.RegionSize;
 
 				if (mbi.State == MEM_FREE) {
-					addr = (AsAddress(mbi.BaseAddress) + add) & mask;
+					addr = numbers::roundup(AsAddress(mbi.BaseAddress), granularity);
 
 					if (addr < min && a_size <= (min - addr)) {
 						if (auto* data = ::VirtualAlloc(AsPointer(addr), a_size, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE)) {
 							_capacity = a_size;
 							_data = static_cast<std::byte*>(data);
-							return _data;
+							break;
 						}
 					}
 				}
 
 			} while (min < max);
 
-			_capacity = 0;
-			_data = nullptr;
+			if (!_data || !_capacity) {
+				release();
+				FATAL("DKU_H: PageAlloc failed with code: 0x{:08X}"sv, ::GetLastError());
+			}
+
 			return _data;
 		}
 

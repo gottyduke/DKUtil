@@ -374,6 +374,15 @@ namespace DKUtil
 			return *newDisp;
 		}
 
+		constexpr void assert_trampoline_range(std::ptrdiff_t a_disp)
+		{
+			constexpr auto min = std::numeric_limits<std::int32_t>::min();
+			constexpr auto max = std::numeric_limits<std::int32_t>::max();
+
+			if (!(min <= a_disp && a_disp <= max)) {
+				FATAL("DKU_H: displacement is out of range for trampoline relocation!");
+			}
+		}
 
 		class Module
 		{
