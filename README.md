@@ -1,13 +1,13 @@
 <h1 align="center">DKUtil</h1>
 
-Some utilitarian headers to help with SKSE64 plugin development
+Some utilitarian headers to help with x64 native plugin development
 
 # Implementations
 [![Config](https://img.shields.io/badge/Config-1.1.3-R.svg)](/docs/Config.md)
 [![Hook](https://img.shields.io/badge/Hook-2.5.0-R.svg)](/docs/Hook.md)
 [![Logger](https://img.shields.io/badge/Logger-1.2.1-R.svg)](/docs/Logger.md)
 [![Utility](https://img.shields.io/badge/Utility-untracked-R.svg)](/docs/Utility.md)
-[![Extra](https://img.shields.io/badge/Extra-1.0.0-R.svg)](/docs/Extra.md)  
+[![Extra(For SKSE)](https://img.shields.io/badge/Extra-1.0.0-R.svg)](/docs/Extra.md)  
 
 + [Config](/docs/Config.md)
     - abstracted and contained config layer
@@ -17,6 +17,7 @@ Some utilitarian headers to help with SKSE64 plugin development
     - multiple file loads
     - generate default file
 + [Hook](/docs/Hook.md)
+    - pattern scanner 
     - asm patch
     - cave hook
     - virtual method table swap
@@ -29,7 +30,7 @@ Some utilitarian headers to help with SKSE64 plugin development
     + function
         + `consteval` helper functions retrieving the argument count of a function.
     + model
-        + `Singleton` data model abstract class to save boiler plater code.
+        + `Singleton` data model abstract class to save boilerplate code.
         + `enumeration` addition to the original `RE::stl::enumeration`.
             + static reflection for enum name, type name and value name, support value_type(`n`) and flag_type(`1<<n`)
             + `std::ranges` iterator for value_range(`n`) and flag_range(`1<<n`)
@@ -44,7 +45,7 @@ Some utilitarian headers to help with SKSE64 plugin development
         + various string related functions using `std::ranges`
 + [Extra(For SKSE)](/docs/Extra.md)  
     + `CONSOLE` logging macro but for in-game console.
-    + `serializable` painless, all-in-one serialization solution for SKSE plugins.
+    + `serializable` painless, all-in-one serialization solution for SKSE plugins.(Planned to move to general support instead of strict SKSE)
 
 # Consumption
 
