@@ -522,10 +522,10 @@ namespace DKUtil::Hook
 		tramPtr += sizeof(a_dst);
 
 		// detour
+		DetourAsm asmDetour{};
 		std::ptrdiff_t disp = tramPtr - a_src - sizeof(asmDetour);
 		assert_trampoline_range(disp);
 
-		DetourAsm asmDetour{};
 		asmDetour.Disp = static_cast<Disp32>(disp);
 		WriteData(a_src, asmDetour.data(), asmDetour.size(), false);
 
