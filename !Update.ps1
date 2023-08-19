@@ -12,27 +12,9 @@ param (
 $ErrorActionPreference = "Stop"
 
 $Folder = $PSScriptRoot | Split-Path -Leaf
-$SourceExt = @('.c', '.cc', '.cpp', '.cxx', '.h', '.hpp', '.hxx', '.inl', 'inc', '.ixx')
-$ConfigExt = @('.ini', '.json', '.toml')
+$SourceExt = @('.asm', '.c', '.cc', '.cpp', '.cxx', '.def', '.h', '.hpp', '.hxx', 'inc', '.inl', '.ixx')
+$ConfigExt = @('.ini', '.json', '.toml', '.xml')
 $DocsExt = @('.md')
-$env:ScriptCulture = (Get-Culture).Name -eq 'zh-CN'
-
-
-function L {
-    param (
-        [Parameter(Mandatory)][string]$en,
-        [string]$zh = ''
-    )
-	
-    process {
-        if ($env:ScriptCulture -and $zh) {
-            return $zh
-        }
-        else {
-            return $en
-        }
-    }
-}
 
 function Resolve-Files {
     param (
