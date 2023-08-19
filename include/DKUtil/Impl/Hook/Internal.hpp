@@ -128,7 +128,10 @@ namespace DKUtil::Hook
 			handle->TramPtr = TRAM_ALLOC(0);
 			DEBUG("DKU_H: ASM patch tramoline entry -> {:X}", handle->TramPtr);
 
-			asmDetour.Disp = static_cast<Imm32>(handle->TramPtr - handle->TramEntry - asmDetour.size());
+			std::ptrdiff_t disp = handle->TramPtr - handle->TramEntry - asmDetour.size();
+			assert_trampoline_range(disp);
+
+			asmDetour.Disp = static_cast<Disp32>(disp);
 			std::memcpy(handle->PatchBuf.data(), asmDetour.data(), asmDetour.size());
 
 			WriteData(handle->TramPtr, a_patch.first, a_patch.second, true);
@@ -271,7 +274,10 @@ namespace DKUtil::Hook
 
 		auto handle = std::make_unique<CaveHookHandle>(a_address, tramPtr, a_offset);
 
-		asmDetour.Disp = static_cast<Disp32>(handle->TramPtr - handle->CavePtr - asmDetour.size());
+		std::ptrdiff_t disp = handle->TramPtr - handle->CavePtr - asmDetour.size();
+		assert_trampoline_range(disp);
+
+		asmDetour.Disp = static_cast<Disp32>(disp);
 		std::memcpy(handle->CaveBuf.data(), asmDetour.data(), asmDetour.size());
 
 		if (a_flag.any(HookFlag::kRestoreBeforeProlog)) {
