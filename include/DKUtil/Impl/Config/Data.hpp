@@ -106,7 +106,8 @@ namespace DKUtil::Config::detail
 			if (_isCollection) {
 				return *_collection;
 			} else {
-				ERROR(".get_collection is called on config value {} while it holds singular data!\n\nCheck .is_collection before accessing collcetion!", _key);
+				FATAL(".get_collection is called on config value {} while it holds singular data!\n\nCheck .is_collection before accessing collcetion!", _key);
+				std::unreachable();
 			}
 		}
 		[[nodiscard]] constexpr auto get_size() const noexcept { return _isCollection ? _collection->size() : 0; }
