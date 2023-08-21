@@ -48,23 +48,20 @@ namespace DKUtil::Config::detail
 								double input;
 								if (raw->second.is_array() && raw->second.as_array()) {
 									if (raw->second.as_array()->size() == 1 &&
-										raw->second.as_array()->front().as_floating_point()) {
-										input = raw->second.as_array()->front().as_floating_point()->get();
+										raw->second.as_array()->front().value<double>()) {
+										input = raw->second.as_array()->front().value<double>().value();
 									} else if (raw->second.as_array()->size()) {
 										std::vector<double> array;
 										for (auto& node : *raw->second.as_array()) {
-											if (node.as_floating_point()) {
-												array.push_back(node.as_floating_point()->get());
-											}
+											// default to 0 for numeric types
+											array.push_back(node.value_or<double>(0.0));
 										}
 
 										data->As<double>()->set_data(array);
 										break;
 									}
 								} else {
-									if (raw->second.as_floating_point()) {
-										input = raw->second.as_floating_point()->get();
-									}
+									input = raw->second.value_or<double>(0.0);
 								}
 
 								data->As<double>()->set_data(input);
@@ -74,24 +71,31 @@ namespace DKUtil::Config::detail
 							{
 								std::int64_t input;
 								if (raw->second.is_array() && raw->second.as_array()) {
-									if (raw->second.as_array()->size() == 1 &&
-										raw->second.as_array()->front().as_integer()) {
-										input = raw->second.as_array()->front().as_integer()->get();
+									if (raw->second.as_array()->size() == 1) {
+										auto& front = raw->second.as_array()->front();
+										// downcast
+										input = front.value<std::int64_t>() ?
+										            front.value<std::int64_t>().value() :
+										            front.value_or<double>(0);
 									} else if (raw->second.as_array()->size() > 1) {
 										std::vector<std::int64_t> array;
 										for (auto& node : *raw->second.as_array()) {
-											if (node.as_integer()) {
-												array.push_back(node.as_integer()->get());
-											}
+											// default to 0 for numeric types
+											// downcast
+											input = node.value<std::int64_t>() ?
+											            node.value<std::int64_t>().value() :
+											            node.value_or<double>(0);
+											array.push_back(input);
 										}
 
 										data->As<std::int64_t>()->set_data(array);
 										break;
 									}
 								} else {
-									if (raw->second.as_integer()) {
-										input = raw->second.as_integer()->get();
-									}
+									// downcast
+									input = raw->second.value<std::int64_t>() ? 
+										raw->second.value<std::int64_t>().value() : 
+										raw->second.value_or<double>(0);
 								}
 
 								data->As<std::int64_t>()->set_data(input);
