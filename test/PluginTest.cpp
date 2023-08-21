@@ -5,10 +5,10 @@
 #include "UtilityTest.h"
 
 #define TEST_CONFIG
-#define TEST_HOOK
-#define TEST_LOGGER
-#define TEST_UTILITY
-#define TEST_CUSTOM
+//#define TEST_HOOK
+//#define TEST_LOGGER
+//#define TEST_UTILITY
+//#define TEST_CUSTOM
 #define TEST_AND_EXIT
 
 namespace

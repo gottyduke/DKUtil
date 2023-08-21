@@ -247,15 +247,20 @@ namespace Test::Utility
 		INFO(dku::string::join(token, "|"));
 	}
 
+	void TestTest()
+	{
+
+	}
+
 
 	void Run() noexcept
 	{
 		//TestNumbers();
 		//TestModel();
 
-		//TestString();
+		TestString();
 
-		Enum::TestEnum();
-		Enum::TestEnumBitwidth();
+		//Enum::TestEnum();
+		//Enum::TestEnumBitwidth();
 	}
 }

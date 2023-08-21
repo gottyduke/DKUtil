@@ -19,16 +19,19 @@ namespace Test::Config
 		auto MainJson = COMPILE_PROXY("DKUtilDebugger.json"sv);
 		auto MainToml = COMPILE_PROXY("DKUtilDebugger.toml"sv);
 
-		MainIni.Bind(iA, 10);
-		MainIni.Bind(sA, "First", "Second", "Third");
-		MainIni.Bind(bA, true);
-		MainIni.Bind(dA, 114.514);
+		MainToml.Bind(iA, 10);
+		MainToml.Bind(sA, "First", "Second", "Third");
+		MainToml.Bind(bA, true);
+		MainToml.Bind(dA, 114.514);
 
-		MainIni.Load();
+		MainToml.Load();
 		MainJson.Load();
 		MainToml.Load();
 
 		INFO("{} {} {} {}", *iA, *sA, *bA, *dA);
+		for (auto f : dA.get_collection()) {
+			INFO("{}", f);
+		}
 
 		std::string someRandomeName = DKUtil::Config::GetPath("AnotherBiteTheConfig.ini");
 		static auto runtime = RUNTIME_PROXY(someRandomeName);
