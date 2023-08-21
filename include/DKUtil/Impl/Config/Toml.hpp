@@ -93,9 +93,9 @@ namespace DKUtil::Config::detail
 									}
 								} else {
 									// downcast
-									input = raw->second.value<std::int64_t>() ? 
-										raw->second.value<std::int64_t>().value() : 
-										raw->second.value_or<double>(0);
+									input = raw->second.value<std::int64_t>() ?
+									            raw->second.value<std::int64_t>().value() :
+									            raw->second.value_or<double>(0);
 								}
 
 								data->As<std::int64_t>()->set_data(input);
