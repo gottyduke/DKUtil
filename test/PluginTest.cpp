@@ -32,7 +32,6 @@ namespace
 #endif
 	}
 }
-/**/
 
 
 int main()
