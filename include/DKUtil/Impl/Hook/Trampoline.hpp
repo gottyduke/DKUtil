@@ -63,6 +63,14 @@ namespace DKUtil::Hook::Trampoline
 			return _data;
 		}
 
+		void set_trampoline(void* a_mem, std::size_t a_size)
+		{
+			release();
+
+			_data = static_cast<std::byte*>(a_mem);
+			_capacity = a_size;
+		}
+
 		[[nodiscard]] void* allocate(std::size_t a_size)
 		{
 			auto result = do_allocate(a_size);
