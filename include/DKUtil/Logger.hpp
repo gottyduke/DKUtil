@@ -74,7 +74,7 @@
 #		if defined(F4SEAPI)
 #			define LOG_PATH "My Games\\Fallout4\\F4SE"sv
 #		elif defined(SFSEAPI)
-#			define LOG_PATH "My Games\\Starfield\\SFSE"sv
+#			define LOG_PATH "My Games\\Starfield\\SFSE\\Logs"sv
 #		elif defined(SKSEAPI)
 #			define IS_AE REL::Module::IsAE()
 #			define IS_SE REL::Module::IsSE()
