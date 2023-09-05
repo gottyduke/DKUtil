@@ -56,7 +56,7 @@ namespace DKUtil::Hook::Assembly
 
 		DEF_ASM
 
-		OpCode Op = 0xE8;	// cd
+		OpCode Op = 0xE8;  // cd
 		Disp32 Disp = 0x00000000;
 	};
 	using CallRel = BranchRel<true>;
@@ -74,8 +74,8 @@ namespace DKUtil::Hook::Assembly
 
 		DEF_ASM
 
-		OpCode Op = 0xFF;	// 2 | 4
-		ModRM Rm = 0x25;	// 1 0 1
+		OpCode Op = 0xFF;  // 2 | 4
+		ModRM Rm = 0x25;   // 1 0 1
 		Disp32 Disp = 0x00000000;
 	};
 	using CallRip = BranchRip<true>;
@@ -94,7 +94,7 @@ namespace DKUtil::Hook::Assembly
 
 		constexpr auto full() noexcept { return static_cast<Imm64>(Low) << 32 | High; }
 
-		OpCode Push = 0x68;	// id
+		OpCode Push = 0x68;  // id
 		Imm32 Low = 0x00000000u;
 		OpCode Mov = 0xC7;  // 0 id
 		ModRM Sib = 0x44;   // 1 0 0
@@ -115,8 +115,8 @@ namespace DKUtil::Hook::Assembly
 		DEF_ASM
 
 		REX W = 0x48;
-		OpCode Op = 0x83;	// 0 | 5 ib
-		ModRM Rm = 0xEC;	// 1 0 0
+		OpCode Op = 0x83;  // 0 | 5 ib
+		ModRM Rm = 0xEC;   // 1 0 0
 		Imm8 Size = 0x00;
 	};
 	static_assert(sizeof(SubRsp<true>) == 0x4);
@@ -141,7 +141,7 @@ namespace DKUtil::Hook::Assembly
 
 		DEF_ASM
 
-		OpCode Push = 0x50;	// id
+		OpCode Push = 0x50;  // id
 	};
 	static_assert(sizeof(PushR64<false>) == 0x1);
 
@@ -167,7 +167,7 @@ namespace DKUtil::Hook::Assembly
 		DEF_ASM
 
 		REX B = 0x41;
-		OpCode Push = 0x50;	// id
+		OpCode Push = 0x50;  // id
 	};
 	static_assert(sizeof(PushR64W<false>) == 0x2);
 

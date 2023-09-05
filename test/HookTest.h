@@ -229,12 +229,16 @@ namespace Test::Hook
 		Impl::FallbackDistanceHook::InstallHook();
 	}
 
-	#define PACK_BIG_ENDIAN(lo1, lo2, hi1, hi2) ((((lo1)&0xFF) << 0) | (((lo2)&0xFF) << 8) | (((hi1)&0xFF) << 16) | ((hi2)&0xFF) << 24)
+#define PACK_BIG_ENDIAN(lo1, lo2, hi1, hi2) ((((lo1)&0xFF) << 0) | (((lo2)&0xFF) << 8) | (((hi1)&0xFF) << 16) | ((hi2)&0xFF) << 24)
 	void TestDispHelpers()
 	{
 		constexpr OpCode asmBuf[] = {
-			0x8C, 0x05,
-			0x78, 0x56, 0x34, 0x12,
+			0x8C,
+			0x05,
+			0x78,
+			0x56,
+			0x34,
+			0x12,
 		};
 
 		auto rip = &asmBuf[0];

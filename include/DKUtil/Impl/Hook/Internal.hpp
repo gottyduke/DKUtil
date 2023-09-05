@@ -117,7 +117,7 @@ namespace DKUtil::Hook
 
 		if (a_patch.second > (a_offset.second - a_offset.first)) {
 			DEBUG("DKU_H: ASM patch size exceeds the patch capacity, enabled trampoline");
-			dku_assert((a_offset.second - a_offset.first) >= sizeof(JmpRel), 
+			dku_assert((a_offset.second - a_offset.first) >= sizeof(JmpRel),
 				"DKU_H: ASM patch size exceeds the patch capacity & cannot fulfill the minimal trampoline requirement");
 
 			JmpRel asmDetour;  // cave -> tram
