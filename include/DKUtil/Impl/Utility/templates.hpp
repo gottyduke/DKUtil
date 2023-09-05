@@ -85,6 +85,11 @@ namespace DKUtil::model
 			dku_trivial<T> && 
 			!dku_string<T> &&
 			!std::is_same_v<T, bool>;
+
+		template <typename T>
+		concept dku_memory = 
+			std::is_pointer_v<T> ||
+			std::is_constructible_v<T, std::uintptr_t>;
 	} // namespace concepts
 	// clang-format on
 

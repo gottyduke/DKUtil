@@ -51,12 +51,12 @@ namespace DKUtil::Hook::Assembly
 	struct BranchRel
 	{
 		constexpr BranchRel(Disp32 disp = 0) :
-			Jmp(RETN ? 0xE8 : 0xE9), Disp(disp)
+			Op(RETN ? 0xE8 : 0xE9), Disp(disp)
 		{}
 
 		DEF_ASM
 
-		OpCode Jmp = 0xE8;  // cd
+		OpCode Op = 0xE8;	// cd
 		Disp32 Disp = 0x00000000;
 	};
 	using CallRel = BranchRel<true>;
@@ -69,13 +69,13 @@ namespace DKUtil::Hook::Assembly
 	struct BranchRip
 	{
 		constexpr BranchRip(Disp32 disp = 0) :
-			Rip(RETN ? 0x15 : 0x25), Disp(disp)
+			Rm(RETN ? 0x15 : 0x25), Disp(disp)
 		{}
 
 		DEF_ASM
 
-		OpCode Jmp = 0xFF;  // 2 | 4
-		ModRM Rip = 0x25;   // 1 0 1
+		OpCode Op = 0xFF;	// 2 | 4
+		ModRM Rm = 0x25;	// 1 0 1
 		Disp32 Disp = 0x00000000;
 	};
 	using CallRip = BranchRip<true>;
@@ -94,7 +94,7 @@ namespace DKUtil::Hook::Assembly
 
 		constexpr auto full() noexcept { return static_cast<Imm64>(Low) << 32 | High; }
 
-		OpCode Push = 0x68;  // id
+		OpCode Push = 0x68;	// id
 		Imm32 Low = 0x00000000u;
 		OpCode Mov = 0xC7;  // 0 id
 		ModRM Sib = 0x44;   // 1 0 0
@@ -109,14 +109,14 @@ namespace DKUtil::Hook::Assembly
 	struct SubRsp
 	{
 		constexpr SubRsp(Imm8 s = 0) :
-			Rsp(ADD ? 0xC4 : 0xEC), Size(s)
+			Rm(ADD ? 0xC4 : 0xEC), Size(s)
 		{}
 
 		DEF_ASM
 
 		REX W = 0x48;
-		OpCode Sub = 0x83;  // 0 | 5 ib
-		ModRM Rsp = 0xEC;   // 1 0 0
+		OpCode Op = 0x83;	// 0 | 5 ib
+		ModRM Rm = 0xEC;	// 1 0 0
 		Imm8 Size = 0x00;
 	};
 	static_assert(sizeof(SubRsp<true>) == 0x4);
@@ -134,16 +134,14 @@ namespace DKUtil::Hook::Assembly
 			}
 
 			constexpr auto rm = std::bit_cast<std::uint32_t>(reg);
-			if constexpr (rm > 0xEC) {
-				ERROR("Use PushR64W for REX.B operations (2 byte opcode)");
-			}
+			dku_cassert(rm <= 0xEC, "Use PushR64W for REX.B operations (2 byte opcode)");
 
 			Push += rm;
 		}
 
 		DEF_ASM
 
-		OpCode Push = 0x50;  // id
+		OpCode Push = 0x50;	// id
 	};
 	static_assert(sizeof(PushR64<false>) == 0x1);
 
@@ -161,9 +159,7 @@ namespace DKUtil::Hook::Assembly
 			}
 
 			constexpr auto rm = std::bit_cast<std::uint32_t>(reg);
-			if constexpr (rm <= 0xEC) {
-				ERROR("Use PushR64 for base operations (1 byte opcode)");
-			}
+			dku_cassert(rm > 0xEC, "Use PushR64 for base operations (1 byte opcode)");
 
 			Push += rm;
 		}
@@ -171,7 +167,7 @@ namespace DKUtil::Hook::Assembly
 		DEF_ASM
 
 		REX B = 0x41;
-		OpCode Push = 0x50;  // id
+		OpCode Push = 0x50;	// id
 	};
 	static_assert(sizeof(PushR64W<false>) == 0x2);
 
@@ -281,8 +277,8 @@ namespace DKUtil::Hook::Assembly
 				if (!this->match(a_address)) {
 					ERROR(
 						"A pattern has failed to match.\n"
-						"This means the plugin is incompatible with the current version of the game.\n"
-						"Head to the mod page of this plugin to see if an update is available.\n");
+						"This means the plugin is incompatible with the current version of the binary.\n"
+						"Check if an update is available.\n");
 				}
 			}
 

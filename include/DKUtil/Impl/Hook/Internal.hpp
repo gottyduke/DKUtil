@@ -110,17 +110,15 @@ namespace DKUtil::Hook
 		const unpacked_data a_patch = std::make_pair(nullptr, 0),
 		const bool a_forward = true) noexcept
 	{
-		if (!a_address || !a_patch.first || !a_patch.second) {
-			ERROR("DKU_H: Invalid ASM patch");
-		}
+		dku_assert(a_address && a_patch.first && a_patch.second,
+			"DKU_H: Invalid ASM patch");
 
 		auto handle = std::make_unique<ASMPatchHandle>(a_address, a_offset);
 
 		if (a_patch.second > (a_offset.second - a_offset.first)) {
 			DEBUG("DKU_H: ASM patch size exceeds the patch capacity, enabled trampoline");
-			if ((a_offset.second - a_offset.first) < sizeof(JmpRel)) {
-				ERROR("DKU_H: ASM patch size exceeds the patch capacity & cannot fulfill the minimal trampoline requirement");
-			}
+			dku_assert((a_offset.second - a_offset.first) >= sizeof(JmpRel), 
+				"DKU_H: ASM patch size exceeds the patch capacity & cannot fulfill the minimal trampoline requirement");
 
 			JmpRel asmDetour;  // cave -> tram
 			JmpRel asmReturn;  // tram -> cave
@@ -504,7 +502,8 @@ namespace DKUtil::Hook
 			auto handle = std::make_unique<IATHookHandle>(iat, a_funcInfo.address(), a_importName, a_funcInfo.name().data());
 			return std::move(handle);
 		}
-		ERROR("DKU_H: IAT reached the end of table\n\nMethod {} not found", a_importName);
+
+		FATAL("DKU_H: IAT reached the end of table\n\nMethod {} not found", a_importName);
 	}
 
 
@@ -518,7 +517,6 @@ namespace DKUtil::Hook
 		auto tramPtr = TRAM_ALLOC(0);
 
 		// assumes assembly is safe to read
-		// 7FF6813A2D7F
 		auto rel = *adjust_pointer<Disp32>(AsPointer(a_src), N - sizeof(Disp32));
 		rel += N;
 		const Imm64 func = a_src + rel;
