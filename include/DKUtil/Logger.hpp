@@ -202,7 +202,7 @@ namespace DKUtil::Logger
 #if defined(PLUGIN_MODE)
 		INFO("Logger init - {} {}", a_name, a_version);
 #elif defined(SKSEAPI)
-		INFO("Logger init - {} {}", IS_VR ? MODE_VR : MODE, a_version);
+		INFO("Logger init - {} {}", MODE, a_version);
 #else
 		INFO("Logger init - {} {}", MODE, a_version);
 #endif
