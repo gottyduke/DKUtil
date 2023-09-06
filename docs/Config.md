@@ -13,6 +13,9 @@ If the data is initialized as a collection, the pointer to its members can be ac
 
 To declare configuration varaibles:
 ```C++
+// by default the config lookup directory is current process directory
+// this can be manually overriden
+#define CONFIG_PATH "configs\\"
 #include "DKUtil/Config.hpp"
 
 using namespace DKUtil::Alias; // type alias
@@ -107,6 +110,8 @@ void Load() noexcept
     auto RuntimeConfig = RUNTIME_PROXY(runtimeFile); // will be evaluated to toml proxy at runtime
 }
 ```
+`DKUtil::Config` will generate a default config file with that type if it's missing.
+
 
 ---
 <a href="/docs/Config.md">Config</a> | <a href="/docs/Hook.md">Hook</a> | <a href="/docs/Logger.md">Logger</a> | <a href="/docs/Utility.md">Utility</a> | <a href="/docs/Extra.md">Extra</a></p>

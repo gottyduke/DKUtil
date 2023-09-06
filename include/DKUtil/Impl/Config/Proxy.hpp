@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Shared.hpp"
+#include "shared.hpp"
 
 
 #define __eval_helper(SRC) DKUtil::Config::EvaluateConfig([]() { return SRC; })
@@ -117,7 +117,9 @@ namespace DKUtil::Config
 		{
 			DEBUG("DKU_C: Proxy#{}: Loading -> {}", _id, _filename);
 
-			_parser->Parse(a_data);
+			if (GenerateIfMissing()) {
+				_parser->Parse(a_data);
+			}
 		}
 
 		void Write(const std::string_view a_file = {}) noexcept
@@ -135,11 +137,29 @@ namespace DKUtil::Config
 		{
 			static_assert(ConfigFileType != FileType::kSchema, "Schema parser cannot use regular data bindings!");
 
-			_manager.try_emplace(a_data.get_key(), std::addressof(a_data));
+			_manager.try_emplace(a_data.get_key(), std::make_pair(std::addressof(a_data), a_data.get_section()));
 			a_data.set_range({ min, max });
 			a_data.set_data({ static_cast<data_t>(a_value)... });
 		}
 
+		constexpr void Generate() noexcept
+		{
+			DEBUG("DKU_C: Proxy#{}: Generating -> {}", _id, _filename);
+
+			_parser->Generate();
+		}
+
+		constexpr bool GenerateIfMissing() noexcept
+		{
+			auto found = std::filesystem::exists(_parser->filepath());
+
+			if (!found) {
+				Generate();
+				Write();
+			}
+
+			return found;
+		}
 
 		[[nodiscard]] constexpr auto get_id() const noexcept { return _id; }
 		[[nodiscard]] constexpr auto get_filename() const noexcept { return _filename; }
@@ -152,6 +172,6 @@ namespace DKUtil::Config
 		const std::string _filename;
 		FileType _type;
 		std::unique_ptr<parser_t> _parser;
-		std::unordered_map<std::string_view, detail::IData*> _manager;  // key, data*
+		detail::manager _manager;  // key, <data*, section?>
 	};
 }  // namespace DKUtil::Config

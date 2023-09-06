@@ -2,6 +2,13 @@
 
 
 /*
+ * 2.6.0
+ * Added pattern scan modules;
+ * Completed trampoline implementation;
+ * 
+ * 2.5.3
+ * Fixed stack alignment, force 0x20 allocation;
+ * 
  * 2.5.2
  * Adaptation of file structural changes;
  * 
@@ -93,7 +100,7 @@
 #pragma warning(disable: 4244)
 
 
-#include "Impl/PCH.hpp"
+#include "Impl/pch.hpp"
 
 
 namespace DKUtil
@@ -102,9 +109,9 @@ namespace DKUtil
 }  // namespace DKUtil
 
 
-#include "Impl/Hook/Shared.hpp"
+#include "Impl/Hook/shared.hpp"
 
-#include "Impl/Hook/API.hpp"
+#include "Impl/Hook/api.hpp"
 
 
 namespace DKUtil::Alias
@@ -116,6 +123,9 @@ namespace DKUtil::Alias
 	using IATHandle = DKUtil::Hook::IATHookHandle;
 
 	using Reg = DKUtil::Hook::Assembly::Register;
+	template <class... Rules>
+	using Pattern = DKUtil::Hook::Assembly::Pattern::PatternMatcher<Rules...>;
+
 	using HookFlag = DKUtil::Hook::HookFlag;
 }  // namespace DKUtil::Alias
 

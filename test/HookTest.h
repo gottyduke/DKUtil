@@ -130,9 +130,11 @@ namespace Test::Hook
 
 				REL::Relocation<std::uintptr_t> AttackDistanceBase{ REL::RelocationID(49720, 50647) };
 				auto handle = DKUtil::Hook::AddASMPatch(
-					AttackDistanceBase.address(), 
-					{ 0x22, 0x2C }, 
-					{ "\x4C\x8B\x4C\x24\xB8""\xE9\x89\xFC\xFF\xFF", 10 });
+					AttackDistanceBase.address(),
+					{ 0x22, 0x2C },
+					{ "\x4C\x8B\x4C\x24\xB8"
+					  "\xE9\x89\xFC\xFF\xFF",
+						10 });
 
 				// recalculate displacement
 				const auto _originalFunc = *std::bit_cast<std::uintptr_t*>(AttackDistanceBase.address() + 0x23);
@@ -182,11 +184,11 @@ namespace Test::Hook
 
 
 				auto handle = DKUtil::Hook::AddCaveHook(
-					funcAddr, 
+					funcAddr,
 					{ OffsetL, OffsetH },
-					FUNC_INFO(RecalculateFallbackDistance), 
-					&RelocatePointer, 
-					&RelocateReturn, 
+					FUNC_INFO(RecalculateFallbackDistance),
+					&RelocatePointer,
+					&RelocateReturn,
 					HookFlag::kNoFlag);
 
 				handle->Enable();
@@ -197,10 +199,66 @@ namespace Test::Hook
 	}  // namespace Impl
 
 
-	void Run()
+	void TestPattern()
+	{
+		namespace assembly = DKUtil::Hook::Assembly;
+		namespace pattern = DKUtil::Hook::Assembly::Pattern;
+		namespace rules = DKUtil::Hook::Assembly::Pattern::rules;
+
+		static_assert(rules::Hexadecimal<'E', 'B'>::match(std::byte{ 0xEB }));
+		static_assert(rules::Hexadecimal<'9', '0'>::match(std::byte{ 0x90 }));
+		static_assert(rules::Hexadecimal<'0', 'F'>::match(std::byte{ 0x0F }));
+		static_assert(rules::Hexadecimal<'C', 'C'>::match(std::byte{ 0xCC }));
+		static_assert(rules::Hexadecimal<'1', '2'>::match(std::byte{ 0x12 }));
+		static_assert(rules::Wildcard::match(std::byte{ 0xCC }));
+		static_assert(rules::Wildcard::match(std::byte{ 0xEB }));
+		static_assert(rules::Wildcard::match(std::byte{ 0x90 }));
+
+
+		static_assert(assembly::make_pattern<"40 10 F2 ??">().match(
+			pattern::make_byte_array(0x40, 0x10, 0xF2, 0x41)));
+		static_assert(assembly::make_pattern<"B8 D0 ?? ?? D4 6E">().match(
+			pattern::make_byte_array(0xB8, 0xD0, 0x35, 0x2A, 0xD4, 0x6E)));
+	}
+
+
+	void TestHooks()
 	{
 		Impl::RecalculateCombatRadiusHook::InstallHook();
 		Impl::RescaleCircleChanceHook::InstallHook();
 		Impl::FallbackDistanceHook::InstallHook();
+	}
+
+#define PACK_BIG_ENDIAN(lo1, lo2, hi1, hi2) ((((lo1)&0xFF) << 0) | (((lo2)&0xFF) << 8) | (((hi1)&0xFF) << 16) | ((hi2)&0xFF) << 24)
+	void TestDispHelpers()
+	{
+		constexpr OpCode asmBuf[] = {
+			0x8C,
+			0x05,
+			0x78,
+			0x56,
+			0x34,
+			0x12,
+		};
+
+		auto rip = &asmBuf[0];
+		INFO("rip {:X}", AsAddress(rip));
+		INFO("Op : 0x{:2X}", rip[0]);
+		auto dst = dku::Hook::GetDisp(rip);
+		INFO("dst : 0x{:X}", dst);
+		auto disp = dst - AsAddress(rip) - sizeof(asmBuf);
+		INFO("disp : 0x{:X}", disp);
+
+		auto offset = sizeof(asmBuf) - sizeof(Disp32);
+		auto packed = PACK_BIG_ENDIAN(asmBuf[offset + 0], asmBuf[offset + 1], asmBuf[offset + 2], asmBuf[offset + 3]);
+		dku_assert(packed == disp, "");
+	}
+
+
+	void Run()
+	{
+		//TestHooks();
+		//TestPattern();
+		TestDispHelpers();
 	}
 }

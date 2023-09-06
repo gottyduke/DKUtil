@@ -1,21 +1,34 @@
 #pragma once
 
 
-#include "Assembly.hpp"
-#include "Internal.hpp"
-#include "Shared.hpp"
-#include "Trampoline.hpp"
+#include "assembly.hpp"
+#include "internal.hpp"
+#include "shared.hpp"
+#include "trampoline.hpp"
 
 
 namespace DKUtil::Hook
 {
+	// wrapped write_call APIs in CLib style
+	template <std::size_t N, class F>
+	inline F write_branch(std::uintptr_t a_src, F a_dst)
+	{
+		return std::bit_cast<F>(AddRelHook<N, false>(a_src, unrestricted_cast<std::uintptr_t>(a_dst)));
+	}
+
+	template <std::size_t N, class F>
+	inline F write_call(std::uintptr_t a_src, F a_dst)
+	{
+		return std::bit_cast<F>(AddRelHook<N, true>(a_src, unrestricted_cast<std::uintptr_t>(a_dst)));
+	}
+
 	inline auto AddASMPatch(
 		const std::uintptr_t a_address,
 		const offset_pair a_offset,
 		const Xbyak::CodeGenerator* a_xbyak,
 		const bool a_forward = true) noexcept
 	{
-		return AddASMPatch(a_address, a_offset, { a_xbyak->getCode(), a_xbyak->getSize() }, a_forward);
+		return AddASMPatch(a_address, a_offset, std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()), a_forward);
 	}
 
 	inline auto AddASMPatch(
@@ -24,15 +37,15 @@ namespace DKUtil::Hook
 		const Patch* a_patch,
 		const bool a_forward = true) noexcept
 	{
-		return AddASMPatch(a_address, a_offset, { a_patch->Data, a_patch->Size }, a_forward);
+		return AddASMPatch(a_address, a_offset, std::make_pair(a_patch->Data, a_patch->Size), a_forward);
 	}
 
 	inline auto AddCaveHook(
 		const std::uintptr_t a_address,
 		const offset_pair a_offset,
 		const FuncInfo a_funcInfo,
-		const Xbyak::CodeGenerator* a_prolog = nullptr,
-		const Xbyak::CodeGenerator* a_epilog = nullptr,
+		const Xbyak::CodeGenerator* a_prolog,
+		const Xbyak::CodeGenerator* a_epilog,
 		model::enumeration<HookFlag> a_flag = HookFlag::kSkipNOP) noexcept
 	{
 		return AddCaveHook(
@@ -46,8 +59,8 @@ namespace DKUtil::Hook
 		const std::uintptr_t a_address,
 		const offset_pair a_offset,
 		const FuncInfo a_funcInfo,
-		const Patch* a_prolog = nullptr,
-		const Patch* a_epilog = nullptr,
+		const Patch* a_prolog,
+		const Patch* a_epilog,
 		model::enumeration<HookFlag> a_flag = HookFlag::kSkipNOP) noexcept
 	{
 		return AddCaveHook(
@@ -61,39 +74,37 @@ namespace DKUtil::Hook
 		const void* a_vtbl,
 		const std::uint16_t a_index,
 		const FuncInfo a_funcInfo,
-		const Xbyak::CodeGenerator* a_xbyak = nullptr) noexcept
+		const Xbyak::CodeGenerator* a_xbyak) noexcept
 	{
-		return AddVMTHook(a_vtbl, a_index, a_funcInfo,
-			a_xbyak ? std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()) : std::make_pair(nullptr, 0));
+		return AddVMTHook(a_vtbl, a_index, a_funcInfo, std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()));
 	}
 
 	inline auto AddVMTHook(
 		const void* a_vtbl,
 		const std::uint16_t a_index,
 		const FuncInfo a_funcInfo,
-		const Patch* a_patch = nullptr) noexcept
+		const Patch* a_patch) noexcept
 	{
-		return AddVMTHook(a_vtbl, a_index, a_funcInfo,
-			a_patch ? std::make_pair(a_patch->Data, a_patch->Size) : std::make_pair(nullptr, 0));
+		return AddVMTHook(a_vtbl, a_index, a_funcInfo, std::make_pair(a_patch->Data, a_patch->Size));
 	}
 
 	inline auto AddIATHook(
-		const char* a_moduleName,
-		const char* a_methodName,
+		std::string_view a_moduleName,
+		std::string_view a_libraryName,
+		std::string_view a_importName,
 		const FuncInfo a_funcInfo,
-		const Xbyak::CodeGenerator* a_xbyak = nullptr) noexcept
+		const Xbyak::CodeGenerator* a_xbyak) noexcept
 	{
-		return AddIATHook(a_moduleName, a_methodName, a_funcInfo,
-			a_xbyak ? std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()) : std::make_pair(nullptr, 0));
+		return AddIATHook(a_moduleName, a_libraryName, a_importName, a_funcInfo, std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()));
 	}
 
 	inline auto AddIATHook(
-		const char* a_moduleName,
-		const char* a_methodName,
+		std::string_view a_moduleName,
+		std::string_view a_libraryName,
+		std::string_view a_importName,
 		const FuncInfo a_funcInfo,
-		const Patch* a_patch = nullptr) noexcept
+		const Patch* a_patch) noexcept
 	{
-		return AddIATHook(a_moduleName, a_methodName, a_funcInfo,
-			a_patch ? std::make_pair(a_patch->Data, a_patch->Size) : std::make_pair(nullptr, 0));
+		return AddIATHook(a_moduleName, a_libraryName, a_importName, a_funcInfo, std::make_pair(a_patch->Data, a_patch->Size));
 	}
 }  // namespace DKUtil::Hook

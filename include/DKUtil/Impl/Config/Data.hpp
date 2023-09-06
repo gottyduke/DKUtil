@@ -1,23 +1,11 @@
 #pragma once
 
 
-#include "Shared.hpp"
+#include "shared.hpp"
 
 
 namespace DKUtil::Config::detail
 {
-	template <typename data_t>
-	concept dku_c_numeric =
-		(std::convertible_to<data_t, std::int64_t> || std::convertible_to<data_t, double>) && !
-	std::convertible_to<data_t, std::basic_string<char>>;
-
-
-	template <typename data_t>
-	concept dku_c_trivial_t =
-		(dku_c_numeric<data_t> || std::convertible_to<data_t, bool>) && !
-	std::convertible_to<data_t, std::basic_string<char>>;
-
-
 	enum class DataType
 	{
 		kBoolean,
@@ -118,13 +106,15 @@ namespace DKUtil::Config::detail
 			if (_isCollection) {
 				return *_collection;
 			} else {
-				ERROR(".get_collection is called on config value {} while it holds singular data!\n\nCheck .is_collection before accessing collcetion!", _key);
+				FATAL(".get_collection is called on config value {} while it holds singular data!\n\nCheck .is_collection before accessing collcetion!", _key);
+				std::unreachable();
 			}
 		}
 		[[nodiscard]] constexpr auto get_size() const noexcept { return _isCollection ? _collection->size() : 0; }
 		[[nodiscard]] constexpr auto get_type() const noexcept { return typeid(data_t).name(); }
 		constexpr void debug_dump() const noexcept
 		{
+#ifndef NDEBUG
 			if (_isCollection) {
 				std::ranges::for_each(*_collection, [&](data_t val) {
 					DEBUG("Setting collection value [{}] to [{}]", val, _key);
@@ -132,6 +122,7 @@ namespace DKUtil::Config::detail
 			} else {
 				DEBUG("Setting value [{}] to [{}]", _data, _key);
 			}
+#endif
 		}
 
 		constexpr void set_data(data_t a_value) noexcept
@@ -165,7 +156,7 @@ namespace DKUtil::Config::detail
 			_isCollection = (a_collection.size() > 1);
 			[[likely]] if (_isCollection) {
 				_collection = std::make_unique<collection>(std::move(a_collection));
-				_data = a_collection.front();
+				_data = _collection->front();
 			}
 
 			clamp();
@@ -174,14 +165,14 @@ namespace DKUtil::Config::detail
 
 		constexpr void set_range(std::pair<double, double> a_range)
 		{
-			if constexpr (dku_c_numeric<data_t>) {
+			if constexpr (model::concepts::dku_numeric<data_t>) {
 				_range = a_range;
 			}
 		}
 
 		constexpr void clamp()
 		{
-			if (!dku_c_numeric<data_t> || _range.first > _range.second) {
+			if (!model::concepts::dku_numeric<data_t> || _range.first > _range.second) {
 				return;
 			}
 
@@ -192,7 +183,7 @@ namespace DKUtil::Config::detail
 			};
 
 			if (_isCollection) {
-				*_collection | std::views::transform(single_clamp);
+				*_collection = std::move(*_collection | std::views::transform(single_clamp) | std::ranges::to<collection>());
 				_data = _collection->front();
 			} else {
 				_data = single_clamp(_data);

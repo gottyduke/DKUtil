@@ -151,3 +151,17 @@ using namespace std::literals;
 namespace DKUtil
 {};
 namespace dku = DKUtil;
+
+#define dku_assert(cond, ...)   \
+	{                           \
+		if (!((cond))) {        \
+			FATAL(__VA_ARGS__); \
+		}                       \
+	}
+
+#define dku_cassert(constexpr_cond, ...)     \
+	{                                        \
+		if constexpr (!((constexpr_cond))) { \
+			FATAL(__VA_ARGS__);              \
+		}                                    \
+	}

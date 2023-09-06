@@ -2,7 +2,7 @@
 
 # args
 param (
-    [string]$CF
+    [string]$CF = $env:clang_format_instance
 )
 
 $CF

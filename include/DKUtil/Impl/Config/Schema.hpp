@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "Data.hpp"
+#include "data.hpp"
 
 #include "SimpleIni.h"
 
@@ -18,10 +18,6 @@ namespace DKUtil::Config::detail
 		}
 
 		void Write(const std::string_view a_filePath) noexcept override
-		{
-		}
-
-		const void* Data() noexcept override
 		{
 		}
 
