@@ -173,6 +173,7 @@ namespace DKUtil
 			default:
 				{
 					ERROR("DKU_H: Runtime patch failed to relocate for unknown runtime!");
+					return (const Patch*)nullptr;
 				}
 			}
 		}
