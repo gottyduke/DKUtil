@@ -18,7 +18,11 @@
 #	include "F4SE/API.h"
 #	define TRAMPOLINE F4SE::GetTrampoline()
 #	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
-#elif defined(SFSEAPI) || defined(PLUGIN_MODE)
+#elif defined(SFSEAPI)
+#	include "SFSE/API.h"
+#	define TRAMPOLINE SFSE::GetTrampoline()
+#	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
+#elif defined(PLUGIN_MODE)
 #	define TRAMPOLINE Trampoline::GetTrampoline()
 #	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
 #endif
