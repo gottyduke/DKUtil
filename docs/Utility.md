@@ -21,13 +21,14 @@ Some helper functions used within other DKUtil headers.
     + `to_wstring` method
     + `concat` compile time string concatenation.
     + various string related functions using `std::ranges`
-  
+
+---
 ## enumeration
 On the basis of original `stl::enumeration`, `DKUtil::enumeration` adds the following:
 * static reflection for enum value name, type name and class name.
 * `std::ranges` iterator adaptor for value_range/flag_range.
 * expanded ctor with concept restraint auto templates.
-> static reflection is not implemented using external lib, DKUtil wraps a lightweight compile time nasty macro inside.
+> static reflection is not implemented using external lib, DKUtil wraps a lightweight compile time **nasty** macro inside.
 
 ```C++
 enum class Color : std::uint32_t
@@ -65,6 +66,7 @@ for (const ColorFlag c : flagTbl.flag_range(ColorFlag::red, ColorFlag::white)) {
 }
 ```
 
+---
 ## struct_cast, tuple_cast, concepts
 compile time conversion for same aligned struct/tuple
 ```C++
@@ -93,6 +95,21 @@ static_assert(dku::model::concepts::dku_bindable<decltype(tv)>);
 static_assert(dku::model::concepts::dku_ranges<decltype(av)>);
 static_assert(dku::model::concepts::dku_trivial_ranges<decltype(av)>);
 ```
+
+---
+## `dku::string`
++ iequal
++ icontains
++ istarts_with
++ iends_with
++ lexical_cast
++ remove_non_alphanumeric
++ remove_non_numeric
++ replace_nth_occurrence
++ split (support multiple delimiters)
++ join
++ trim
++ static_string
 
 ---
 <a href="/docs/Config.md">Config</a> | <a href="/docs/Hook.md">Hook</a> | <a href="/docs/Logger.md">Logger</a> | <a href="/docs/Utility.md">Utility</a> | <a href="/docs/Extra.md">Extra</a></p>

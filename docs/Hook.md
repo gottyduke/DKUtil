@@ -3,40 +3,36 @@
 
 [Hook Source](/include/DKUtil/Hook.hpp)
 
-Some personal APIs to write hooks and memory patches with enable/disable control.    
+Some APIs to write hooks and memory patches.    
 + Assembly memory patch
 + Function cave hook
 + Virtual method table hook
 + Import address table hook 
-+ For NG-integration, scroll below
-
-## Forewords
-Since this library is mainly used to help with SKSE64 plugin developments, and to clarify the usage between `DKUtil::Hook` and `CommonLibSSE::REL`:  
-They are designed for different use scenarios. ~~To just replace a game `call/jmp subroutine` instruction with a `call/jmp` to designated hook function, by all means, use the `trampoline::write_call/write_branch`.~~ `DKUtil::Hook` now also offers `write_call/write_branch`. To weave a function call in assembly that do not have `call/jmp` type of instructions, then use `DKUtil::Hook`.  
++ Simple function detour
 
 ## API
 
 ### Memory editing
 `DKUtil::Hook` offers some memory writing methods like other library does.
-```C++
+
+```cpp
 // write raw data with size
-void WriteData(std::uintptr_t& a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = false) noexcept;
+void WriteData(std::uintptr_t a_dst, const void* a_data, const std::size_t a_size) noexcept;
 // write immediate value (trivial, integral or standard layout)
-void WriteImm(std::uintptr_t& a_dst, const dku_h_pod_t auto& a_data, bool a_requestAlloc = false) noexcept;
+void WriteImm(std::uintptr_t a_dst, const dku_h_pod_t auto& a_data) noexcept;
 // write packed memory structure
-void WritePatch(std::uintptr_t& a_dst, const Patch* a_patch, bool a_requestAlloc = false) noexcept;
-void WritePatch(std::uintptr_t& a_dst, const Xbyak::CodeGenerator* a_patch, bool a_requestAlloc = false) noexcept;
+void WritePatch(std::uintptr_t a_dst, const Patch* a_patch) noexcept;
+void WritePatch(std::uintptr_t a_dst, const Xbyak::CodeGenerator* a_patch) noexcept;
 ```
-`requestAlloc` parameter will request allocation from trampoline, this is meant to increase the internal trampoline pointer of next operable assembly space.
 
 ---
 ### Page allocation
-Before committing any action that requires a trampoline (e.g. detour hooks, cave hooks, asm patches with exceeding sizes), `DKUtil::Hook` requires a manual `dku::Hook::Trampoline::AllocTrampoline([size])` call to initiate a page allocation. This should be called only once, with sufficient size.
+Before committing any action that requires a trampoline (e.g. detour hooks, cave hooks, asm patches with exceeding sizes), `DKUtil::Hook` requires a manual `dku::Hook::Trampoline::AllocTrampoline(size)` call to initiate a page allocation. This should be called **only once**, with sufficient size.
 
 ---
 ### Pattern scan
 To do a pattern scan, simple call:
-```C++
+```cpp
 auto* addr = dku::Hook::Assembly::search_pattern<
 				  "40 57 " // each pattern is separated by whitespace " "
 				  "48 83 EC 30 "
@@ -48,7 +44,7 @@ auto* addr = dku::Hook::Assembly::search_pattern<
 				  "E8 ?? ?? ?? ??">();
 INFO("found address at {:X}", AsAddress(addr));
 
-// delayed search
+// delayed match
 auto TestAlByte = dku::Hook::Assembly::make_pattern<"84 C0">();
 auto addr = 0x7FF712345678;
 if (TestAlByte.match(addr)) {}
@@ -57,7 +53,7 @@ if (TestAlByte.match(addr)) {}
 ---
 ### Detours
 Very simple relocation hooks that replaces `call/jmp` instruction with a hook.
-```C++
+```cpp
 // target instruction:
 // ...
 // 0x7FF712345675   mov rcx, rax 
@@ -81,6 +77,7 @@ public:
         // or absolute
         auto addr = 0x7FF712345678;
 
+        // save original function
         func = dku::Hook::write_call<5>(addr, Hook_IsAddonLoaded);
     }
 };
@@ -88,8 +85,8 @@ public:
 
 ---
 ### HookHandle
-`HookHandle` class is the result object of a succesful hook operation. `HookHandle` is used to access the hook related data and enable/disable the hook that created it.
-```C++
+`HookHandle` class is the result object of a succesful `DKUtil::Hook` operation. `HookHandle` is used to access the hook related data and enable/disable the hook that created it.
+```cpp
 HookHandle handle;
 
 // hook control
@@ -100,7 +97,7 @@ handle->Disable();
 ---
 ### Memory Structure
 `DKUtil::Hook` supports a few ways of passing memory patches/data to the hook. Using example of `mov rcx, qword ptr [rsp+0x20]`:
-```C++
+```cpp
 struct XbyakPatch : Xbyak::CodeGenerator
 {
     XbyakPatch
@@ -116,88 +113,94 @@ DKUtil::Patch DKUPatch {
 
 std::array<std::uint8_t, 5> RawPatch{ 0x48, 0x8B, 0x4C, 0x24, 0x20 };
 ```
-The `DKUtil::Hook` functions are overloaded to accept above memory structure pointers in place of `Patch*`.
+The `DKUtil::Hook` functions are overloaded to accept above memory structure pointers.
 
 ---
 ### ASM Patch
+
+#### API
 Apply assembly patch in the body of execution
-- `address` : memory address of the **BEGINNING** of target function
-- `offsets` : pair containing the offsets of the begining and the end of operable assembly
-- `patch` : pointer to the memory patch data structure, it ultimately unpacks into `std::pair<const void*, std::size_t>`
+- `address` : address of the target function
+- `offsets` : pair containing the {begin, end} offsets of target instruction to patch
+- `patch` : pointer to the memory patch data structure(see above)
 - `forward` : bool value indicating skipping the rest of `NOP` space
-```C++
-/* API */
+```cpp
 ASMPatchHandle AddASMPatch(
     std::uintptr_t a_address,
     std::pair<std::ptrdiff_t, std::ptrdiff_t> a_offset,
-    std::pair<const void*, std::size_t> a_patch,
+    Patch* a_patch,
     bool a_forward = true
 ) noexcept
+```
 
-/* example */
-
+#### Example
+```cpp
 using namespace DKUtil::Alias;
 
-const auto funcAddr = REL::Relocation<std::uintptr_t>(REL::RelocationID(SE_FuncID, AE_FuncID)).address();
-// or 
-const auto funcAddr = DKUtil::Hook::IDToAbs(AE_FuncID, SE_FuncID); // DKUtil uses alphabetical order so AE ID goes first
-// or
-constexpr std::uintptr_t funcAddr = 0x7FF712345678;
+std::uintptr_t funcAddr = 0x7FF712345678;
+// or offset from module base
+std::uintptr_t funcAddr = dku::Hook::Module::get().base() + 0x345678;
 
-constexpr std::uintptr_t OffsetL = 0x120;
-constexpr std::uintptr_t OffsetH = 0x130;
+// mark the begin and the end of target code to patch
+// starts at funcAddr + 0x120
+// ends at funcAddr + 0x130
+auto offset = std::make_pair(0x120, 0x130);
 
-constexpr OpCode AsmSrc[]{
+// this is raw patch, you can also use xbyak or DKUtil::Hook::Patch
+OpCode AsmSrc[]{
     0xB8,					// mov eax,
     0x00, 0x00, 0x00, 0x00, // Imm32
     0x89, 0XC1,				// mov ecx, eax
 };
 
-HookHandle _Hook_ASM; // can be defined out of scope
-
-_Hook_UES = DKUtil::Hook::AddASMPatch(funcAddr, { OffsetL, OffsetH }, { &AsmPatch, sizeof(AsmSrc) }); // using in-place raw data
-// various ways of calling
-_Hook_UES = DKUtil::Hook::AddASMPatch(funcAddr, { OffsetL, OffsetH }, &DKUPatch); // using wrapper
-_Hook_UES = DKUtil::Hook::AddASMPatch(funcAddr, { OffsetL, OffsetH }, &XbyakPatch); // using xbyak
-_Hook_UES = DKUtil::Hook::AddASMPatch(funcAddr, { OffsetL, OffsetH }, { RawPatch.data(), RawPatch.size() }); // using raw data
+auto _Hook_UES = DKUtil::Hook::AddASMPatch(funcAddr, offset, { &AsmPatch, sizeof(AsmSrc) }); // using in-place raw data
+// various ways of patching
+_Hook_UES = DKUtil::Hook::AddASMPatch(funcAddr, offset, &DKUPatch); // using wrapper
+_Hook_UES = DKUtil::Hook::AddASMPatch(funcAddr, offset, &XbyakPatch); // using xbyak
+_Hook_UES = DKUtil::Hook::AddASMPatch(funcAddr, offset, { RawPatch.data(), RawPatch.size() }); // using raw data
 
 _Hook_UES->Enable();
 ```
-If the given assembly space defined by `offsets` is less than the size of assembly patch, a trampoline will be utilized to fulfill the space, this action requires a minimal assembly space of `0x5`.  
-The bool paramter `forward` indicates whether to skip the rest of `NOP` after applying the patch.
+
+#### Auto Trampoline
+If the given assembly space defined by `offsets` is less than the size of assembly patch, a trampoline will be utilized to fulfill the patch and setup the auto detour/return. This action requires a minimal assembly space of `0x5`.  
+The bool paramter `forward` indicates whether to skip the rest of `NOP` after applying the patch.  
 
 ---
 ### Cave Hook
+
+#### API
 Branch to hook function in the body of execution from target function.
-* `address` : memory address of the **BEGINNING** of target function
-* `offsets` : pair containing the offsets of the begining and the end of operable assembly
-* `funcInfo` : FUNC_INFO or RT_INFO wrapper of hook function
+* `address` : address of the target function
+* `offsets` : pair containing the {begin, end} offsets of target instruction to patch 
+* `funcInfo` : FUNC_INFO wrapper of hook function
 * `prolog` : memory patch **before** detouring to hook function
 * `epilog` : memory patch **after** returning from hook function
 * `flag` : specifies special operation on cave hook  
-```C++
-/* API */
+```cpp
+CaveHookHandle AddCaveHook(
+    std::uintptr_t a_address,
+    std::pair<std::ptrdiff_t, std::ptrdiff_t> a_offset,
+    FuncInfo a_funcInfo,
+    Patch* a_prolog,
+    Patch* a_epilog,
+    HookFlag a_flag = HookFlag::kSkipNOP
+) noexcept
+
 enum class HookFlag : std::uint32_t
 {
     kNoFlag,
 
     kSkipNOP,				// skip NOPs
-    kRestoreBeforeProlog,	// apply stolens before prolog
-    kRestoreAfterProlog,	// apply stolens after prolog
-    kRestoreBeforeEpilog,	// apply stolens before epilog
-    kRestoreAfterEpilog,	// apply stolens after epilog
+    kRestoreBeforeProlog,	// apply original bytes before prolog
+    kRestoreAfterProlog,	// apply original bytes after prolog
+    kRestoreBeforeEpilog,	// apply original bytes before epilog
+    kRestoreAfterEpilog,	// apply original bytes after epilog
 };
+```
 
-CaveHookHandle AddCaveHook(
-    std::uintptr_t a_address,
-    std::pair<std::ptrdiff_t, std::ptrdiff_t> a_offset,
-    FuncInfo a_funcInfo,
-    std::pair<const void*, std::size_t> a_prolog,
-    std::pair<const void*, std::size_t> a_epilog,
-    DKUtil::model::enumeration<HookFlag> a_flag = HookFlag::kSkipNOP
-) noexcept
-
-/* example */
+#### Example
+```cpp
 using namespace DKUtil::Alias;
 
 // hook function
@@ -206,51 +209,50 @@ float __cdecl Hook_MyAwesomeFunc(int a_awesomeInt) {
     return static_cast<float>(a_awesomeInt);
 }
 
-const auto funcAddr = REL::Relocation<std::uintptr_t>(REL::RelocationID(SE_FuncID, AE_FuncID)).address();
-// or using with SKSE development
-const auto funcAddr = DKUtil::Hook::IDToAbs(AE_FuncID, SE_FuncID); // DKUtil uses alphabetical order so AE ID goes first
-// or absolute
-constexpr std::uintptr_t funcAddr = 0x7FF712345678;
+std::uintptr_t funcAddr = 0x7FF712345678;
 // or offset from module base
-constexpr std::uintptr_t funcAddr = dku::Hook::Module::get().base() + 0x345678;
+std::uintptr_t funcAddr = dku::Hook::Module::get().base() + 0x345678;
 
-constexpr std::uintptr_t OffsetL = 0x120;
-constexpr std::uintptr_t OffsetH = 0x130;
+// mark the begin and the end of target code to patch
+// starts at funcAddr + 0x120
+// ends at funcAddr + 0x130
+auto offset = std::make_pair(0x120, 0x130);
 
-constexpr DKUtil::Hook::Patch Epilog = {
+// this is DKUtil::Hook::Patch, you can also use xbyak or raw patch
+// move return value to xmm3
+DKUtil::Hook::Patch Epilog = {
     "\x0F\x10\xD8", // movups xmm3, xmm0
     0x3 // size of patch
 };
 
-HookHandle _Hook_MAF; // can be defined out of scope
-
-_Hook_MAF = DKUtil::Hook::AddCaveHook(funcAddr, { OffsetL, OffsetH }, FUNC_INFO(Hook_MyAwesomeFunc), nullptr, &Epilog);// various ways of calling
-_Hook_MAF = DKUtil::Hook::AddCaveHook(funcAddr, { OffsetL, OffsetH }, FUNC_INFO(Hook_MyAwesomeFunc)); // same as trampoline.write_call<5>
-_Hook_MAF = DKUtil::Hook::AddCaveHook(funcAddr, { OffsetL, OffsetH }, FUNC_INFO(Hook_MyAwesomeFunc), nullptr, &Epilog); // epilog only
-_Hook_MAF = DKUtil::Hook::AddCaveHook(funcAddr, { OffsetL, OffsetH }, FUNC_INFO(Hook_MyAwesomeFunc), &Prolog, nullptr); // prolog only
-_Hook_MAF = DKUtil::Hook::AddCaveHook(funcAddr, { OffsetL, OffsetH }, FUNC_INFO(Hook_MyAwesomeFunc), &Prolog, &Epilog, { HookFlag::kSkipNOP, HookFlag::kRestoreBeforeProlog }); // prolog & epilog, and apply stolen bytes before applying prolog
+auto _Hook_MAF = DKUtil::Hook::AddCaveHook(funcAddr, offset, FUNC_INFO(Hook_MyAwesomeFunc), nullptr, &Epilog, DKUtil::Hook::HookFlag::kRestoreAfterEpilog);
 
 _Hook_MAF->Enable();
 ```
-When composing arguments for custom cave functions, do follow [x64 calling convention](https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170)
+> Under the hood it's NO-OP all bytes from funcAddr + 0x120 to funcAddr + 0x130, set a branch call to Hook_MyAwesomeFunc, apply custom epilog patch, then apply original bytes taken from 0x120 to 0x130 afterwards, finally return to 0x130.
+
+> When composing arguments for custom cave functions, do follow [x64 calling convention](https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention?view=msvc-170)
 
 ---
 ### Virtual method table swap
+
+#### API
 Swaps a virtual method table function with target function
 * `vtbl` : pointer to virtual method table (base address of class object)
-* `index` : index of the virtual function in the virtual method table
-* `funcInfo` : FUNC_INFO or RT_INFO wrapped function
+* `index` : **index** of the virtual function in the virtual method table
+* `funcInfo` : FUNC_INFO wrapped function
 * `patch` : prolog patch before detouring to target function
-```C++
-/* API */
+```cpp
 VMTHookHandle AddVMTHook(
     void* a_vtbl,
     std::uint16_t a_index,
     FuncInfo a_funcInfo,
-    std::pair<const void*, std::size_t> a_patch
+    Patch* a_patch
 ) noexcept
+```
 
-/* example */
+#### Example
+```cpp
 using namespace DKUtil::Alias;
 
 class Dummy
@@ -267,14 +269,9 @@ Dummy* dummy = new Dummy();
 using MsgFunc = std::add_pointer_t<void(Dummy*)>;
 MsgFunc oldMsgA;
 MsgFunc oldMsgB;
-// or
-REL::Relocation<decltype(Dummy::MsgA)> oldMsgA;
-REL::Relocation<decltype(Dummy::MsgB)> oldMsgB;
 
 // swap function
 void MsgC(Dummy* a_this) { 
-    INFO("Called MsgC"sv);
-
     // call original function
     oldMsgA(a_this);
     oldMsgB(a_this);
@@ -282,6 +279,7 @@ void MsgC(Dummy* a_this) {
 
 auto _Hook_MsgA = DKUtil::Hook::AddVMTHook(dummy, 0, FUNC_INFO(MsgC));
 auto _Hook_MsgB = DKUtil::Hook::AddVMTHook(dummy, 1, FUNC_INFO(MsgC));
+
 // save original function
 oldMsgA = reinterpret_cast<MsgFunc>(_Hook_MsgA->OldAddress);
 oldMsgB = reinterpret_cast<MsgFunc>(_Hook_MsgB->OldAddress);
@@ -292,27 +290,30 @@ _Hook_MsgB->Enable();
 
 ---
 ### Import address table swap
+
+#### API
 Swaps a import address table method with target function
 * `moduleName` : name of the target module that import address table resides
 * `methodName` : name of the target method to be swapped
-* `funcInfo` : FUNC_INFO or RT_INFO wrapped function
+* `funcInfo` : FUNC_INFO wrapped function
 * `patch` : prolog patch before detouring to target function
-```C++
-/* API */
+```cpp
 inline auto AddIATHook(
     const char* a_moduleName,
     const char* a_methodName,
     const FuncInfo a_funcInfo,
-    std::pair<const void*, std::size_t> a_patch
+    Patch* a_patch
 ) 
+```
 
-/* example */
+#### Example
+```cpp
 using namespace DKUtil::Alias;
 
-constexpr const char* ModuleName = "kernel32.dll";
+const char* ModuleName = "kernel32.dll";
 // or 
-constexpr const char* ModuleName = GetProcessName(0); // Or optional HMODULE of target module
-constexpr const char* MethodName = "Sleep";
+const char* ModuleName = GetProcessName(0); // Or optional HMODULE of target module
+const char* MethodName = "Sleep";
 
 // target function signature
 using SleepFunc = std::add_pointer_t<void(WINAPI)(DWORD)>;
@@ -334,17 +335,33 @@ oldSleep = reinterpret_cast<SleepFunc>(_Hook_Sleep->OldAddress);
 _Hook_Sleep->Enable();
 ```
 
-## NG integration
-To complement CommonLibSSE-NG's runtime multitargeting feature that assigns different address depends on the current runtime, `DKUtil::Hook` also offers runtime counterparts of:  
-```C++
-DKUtil::ID2Abs(std::uintptr_t AE_ID, std::uintptr_t SE_ID, std::uintptr_t Optional_VR_ID); // runtime address based on ID
-DKUtil::RuntimeOffset(
-    std::pair<std::ptrdiff_t, std::ptrdiff_t> AE_Offset_Low_High, 
-    std::pair<std::ptrdiff_t, std::ptrdiff_t> SE_Offset_Low_High,
-    std::pair<std::ptrdiff_t, std::ptrdiff_t> Optional_VR_Offset_Low_High); // runtime offset pairs
-DKUtil::RuntimePatch(DKUtil::Patch* AE_Patch, DKUtil::Patch* SE_Patch, DKUtil::Patch* Optional_VR_Patch); // runtime memory patches
-// Patch* is overloaded with Xbyak::CodeGenerator* and std::pair<const void*, std::size_t>
+---
+### Useful functions
+
+#### `GetDisp`
+To get the actual address of a rip displacement used in an instruction.
+```cpp
+// e.g. we want the actual function address in this callsite
+// 0x141234567 : call [rip + 0x30]
+std::uintptr_t funcAddr = dku::Hook::GetDisp(0x141234567);
+// or lea rax, ds: [rip + 0x1110]
+auto actorSingleton = dku::Hook::GetDisp<void**>(0x141234567);
+// or mov rax, ds: [rip + 0x114514]
+bool significance = *dku::Hook::GetDisp<bool*>(0x141234567);
 ```
+
+#### `adjust_pointer`
+Offset a pointer type with type cast.
+```cpp
+// read bool member value at 0x220 from a class pointer
+auto& member = *dku::Hook::adjust_pointer<bool>(actorSingleton, 0x220);
+```
+
+#### `GetImportAddress`
+Get import address of method in a module.
+
+#### others...
+Fell free to read the source files!
 
 ---
 <a href="/docs/Config.md">Config</a> | <a href="/docs/Hook.md">Hook</a> | <a href="/docs/Logger.md">Logger</a> | <a href="/docs/Utility.md">Utility</a> | <a href="/docs/Extra.md">Extra</a></p>

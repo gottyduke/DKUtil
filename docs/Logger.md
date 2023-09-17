@@ -3,26 +3,16 @@
 
 [Logger Source](/include/DKUtil/Logger.hpp)
 
-Some SKSE style macro loggers with `spdlog` backend.
+Some macro style loggers with `spdlog` backend.
 
 ## Init
 ```C++
-// by default the log directory is current process directory
+// by default the log directory is current process path
 // this can be manually overriden
 #define LOG_PATH "logs\\"
 #include "DKUtil/Logger.hpp"
 
-
-DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
-{
-    // this
-	DKUtil::Logger::Init(Plugin::NAME, REL::Module::get().version().string());
-	
-	INFO("{} v{} loaded", Plugin::NAME, Plugin::Version);
-
-	return true;
-}
-// or during SKSEPlugin_Query if developing for SE exclusively.
+DKUtil::Logger::Init(NameString, VersionString);
 ```
 
 ## macro
@@ -42,6 +32,7 @@ DISABLE_DEBUG
 // or change log level manually
 DKUtil::Logger::SetLevel(spdlog::level::level_enums);
 ```
+> For fmt syntax, refer to [fmtlib syntax](https://fmt.dev/latest/syntax.html).
 
 ---
 <a href="/docs/Config.md">Config</a> | <a href="/docs/Hook.md">Hook</a> | <a href="/docs/Logger.md">Logger</a> | <a href="/docs/Utility.md">Utility</a> | <a href="/docs/Extra.md">Extra</a></p>
