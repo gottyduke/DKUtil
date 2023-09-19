@@ -405,7 +405,6 @@ namespace DKUtil
 						dku_assert(opSeq[1] != 0x1D && opSeq[1] != 0x2D,
 							"DKU_H: GetDisp does not support reading FAR proc memory in different segment");
 					}
-					[[fallthrough]];
 				// mov/lea /r
 				case 0x88:
 				case 0x89:
