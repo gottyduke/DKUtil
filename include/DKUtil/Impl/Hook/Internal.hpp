@@ -521,9 +521,11 @@ namespace DKUtil::Hook
 		auto tramPtr = TRAM_ALLOC(0);
 
 		// assumes assembly is safe to read
-		auto rel = *adjust_pointer<Disp32>(AsPointer(a_src), N - sizeof(Disp32));
-		rel += N;
-		const Imm64 func = a_src + rel;
+		Imm64 func = GetDisp(a_src);
+		// /2 /4 indirect
+		if constexpr (N == 6) {
+			func = *std::bit_cast<Imm64*>(func);
+		}
 
 		// tram entry
 		WriteImm(tramPtr, a_dst, true);
@@ -532,17 +534,23 @@ namespace DKUtil::Hook
 		// detour
 		DetourAsm asmDetour{};
 		std::ptrdiff_t disp = tramPtr - a_src - sizeof(asmDetour);
+		if constexpr (N == 6) {
+			disp -= sizeof(a_dst);
+		}
 		assert_trampoline_range(disp);
 
 		asmDetour.Disp = static_cast<Disp32>(disp);
 		WriteData(a_src, asmDetour.data(), asmDetour.size(), false);
 
-		// branch
-		JmpRip asmBranch;
-		asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
-		asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
-		WriteData(tramPtr, asmBranch.data(), asmBranch.size(), true);
-		tramPtr += asmBranch.size();
+		if constexpr (N == 5) {
+			// branch
+			JmpRip asmBranch;
+			asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
+			asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
+
+			WriteData(tramPtr, asmBranch.data(), asmBranch.size(), true);
+			tramPtr += asmBranch.size();
+		}
 
 		DEBUG(
 			"DKU_H: Detouring...\n"
