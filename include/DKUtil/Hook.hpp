@@ -1,7 +1,23 @@
 #pragma once
 
 
-/*
+/* 
+ * 2.6.5
+ * Added AssumeNonVolatile helper for preserving registers across call boundaries;
+ *
+ * 2.6.4
+ * Separated internal implementations details into individual headers;
+ * 
+ * 2.6.3
+ * SFSEAPI integration;
+ * Fixed wrong Hook indirect call layout
+ * 
+ * 2.6.2
+ * Added GetDisp helper function;
+ * 
+ * 2.6.1
+ * Assert trampoline in range;
+ * 
  * 2.6.0
  * Added pattern scan modules;
  * Completed trampoline implementation;
@@ -92,8 +108,8 @@
 
 
 #define DKU_H_VERSION_MAJOR 2
-#define DKU_H_VERSION_MINOR 5
-#define DKU_H_VERSION_REVISION 2
+#define DKU_H_VERSION_MINOR 6
+#define DKU_H_VERSION_REVISION 4
 
 
 #pragma warning(push)
