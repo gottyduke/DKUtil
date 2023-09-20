@@ -3,9 +3,9 @@
 Some utilitarian headers to help with x64 native plugin development
 
 # Implementations
-[![Config](https://img.shields.io/badge/Config-1.1.3-R.svg)](/docs/Config.md)
-[![Hook](https://img.shields.io/badge/Hook-2.5.0-R.svg)](/docs/Hook.md)
-[![Logger](https://img.shields.io/badge/Logger-1.2.1-R.svg)](/docs/Logger.md)
+[![Config](https://img.shields.io/badge/Config-1.1.6-R.svg)](/docs/Config.md)
+[![Hook](https://img.shields.io/badge/Hook-2.6.4-R.svg)](/docs/Hook.md)
+[![Logger](https://img.shields.io/badge/Logger-1.2.3-R.svg)](/docs/Logger.md)
 [![Utility](https://img.shields.io/badge/Utility-untracked-R.svg)](/docs/Utility.md)
 [![Extra(For SKSE)](https://img.shields.io/badge/Extra-1.0.0-R.svg)](/docs/Extra.md)  
 
