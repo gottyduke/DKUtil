@@ -33,6 +33,32 @@ namespace DKUtil::Hook::Assembly
 		R13 = 1u << 14,
 		R14 = 1u << 15,
 		R15 = 1u << 16,
+
+		ALL = 1u << 17,
+	};
+
+	enum class SIMD : std::uint32_t
+	{
+		NONE = 0u,
+
+		XMM0 = 1u << 0,
+		XMM1 = 1u << 1,
+		XMM2 = 1u << 2,
+		XMM3 = 1u << 3,
+		XMM4 = 1u << 4,
+		XMM5 = 1u << 5,
+		XMM6 = 1u << 6,
+		XMM7 = 1u << 7,
+		XMM8 = 1u << 8,
+		XMM9 = 1u << 9,
+		XMM10 = 1u << 10,
+		XMM11 = 1u << 11,
+		XMM12 = 1u << 12,
+		XMM13 = 1u << 13,
+		XMM14 = 1u << 14,
+		XMM15 = 1u << 15,
+
+		ALL = 1u << 16,
 	};
 
 #pragma pack(push, 1)
