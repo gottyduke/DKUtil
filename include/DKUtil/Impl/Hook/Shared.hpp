@@ -1,16 +1,13 @@
 #pragma once
 
-
 #include "DKUtil/Impl/pch.hpp"
 #include "DKUtil/Logger.hpp"
 #include "DKUtil/Utility.hpp"
 
 #include <xbyak/xbyak.h>
 
-
 #define AsAddress(PTR) std::bit_cast<std::uintptr_t>(PTR)
 #define AsPointer(ADDR) std::bit_cast<void*>(ADDR)
-
 
 #define NO_PATCH   \
 	{              \
@@ -24,7 +21,6 @@
 #endif
 
 #define ASM_STACK_ALLOC_SIZE 0x20
-
 
 namespace DKUtil
 {
@@ -40,7 +36,6 @@ namespace DKUtil
 		using Imm64 = std::uint64_t;
 	}  // namesapce Alias
 
-
 	namespace Hook
 	{
 		using REX = std::uint8_t;
@@ -50,12 +45,10 @@ namespace DKUtil
 		using unpacked_data = std::pair<const void*, std::size_t>;
 		using offset_pair = std::pair<std::ptrdiff_t, std::ptrdiff_t>;
 
-
 		template <typename data_t>
 		concept dku_h_pod_t =
 			std::is_integral_v<data_t> ||
 			(std::is_standard_layout_v<data_t> && std::is_trivial_v<data_t>);
-
 
 		enum class HookFlag : std::uint32_t
 		{
@@ -68,13 +61,11 @@ namespace DKUtil
 			kRestoreAfterEpilog = 1u << 4,   // apply stolens after epilog
 		};
 
-
 		struct Patch
 		{
-			const void* Data;
+			const void*       Data;
 			const std::size_t Size;
 		};
-
 
 		using namespace Alias;
 
@@ -83,7 +74,7 @@ namespace DKUtil
 		inline std::string_view GetProcessName(HMODULE a_handle = 0) noexcept
 		{
 			static std::string fileName(MAX_PATH + 1, ' ');
-			auto res = ::GetModuleBaseNameA(GetCurrentProcess(), a_handle, fileName.data(), MAX_PATH + 1);
+			auto               res = ::GetModuleBaseNameA(GetCurrentProcess(), a_handle, fileName.data(), MAX_PATH + 1);
 			if (res == 0) {
 				fileName = "[ProcessHost]";
 				res = 13;
@@ -91,12 +82,11 @@ namespace DKUtil
 
 			return { fileName.c_str(), res };
 		}
-
 
 		inline std::string_view GetProcessPath(HMODULE a_handle = 0) noexcept
 		{
 			static std::string fileName(MAX_PATH + 1, ' ');
-			auto res = ::GetModuleFileNameA(a_handle, fileName.data(), MAX_PATH + 1);
+			auto               res = ::GetModuleFileNameA(a_handle, fileName.data(), MAX_PATH + 1);
 			if (res == 0) {
 				fileName = "[ProcessHost]";
 				res = 13;
@@ -104,7 +94,6 @@ namespace DKUtil
 
 			return { fileName.c_str(), res };
 		}
-
 
 		inline void WriteData(const model::concepts::dku_memory auto a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = false) noexcept
 		{
@@ -184,7 +173,7 @@ namespace DKUtil
 				union
 				{
 					std::remove_cv_t<std::remove_reference_t<From>> from;
-					std::remove_cv_t<std::remove_reference_t<To>> to;
+					std::remove_cv_t<std::remove_reference_t<To>>   to;
 				};
 
 				from = std::forward<From>(a_from);
@@ -216,7 +205,7 @@ namespace DKUtil
 		template <typename T>
 		inline constexpr void memzero(volatile T* a_ptr, std::size_t a_size = sizeof(T)) noexcept
 		{
-			const auto* begin = std::bit_cast<volatile char*>(a_ptr);
+			const auto*    begin = std::bit_cast<volatile char*>(a_ptr);
 			constexpr char val{ 0 };
 			std::fill_n(begin, a_size, val);
 		}
@@ -342,7 +331,7 @@ namespace DKUtil
 				const auto total = std::min<std::size_t>(_ntHeader->FileHeader.NumberOfSections, std::to_underlying(Section::total));
 				for (auto idx = 0; idx < total; ++idx) {
 					const auto section = _sectionHeader[idx];
-					auto& sectionNameTbl = dku::static_enum<Section>();
+					auto&      sectionNameTbl = dku::static_enum<Section>();
 					for (Section name : sectionNameTbl.value_range(Section::textx, Section::gfids)) {
 						const auto len = (std::min)(dku::print_enum(name).size(), std::extent_v<decltype(section.Name)>);
 						if (std::memcmp(dku::print_enum(name).data(), section.Name + 1, len - 1) == 0) {
@@ -359,11 +348,11 @@ namespace DKUtil
 				*this = Module(base);
 			}
 
-			[[nodiscard]] constexpr auto base() const noexcept { return _base; }
+			[[nodiscard]] constexpr auto  base() const noexcept { return _base; }
 			[[nodiscard]] constexpr auto* dosHeader() const noexcept { return _dosHeader; }
 			[[nodiscard]] constexpr auto* ntHeader() const noexcept { return _ntHeader; }
 			[[nodiscard]] constexpr auto* sectionHeader() const noexcept { return _sectionHeader; }
-			[[nodiscard]] constexpr auto section(Section a_section) noexcept
+			[[nodiscard]] constexpr auto  section(Section a_section) noexcept
 			{
 				auto& [sec, addr, size] = _sections[std::to_underlying(a_section)];
 				return std::make_pair(addr, size);
@@ -388,10 +377,10 @@ namespace DKUtil
 			}
 
 		private:
-			std::uintptr_t _base;
-			::IMAGE_DOS_HEADER* _dosHeader;
-			::IMAGE_NT_HEADERS64* _ntHeader;
-			::IMAGE_SECTION_HEADER* _sectionHeader;
+			std::uintptr_t                                                    _base;
+			::IMAGE_DOS_HEADER*                                               _dosHeader;
+			::IMAGE_NT_HEADERS64*                                             _ntHeader;
+			::IMAGE_SECTION_HEADER*                                           _sectionHeader;
 			std::array<SectionDescriptor, std::to_underlying(Section::total)> _sections;
 		};
 
@@ -400,7 +389,7 @@ namespace DKUtil
 			dku_assert(!a_libraryName.empty() && !a_importName.empty(),
 				"DKU_H: IAT hook must have valid library name & method name\nConsider using GetProcessName([Opt]HMODULE)");
 
-			auto& module = Module::get(a_moduleName);
+			auto&       module = Module::get(a_moduleName);
 			const auto* dosHeader = module.dosHeader();
 			const auto* importTbl = adjust_pointer<const ::IMAGE_IMPORT_DESCRIPTOR>(dosHeader, module.ntHeader()->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
 
@@ -438,10 +427,10 @@ namespace DKUtil
 		[[nodiscard]] inline std::uintptr_t GetFuncPrologAddr(std::uintptr_t a_addr)
 		{
 			static std::unordered_map<std::uintptr_t, std::uintptr_t> func;
-			constexpr auto maxWalkableOpSeq = static_cast<size_t>(1) << 12;
+			constexpr auto                                            maxWalkableOpSeq = static_cast<size_t>(1) << 12;
 
 			if (!func.contains(a_addr)) {
-				auto* prev = std::bit_cast<OpCode*>(a_addr);
+				auto*       prev = std::bit_cast<OpCode*>(a_addr);
 				std::size_t walked = 0;
 				while (walked++ < maxWalkableOpSeq) {
 					if (*--prev == 0xCC && *--prev == 0xCC) {

@@ -33,7 +33,6 @@ namespace
 	}
 }
 
-
 int main()
 {
 #ifdef TEST_CONFIG
@@ -60,7 +59,6 @@ int main()
 	std::exit('EXIT');
 #endif
 }
-
 
 DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 {

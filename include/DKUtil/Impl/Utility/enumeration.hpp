@@ -1,8 +1,6 @@
 #pragma once
 
-
 #include "string.hpp"
-
 
 namespace DKUtil::model
 {
@@ -28,7 +26,6 @@ namespace DKUtil::model
 #define DKU_FOR_EACH_ENUM(B) { { B(1) B(2) B(3) B(4) B(5) B(6) B(7) B(8) B(9) B(10) B(11) B(12) B(13) B(14) B(15) B(16) B(17) }	if constexpr (DKU_MAX_REFLECTION_ENUM > 16) { B(18) B(19) B(20)	B(21) B(22) B(23) B(24) B(25) B(26) B(27) B(28) B(29) B(30) B(31) B(32) B(33) }	if constexpr (DKU_MAX_REFLECTION_ENUM > 32) { B(34) B(35) B(36) B(37) B(38)	B(39) B(40) B(41) B(42) B(43) B(44) B(45) B(46) B(47) B(48) B(49) B(50) B(51) B(52)	B(53) B(54) B(55) B(56) B(57) B(58) B(59) B(60) B(61) B(62) B(63) B(64) B(65) }	if constexpr (DKU_MAX_REFLECTION_ENUM > 64) { B(66) B(67) B(68) B(69) B(70) B(71) B(72) B(73) B(74) B(75) B(76) B(77) B(78) B(79) B(80) B(81) B(82) B(83) B(84) B(85) B(86) B(87) B(88) B(89) B(90) B(91) B(92) B(93) B(94) B(95) B(96)	B(97) B(98) B(99) B(100) B(101) B(102) B(103) B(104) B(105) B(106) B(107) B(108) B(109) B(110) B(111) B(112) B(113) B(114) B(115) B(116) B(117) B(118) B(119) B(120) B(121) B(122) B(123) B(124) B(125) B(126) B(127) B(128) } }
 	// clang-format on
 
-
 	// taken from CommonLib, added reflection + range adaptors
 	template <class Enum,
 		class Underlying = std::conditional_t<
@@ -45,12 +42,11 @@ namespace DKUtil::model
 
 		struct Reflection
 		{
-			bool isCached;
-			bool isFlag;
-			std::string type;
+			bool                                         isCached;
+			bool                                         isFlag;
+			std::string                                  type;
 			std::map<underlying_type, const std::string> nameTbl;
 		};
-
 
 		constexpr enumeration() noexcept = default;
 		constexpr enumeration(const enumeration& a_rhs) noexcept :
@@ -68,7 +64,6 @@ namespace DKUtil::model
 		constexpr enumeration(const std::convertible_to<underlying_type> auto... a_values) noexcept :
 			_impl((static_cast<underlying_type>(a_values) | ...))
 		{}
-
 
 		~enumeration() noexcept = default;
 
@@ -89,14 +84,14 @@ namespace DKUtil::model
 
 		[[nodiscard]] explicit constexpr operator bool() const noexcept { return _impl != static_cast<underlying_type>(0); }
 
-		[[nodiscard]] constexpr enum_type operator*() const noexcept { return get(); }
-		[[nodiscard]] constexpr auto operator<=>(const std::three_way_comparable<underlying_type> auto& a_rhs) const noexcept { return _impl <=> a_rhs; }
-		[[nodiscard]] constexpr auto operator<=>(const enumeration<enum_type, underlying_type>& a_rhs) const noexcept { return _impl <=> a_rhs._impl; }
-		[[nodiscard]] constexpr auto operator==(const enumeration<enum_type, underlying_type>& a_rhs) const noexcept { return _impl == a_rhs._impl; }
-		[[nodiscard]] constexpr auto operator!=(const enumeration<enum_type, underlying_type>& a_rhs) const noexcept { return _impl != a_rhs._impl; }
-		[[nodiscard]] constexpr enum_type get() const noexcept { return static_cast<enum_type>(_impl); }
+		[[nodiscard]] constexpr enum_type       operator*() const noexcept { return get(); }
+		[[nodiscard]] constexpr auto            operator<=>(const std::three_way_comparable<underlying_type> auto& a_rhs) const noexcept { return _impl <=> a_rhs; }
+		[[nodiscard]] constexpr auto            operator<=>(const enumeration<enum_type, underlying_type>& a_rhs) const noexcept { return _impl <=> a_rhs._impl; }
+		[[nodiscard]] constexpr auto            operator==(const enumeration<enum_type, underlying_type>& a_rhs) const noexcept { return _impl == a_rhs._impl; }
+		[[nodiscard]] constexpr auto            operator!=(const enumeration<enum_type, underlying_type>& a_rhs) const noexcept { return _impl != a_rhs._impl; }
+		[[nodiscard]] constexpr enum_type       get() const noexcept { return static_cast<enum_type>(_impl); }
 		[[nodiscard]] constexpr underlying_type underlying() const noexcept { return _impl; }
-		[[nodiscard]] constexpr bool is_flag() const noexcept { return _reflection.isFlag; }
+		[[nodiscard]] constexpr bool            is_flag() const noexcept { return _reflection.isFlag; }
 
 		constexpr enumeration& set(const std::same_as<enum_type> auto... a_args) noexcept
 		{
@@ -236,7 +231,7 @@ namespace DKUtil::model
 		constexpr const char* cache() const noexcept
 		{
 			static std::regex r("::cache<(.*?)>");
-			std::cmatch m;
+			std::cmatch       m;
 			std::regex_search(__FUNCSIG__, m, r);
 
 			return m[1].first;
@@ -284,7 +279,7 @@ namespace DKUtil::model
 			_reflection.isCached = true;
 		}
 
-		Reflection _reflection{ false, true };
+		Reflection      _reflection{ false, true };
 		underlying_type _impl{ 0 };
 	};
 
@@ -295,7 +290,6 @@ namespace DKUtil::model
 		std::underlying_type_t<
 			std::common_type_t<Args...>>>;
 }  // namespace DKUtil::model
-
 
 #undef DKU_BUILD_STEP_CACHE
 #undef DKU_BUILD_FLAG_CACHE

@@ -1,10 +1,8 @@
 #pragma once
 
-
 #include "DKUtil/Impl/pch.hpp"
 #include "DKUtil/Logger.hpp"
 #include "DKUtil/Utility.hpp"
-
 
 namespace DKUtil::Config
 {
@@ -20,34 +18,33 @@ namespace DKUtil::Config
 		return std::move(file.string());
 	}
 
-
 	template <bool RECURSIVE = false>
 	inline std::vector<std::string> GetAllFiles(std::string_view a_path = {}, std::string_view a_ext = {}, std::string_view a_prefix = {}, std::string_view a_suffix = {}) noexcept
 	{
 		using dir_iterator = std::conditional_t<RECURSIVE, std::filesystem::recursive_directory_iterator, std::filesystem::directory_iterator>;
 
 		std::vector<std::string> files;
-		auto file_iterator = [&](const std::filesystem::directory_entry& a_file) {
-			if (a_file.exists() &&
-				!a_file.path().empty()) {
-				if (!a_ext.empty() && a_file.path().extension() != a_ext) {
-					return;
-				}
+		auto                     file_iterator = [&](const std::filesystem::directory_entry& a_file) {
+            if (a_file.exists() &&
+                !a_file.path().empty()) {
+                if (!a_ext.empty() && a_file.path().extension() != a_ext) {
+                    return;
+                }
 
-				const auto path = a_file.path().string();
+                const auto path = a_file.path().string();
 
-				if (!a_prefix.empty() && path.find(a_prefix) != std::string::npos) {
-					files.push_back(path);
-				} else if (!a_suffix.empty() && path.rfind(a_suffix) != std::string::npos) {
-					files.push_back(path);
-				} else if (a_prefix.empty() && a_suffix.empty()) {
-					files.push_back(path);
-				}
-			}
+                if (!a_prefix.empty() && path.find(a_prefix) != std::string::npos) {
+                    files.push_back(path);
+                } else if (!a_suffix.empty() && path.rfind(a_suffix) != std::string::npos) {
+                    files.push_back(path);
+                } else if (a_prefix.empty() && a_suffix.empty()) {
+                    files.push_back(path);
+                }
+            }
 		};
 
 		std::string dir(MAX_PATH + 1, ' ');
-		auto res = GetModuleFileNameA(nullptr, dir.data(), MAX_PATH + 1);
+		auto        res = GetModuleFileNameA(nullptr, dir.data(), MAX_PATH + 1);
 		if (res == 0) {
 			ERROR("DKU_C: Unable to acquire valid path using default null path argument!\nExpected: Current directory\nResolved: NULL");
 		}
@@ -72,7 +69,6 @@ namespace DKUtil::Config
 	inline constexpr std::vector<std::string> GetAllFiles(std::string_view a_path = {}, std::string_view a_ext = {}, std::string_view a_prefix = {}, std::string_view a_suffix = {}, const bool a_recursive = false) noexcept { return {}; }
 	// clang-format on
 
-
 	namespace detail
 	{
 		class IData;
@@ -94,11 +90,10 @@ namespace DKUtil::Config
 			constexpr virtual ~IParser() = default;
 
 			// accessor
-			[[nodiscard]] constexpr auto* data() noexcept { return _content.data(); }
-			[[nodiscard]] constexpr auto& content() const noexcept { return _content; }
+			[[nodiscard]] constexpr auto*            data() noexcept { return _content.data(); }
+			[[nodiscard]] constexpr auto&            content() const noexcept { return _content; }
 			[[nodiscard]] constexpr std::string_view filename() const noexcept { return _filename; }
 			[[nodiscard]] constexpr std::string_view filepath() const noexcept { return _filepath; }
-
 
 			virtual void Parse(const char* = nullptr) noexcept = 0;
 			virtual void Write(const std::string_view) noexcept = 0;
@@ -106,10 +101,10 @@ namespace DKUtil::Config
 
 		protected:
 			const std::uint32_t _id;
-			const std::string _filepath;
-			const std::string _filename;
-			std::string _content;
-			const manager& _manager;
+			const std::string   _filepath;
+			const std::string   _filename;
+			std::string         _content;
+			const manager&      _manager;
 		};
 	}
 }

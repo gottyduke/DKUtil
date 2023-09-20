@@ -1,10 +1,8 @@
 #pragma once
 
-
 #if !defined(DKU_H_INTERNAL_IMPORTS)
 #	error Incorrect DKUtil::Hook internal import order.
 #endif
-
 
 namespace DKUtil::Hook
 {

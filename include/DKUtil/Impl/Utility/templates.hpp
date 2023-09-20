@@ -1,6 +1,5 @@
 #pragma once
 
-
 namespace DKUtil::model
 {
 	// clang-format off
@@ -164,7 +163,6 @@ namespace DKUtil::model
 			std::is_pointer_v<T>>>
 	using not_null = T;
 
-
 	template <class derived_t>
 	class Singleton
 	{
@@ -184,7 +182,6 @@ namespace DKUtil::model
 		constexpr Singleton() = default;
 		constexpr ~Singleton() = default;
 	};
-
 
 	// ryan is really a wiz, I shamelessly copy
 	// https://github.com/Ryan-rsm-McKenzie/CommonLibSSE/blob/master/include/SKSE/Impl/PCH.h
@@ -253,7 +250,6 @@ namespace DKUtil::model
 	template <class EF>
 	scope_exit(EF) -> scope_exit<EF>;
 
-
 #define PARAMS_MACRO_1(macro) macro(1)
 #define PARAMS_MACRO_2(macro) PARAMS_MACRO_1(macro), macro(2)
 #define PARAMS_MACRO_3(macro) PARAMS_MACRO_2(macro), macro(3)
@@ -274,14 +270,12 @@ namespace DKUtil::model
 		return std::make_tuple(macro(PARGS_MACRO));   \
 	} else
 
-
 #define MAKE_STRUCT_PARAM(n, macro)                      \
 	if constexpr (number_of_bindables_v<to_type> == n) { \
 		auto&& [macro(TARGS_MACRO)] = to_type{};         \
 		auto&& [macro(PARGS_MACRO)] = object;            \
 		return to_type{ macro(IMPLICIT_PARAM) };         \
 	} else
-
 
 	template <typename T>
 	inline constexpr auto tuple_cast(T&& object) noexcept

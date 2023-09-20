@@ -1,10 +1,8 @@
 #pragma once
 
-
 #include "data.hpp"
 
 #include "nlohmann/json.hpp"
-
 
 namespace DKUtil::Config::detail
 {
@@ -30,7 +28,7 @@ namespace DKUtil::Config::detail
 
 			for (auto& [key, value] : _manager) {
 				auto* data = value.first;
-				auto raw = _json.find(key.data());
+				auto  raw = _json.find(key.data());
 				if (raw == _json.end()) {
 					ERROR("DKU_C: Parser#{}: Retrieving config failed!\nFile: {}\nKey: {}", _id, _filepath.c_str(), key);
 				}
@@ -80,7 +78,7 @@ namespace DKUtil::Config::detail
 
 		void Write(const std::string_view a_filePath) noexcept override
 		{
-			auto* filePath = a_filePath.empty() ? _filepath.data() : a_filePath.data();
+			auto*                     filePath = a_filePath.empty() ? _filepath.data() : a_filePath.data();
 			std::basic_ofstream<char> file{ filePath };
 			if (!file.is_open() || !file) {
 				ERROR("DKU_C: Parser#{}: Writing file failed! -> {}\nofstream cannot be opened", _id, filePath);

@@ -125,8 +125,8 @@ namespace DKUtil::Logger
 		// From CommonLibSSE https://github.com/Ryan-rsm-McKenzie/CommonLibSSE
 		inline std::filesystem::path docs_directory() noexcept
 		{
-			wchar_t* buffer{ nullptr };
-			const auto result = ::SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, nullptr, std::addressof(buffer));
+			wchar_t*                                               buffer{ nullptr };
+			const auto                                             result = ::SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_DEFAULT, nullptr, std::addressof(buffer));
 			std::unique_ptr<wchar_t[], decltype(&::CoTaskMemFree)> knownPath{ buffer, ::CoTaskMemFree };
 
 			return (!knownPath || result != S_OK) ? std::filesystem::path{} : std::filesystem::path{ knownPath.get() };

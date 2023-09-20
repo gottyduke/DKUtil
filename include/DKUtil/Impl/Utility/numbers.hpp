@@ -1,6 +1,5 @@
 #pragma once
 
-
 namespace DKUtil::numbers
 {
 	class RNG

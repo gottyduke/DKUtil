@@ -1,6 +1,5 @@
 #pragma once
 
-
 /*
  * 1.1.6
  * SFSE integration;
@@ -39,18 +38,14 @@
  * 
  */
 
-
 #define DKU_C_VERSION_MAJOR 1
 #define DKU_C_VERSION_MINOR 1
 #define DKU_C_VERSION_REVISION 6
 
-
 #pragma warning(push)
 #pragma warning(disable: 4244)
 
-
 #include "Impl/pch.hpp"
-
 
 #ifndef CONFIG_ENTRY
 
@@ -66,12 +61,10 @@
 
 #endif
 
-
 namespace DKUtil
 {
 	constexpr auto DKU_C_VERSION = DKU_C_VERSION_MAJOR * 10000 + DKU_C_VERSION_MINOR * 100 + DKU_C_VERSION_REVISION;
 }  // namespace DKUtil
-
 
 #include "Impl/Config/shared.hpp"
 
@@ -83,7 +76,6 @@ namespace DKUtil
 #include "Impl/Config/toml.hpp"
 
 #include "Impl/Config/proxy.hpp"
-
 
 namespace DKUtil::Alias
 {
@@ -98,6 +90,5 @@ namespace DKUtil::Alias
 	using SchemaConfig = DKUtil::Config::Proxy<DKUtil::Config::FileType::kSchema>;
 	using DynamicConfig = DKUtil::Config::Proxy<DKUtil::Config::FileType::kDynamic>;
 }  // namespace DKUtil::Alias
-
 
 #pragma warning(pop)

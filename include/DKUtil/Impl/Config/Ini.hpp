@@ -1,10 +1,8 @@
 #pragma once
 
-
 #include "data.hpp"
 
 #include "SimpleIni.h"
-
 
 namespace DKUtil::Config::detail
 {
@@ -146,8 +144,8 @@ namespace DKUtil::Config::detail
 			}
 
 			for (auto& [key, value] : _manager) {
-				auto* data = value.first;
-				auto sanitized = value.second.empty() ? "Global"sv : value.second;
+				auto*       data = value.first;
+				auto        sanitized = value.second.empty() ? "Global"sv : value.second;
 				std::string raw{};
 				switch (data->get_type()) {
 				case DataType::kBoolean:
@@ -190,7 +188,6 @@ namespace DKUtil::Config::detail
 				}
 			}
 
-
 			DEBUG("DKU_C: Parser#{}: Generating finished", _id);
 		}
 
@@ -207,8 +204,7 @@ namespace DKUtil::Config::detail
 			ERROR("DKU_C: Parser#{}: {}\nValue type mismatch!\nFile: {}\nKey: {}, Expected: {}, Value: {}", _id, a_what, _filepath.c_str(), a_key, a_type, a_value);
 		}
 
-
 		CSimpleIniA _ini;
-		char errmsg[72];
+		char        errmsg[72];
 	};
 }  // namespace DKUtil::Config

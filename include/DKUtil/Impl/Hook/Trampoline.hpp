@@ -1,8 +1,6 @@
 #pragma once
 
-
 #include "shared.hpp"
-
 
 namespace DKUtil::Hook::Trampoline
 {
@@ -15,11 +13,11 @@ namespace DKUtil::Hook::Trampoline
 		{
 			release();
 
-			constexpr std::size_t gigabyte = static_cast<std::size_t>(1) << 30;
-			constexpr std::size_t minRange = gigabyte * 2;
+			constexpr std::size_t    gigabyte = static_cast<std::size_t>(1) << 30;
+			constexpr std::size_t    minRange = gigabyte * 2;
 			constexpr std::uintptr_t maxAddr = std::numeric_limits<std::uintptr_t>::max();
 
-			::DWORD granularity;
+			::DWORD       granularity;
 			::SYSTEM_INFO si;
 			::GetSystemInfo(&si);
 			granularity = si.dwAllocationGranularity;
@@ -29,9 +27,9 @@ namespace DKUtil::Hook::Trampoline
 				a_from = textx.first + textx.second;
 			}
 
-			std::uintptr_t min = a_from >= minRange ? numbers::roundup(a_from - minRange, granularity) : 0;
+			std::uintptr_t       min = a_from >= minRange ? numbers::roundup(a_from - minRange, granularity) : 0;
 			const std::uintptr_t max = a_from < (maxAddr - minRange) ? numbers::rounddown(a_from + minRange, granularity) : maxAddr;
-			std::uintptr_t addr = 0;
+			std::uintptr_t       addr = 0;
 
 			::MEMORY_BASIC_INFORMATION mbi;
 			do {
@@ -91,7 +89,7 @@ namespace DKUtil::Hook::Trampoline
 			_used = 0;
 		}
 
-		[[nodiscard]] constexpr bool empty() const noexcept { return _capacity == 0; }
+		[[nodiscard]] constexpr bool        empty() const noexcept { return _capacity == 0; }
 		[[nodiscard]] constexpr std::size_t capacity() const noexcept { return _capacity; }
 		[[nodiscard]] constexpr std::size_t consumed() const noexcept { return _used; }
 		[[nodiscard]] constexpr std::size_t free_size() const noexcept { return _capacity - _used; }
@@ -115,7 +113,7 @@ namespace DKUtil::Hook::Trampoline
 			DEBUG("Trampoline => {}B / {}B ({:05.2f}%)", _used, _capacity, pct);
 		}
 
-		std::byte* _data{ nullptr };
+		std::byte*  _data{ nullptr };
 		std::size_t _capacity{ 0 };
 		std::size_t _used{ 0 };
 	};

@@ -1,10 +1,8 @@
 #pragma once
 
-
 #include "exception.hpp"
 #include "mock.hpp"
 #include "shared.hpp"
-
 
 namespace DKUtil::serialization
 {
@@ -48,18 +46,16 @@ namespace DKUtil::serialization
 					data.fill(std::byte{ 0 });
 				}
 
-				size_type pos = 0;
+				size_type                                pos = 0;
 				std::array<std::byte, DKU_X_BUFFER_SIZE> data = {};
 			};
 		}  // namespace detail
 
-
 		struct ResolveInfo
 		{
-			ResolveOrder order;
+			ResolveOrder          order;
 			ISerializable::Header header;
 		};
-
 
 		using namespace model::concepts;
 
@@ -89,7 +85,6 @@ namespace DKUtil::serialization
 
 		template <typename T>
 		auto resolve(const ResolveInfo& a_res, T a_data) noexcept;
-
 
 		// trivial types, int, float, bool
 		template <typename T>
@@ -213,7 +208,7 @@ namespace DKUtil::serialization
 			DKU_X_ENTER_LAYOUT("string");
 
 			std::string data = a_data;
-			auto size = static_cast<size_type>(data.size());
+			auto        size = static_cast<size_type>(data.size());
 
 			if (a_res.order == ResolveOrder::kSave) {
 				DKU_X_WRITE_SIZE(size);

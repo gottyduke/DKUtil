@@ -1,9 +1,7 @@
 #pragma once
 
-
 #include "exception.hpp"
 #include "shared.hpp"
-
 
 namespace DKUtil::serialization
 {
@@ -22,7 +20,6 @@ namespace DKUtil::serialization
 				return intfc;
 			}
 
-
 			void save_all(SKSE::SerializationInterface* a_intfc)
 			{
 #ifndef DKU_X_MOCK
@@ -40,7 +37,6 @@ namespace DKUtil::serialization
 #endif
 			}
 
-
 			void load_all(SKSE::SerializationInterface* a_intfc)
 			{
 #ifndef DKU_X_MOCK
@@ -55,7 +51,6 @@ namespace DKUtil::serialization
 #endif
 			}
 
-
 			void revert_all(SKSE::SerializationInterface* a_intfc)
 			{
 				for (auto* serializable : ISerializable::ManagedSerializables) {
@@ -64,9 +59,7 @@ namespace DKUtil::serialization
 			}
 		}  // namespace detail
 
-
 #ifndef DKU_X_MOCK
-
 
 #	define DKU_X_WRITE(D, L, T) api::write<T>(D, L, a_res.header)
 #	define DKU_X_WRITE_SIZE(D) DKU_X_WRITE(std::addressof(D), sizeof(D), decltype(data))
@@ -74,7 +67,6 @@ namespace DKUtil::serialization
 #	define DKU_X_READ_SIZE(D) DKU_X_READ(std::addressof(D), sizeof(D), decltype(data))
 #	define DKU_X_REPORT() api::report()
 #	define DKU_X_FORMID(F) api::resolveFormId(F)
-
 
 		template <typename T = void>
 		inline void write(const void* a_buf, size_type a_length, const ISerializable::Header& a_header) noexcept
@@ -98,7 +90,7 @@ namespace DKUtil::serialization
 
 		inline RE::FormID resolveFormId(RE::FormID a_form) noexcept
 		{
-			RE::FormID newForm;
+			RE::FormID  newForm;
 			const auto* intfc = detail::check_skse_intfc();
 
 			if (!intfc->ResolveFormID(a_form, newForm) && !newForm) {
@@ -115,7 +107,6 @@ namespace DKUtil::serialization
 			DEBUG("\nSKSE::SerializationInterface version: {}\nDKU_X_SERIALIZE version: {}", intfc->Version(), DKU_XS_VERSION);
 		}
 #endif
-
 
 		inline void RegisterSerializable(std::string a_ref = {}) noexcept
 		{

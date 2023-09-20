@@ -1,11 +1,9 @@
 #pragma once
 
-
 #include "data.hpp"
 
 #define TOML_EXCEPTIONS 0
 #include "toml++/toml.h"
-
 
 namespace DKUtil::Config::detail
 {
@@ -29,7 +27,7 @@ namespace DKUtil::Config::detail
 				} else {
 					for (auto& [key, value] : _manager) {
 						auto* data = value.first;
-						auto raw = table.as_table()->find(key.data());
+						auto  raw = table.as_table()->find(key.data());
 						if (table.as_table()->begin() != table.as_table()->end() &&
 							raw == table.as_table()->end()) {
 							continue;
@@ -145,7 +143,7 @@ namespace DKUtil::Config::detail
 
 		void Write(const std::string_view a_filePath) noexcept override
 		{
-			auto filePath = a_filePath.empty() ? _filepath.c_str() : a_filePath.data();
+			auto                      filePath = a_filePath.empty() ? _filepath.c_str() : a_filePath.data();
 			std::basic_ofstream<char> file{ filePath };
 			if (!file.is_open() || !file) {
 				ERROR("DKU_C: Parser#{}: Writing file failed! -> {}\nofstream cannot be opened", _id, filePath);
@@ -169,7 +167,7 @@ namespace DKUtil::Config::detail
 
 			_toml.clear();
 			for (auto& [key, value] : _manager) {
-				auto* data = value.first;
+				auto*       data = value.first;
 				std::string sanitized = value.second.empty() ? "Global" : value.second.data();
 				auto [section, success] = _toml.insert(sanitized, toml::table{});
 				auto* table = section->second.as_table();

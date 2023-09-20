@@ -1,6 +1,5 @@
 #include "DKUtil/Hook.hpp"
 
-
 namespace Test::Hook
 {
 	using namespace DKUtil::Alias;
@@ -101,7 +100,6 @@ namespace Test::Hook
 			}
 		};
 
-
 		class RescaleCircleChanceHook
 		{
 			static float RescaleCircleChance(const float a_circleMult, const float a_minChance, const float a_maxChance, [[maybe_unused]] RE::Character* a_actor = nullptr)
@@ -129,12 +127,12 @@ namespace Test::Hook
 				std::array<std::uint8_t, 5> P{ 0x48, 0x8B, 0x4C, 0x24, 0x20 };
 
 				REL::Relocation<std::uintptr_t> AttackDistanceBase{ REL::RelocationID(49720, 50647) };
-				auto handle = DKUtil::Hook::AddASMPatch(
-					AttackDistanceBase.address(),
-					{ 0x22, 0x2C },
-					{ "\x4C\x8B\x4C\x24\xB8"
-					  "\xE9\x89\xFC\xFF\xFF",
-						10 });
+				auto                            handle = DKUtil::Hook::AddASMPatch(
+                    AttackDistanceBase.address(),
+                    { 0x22, 0x2C },
+                    { "\x4C\x8B\x4C\x24\xB8"
+																			"\xE9\x89\xFC\xFF\xFF",
+												   10 });
 
 				// recalculate displacement
 				const auto _originalFunc = *std::bit_cast<std::uintptr_t*>(AttackDistanceBase.address() + 0x23);
@@ -145,7 +143,6 @@ namespace Test::Hook
 				INFO("Hook RescaleCircleChance!");
 			}
 		};
-
 
 		class FallbackDistanceHook
 		{
@@ -159,7 +156,6 @@ namespace Test::Hook
 
 				return 256.f;
 			}
-
 
 			static constexpr std::uintptr_t FuncID = 0x7D7740;
 			static constexpr std::ptrdiff_t OffsetL = 0x246;
@@ -176,12 +172,11 @@ namespace Test::Hook
 			{
 				SKSE::AllocTrampoline(1 << 6);
 
-				auto funcAddr = REL::Module::get().base() + FuncID;
+				auto  funcAddr = REL::Module::get().base() + FuncID;
 				Patch RelocatePointer{
 					AsPointer(funcAddr + OffsetL + 0x10),
 					6
 				};
-
 
 				auto handle = DKUtil::Hook::AddCaveHook(
 					funcAddr,
@@ -198,7 +193,6 @@ namespace Test::Hook
 		};
 	}  // namespace Impl
 
-
 	void TestPattern()
 	{
 		namespace assembly = DKUtil::Hook::Assembly;
@@ -214,13 +208,11 @@ namespace Test::Hook
 		static_assert(rules::Wildcard::match(std::byte{ 0xEB }));
 		static_assert(rules::Wildcard::match(std::byte{ 0x90 }));
 
-
 		static_assert(assembly::make_pattern<"40 10 F2 ??">().match(
 			pattern::make_byte_array(0x40, 0x10, 0xF2, 0x41)));
 		static_assert(assembly::make_pattern<"B8 D0 ?? ?? D4 6E">().match(
 			pattern::make_byte_array(0xB8, 0xD0, 0x35, 0x2A, 0xD4, 0x6E)));
 	}
-
 
 	void TestHooks()
 	{
@@ -253,7 +245,6 @@ namespace Test::Hook
 		auto packed = PACK_BIG_ENDIAN(asmBuf[offset + 0], asmBuf[offset + 1], asmBuf[offset + 2], asmBuf[offset + 3]);
 		dku_assert(packed == disp, "");
 	}
-
 
 	void Run()
 	{

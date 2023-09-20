@@ -111,9 +111,9 @@ namespace Test::Utility
 		{
 			// concept-restraint auto ctor
 			dku::enumeration<ContiguousValue UNDERLYING> cValues{ 0, 2, 4, 5, 9, 15 };
-			dku::enumeration<SparseValue UNDERLYING> sValues{ 0, 2, 4, 5, 9, 15 };
-			dku::enumeration<ContiguousFlag UNDERLYING> cFlags{ 0, 2, 4, 5, 9, 15 };
-			dku::enumeration<SparseFlag UNDERLYING> sFlags{ SparseFlag::NONE, SparseFlag::RCX, SparseFlag::RBX, SparseFlag::RSI, SparseFlag::R9, SparseFlag::R14 };
+			dku::enumeration<SparseValue UNDERLYING>     sValues{ 0, 2, 4, 5, 9, 15 };
+			dku::enumeration<ContiguousFlag UNDERLYING>  cFlags{ 0, 2, 4, 5, 9, 15 };
+			dku::enumeration<SparseFlag UNDERLYING>      sFlags{ SparseFlag::NONE, SparseFlag::RCX, SparseFlag::RBX, SparseFlag::RSI, SparseFlag::R9, SparseFlag::R14 };
 
 			// static reflections
 			// 1) check for value-type enum reflection
@@ -185,20 +185,19 @@ namespace Test::Utility
 		static_assert(hash64 == 0x7873E548866D72BBULL);
 	}
 
-
 	void TestModel() noexcept
 	{
 		struct TestAggregate
 		{
-			int i;
+			int         i;
 			std::string s;
-			char c;
-			bool b;
+			char        c;
+			bool        b;
 		};
 
 		auto tv = dku::model::tuple_cast(TestAggregate{});
 		auto sv = dku::model::struct_cast<TestAggregate>(tv);
-		int av[] = { 1, 2, 3, 4 };
+		int  av[] = { 1, 2, 3, 4 };
 
 		// bindables
 		static_assert(dku::model::number_of_bindables<TestAggregate>() == 4);
@@ -211,7 +210,6 @@ namespace Test::Utility
 		static_assert(dku::model::concepts::dku_ranges<decltype(av)>);
 		static_assert(dku::model::concepts::dku_trivial_ranges<decltype(av)>);
 	}
-
 
 	void TestString() noexcept
 	{
@@ -235,10 +233,9 @@ namespace Test::Utility
 		INFO("replace 100th \\ with | (out of bound)");
 		INFO(dku::string::replace_nth_occurrence(str, 100, pat, rep));
 
-
 		// 2) split, join
 		constexpr std::string_view words{ "DKUtil|TestUsage|Schema|String 002| That " };
-		auto token = dku::string::split(words, "|");
+		auto                       token = dku::string::split(words, "|");
 
 		for (auto& t : token) {
 			INFO(t);
@@ -250,7 +247,6 @@ namespace Test::Utility
 	void TestTest()
 	{
 	}
-
 
 	void Run() noexcept
 	{

@@ -1,8 +1,6 @@
 #pragma once
 
-
 #include "assembly.hpp"
-
 
 #define FUNC_INFO(FUNC)                           \
 	DKUtil::Hook::FuncInfo                        \
@@ -11,7 +9,6 @@
 			DKUtil::Hook::GetFuncArgsCount(FUNC), \
 			#FUNC                                 \
 	}
-
 
 namespace DKUtil::Hook
 {
@@ -27,13 +24,12 @@ namespace DKUtil::Hook
 		return decltype(std::integral_constant<unsigned, sizeof...(Args)>{})::value;
 	}
 
-
 	class FuncInfo
 	{
 	public:
 		explicit constexpr FuncInfo(
-			std::uintptr_t a_addr,
-			std::uint8_t a_argsCount,
+			std::uintptr_t   a_addr,
+			std::uint8_t     a_argsCount,
 			std::string_view a_name) :
 			_address(a_addr),
 			_argsCount(a_argsCount),
@@ -45,8 +41,8 @@ namespace DKUtil::Hook
 		[[nodiscard]] constexpr auto args_count() const noexcept { return _argsCount; }
 
 	private:
-		const std::uintptr_t _address;
-		const std::uint8_t _argsCount;
+		const std::uintptr_t   _address;
+		const std::uint8_t     _argsCount;
 		const std::string_view _name;
 	};
 }  // namespace DKUtil::Hook

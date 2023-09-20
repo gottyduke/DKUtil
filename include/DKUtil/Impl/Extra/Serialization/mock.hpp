@@ -1,13 +1,10 @@
 #pragma once
 
-
 #include "exception.hpp"
 #include "shared.hpp"
 
-
 #ifdef DKU_X_MOCK
 #	include <fmt/color.h>
-
 
 #	define DKU_X_WRITE(D, L, T) mock::write(D, L)
 #	define DKU_X_WRITE_SIZE(D) DKU_X_WRITE(std::addressof(D), sizeof(D), decltype(D))
@@ -16,15 +13,13 @@
 #	define DKU_X_REPORT() mock::report()
 #	define DKU_X_FORMID(F) F
 
-
 namespace DKUtil::serialization
 {
 	namespace mock
 	{
 		inline static std::array<std::byte, 0x1000> Buffer;
-		inline static size_type ReadPos = 0;
-		inline static size_type WritePos = 0;
-
+		inline static size_type                     ReadPos = 0;
+		inline static size_type                     WritePos = 0;
 
 		inline void read(void* a_buf, size_type a_length) noexcept
 		{

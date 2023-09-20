@@ -1,20 +1,16 @@
 #pragma once
 
-
 #include "DKUtil/Logger.hpp"
 #include "DKUtil/Utility.hpp"
-
 
 #define DKU_X_SERIALIZE_MAJOR 1
 #define DKU_X_SERIALIZE_MINOR 0
 #define DKU_X_SERIALIZE_REVISION 0
 
-
 namespace DKUtil
 {
 	constexpr auto DKU_XS_VERSION = DKU_X_SERIALIZE_MAJOR * 10000 + DKU_X_SERIALIZE_MINOR * 100 + DKU_X_SERIALIZE_REVISION;
 }  // namespace DKUtil
-
 
 namespace DKUtil::serialization
 {
@@ -23,7 +19,6 @@ namespace DKUtil::serialization
 	using key_type = std::string;
 	using hash_type = std::uint32_t;
 	using version_type = std::uint32_t;
-
 
 	namespace colliding
 	{
@@ -51,7 +46,6 @@ namespace DKUtil::serialization
 		}
 	}  // namespace colliding
 
-
 	enum class ResolveOrder : std::uint32_t
 	{
 		kSave = 0,
@@ -64,10 +58,10 @@ namespace DKUtil::serialization
 	{
 		struct Header
 		{
-			key_type name;
-			hash_type hash;
+			key_type     name;
+			hash_type    hash;
 			version_type version;
-			std::string typeInfo;
+			std::string  typeInfo;
 		};
 
 		virtual void enable() noexcept

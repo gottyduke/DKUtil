@@ -1,8 +1,6 @@
 #pragma once
 
-
 #include "shared.hpp"
-
 
 namespace DKUtil::serialization
 {
@@ -28,8 +26,8 @@ namespace DKUtil::serialization
 
 		template <typename T, bool PROMPT = DKU_X_STRICT_SERIALIZATION>
 		void report(
-			code a_code,
-			std::string_view a_fmt = {},
+			code                  a_code,
+			std::string_view      a_fmt = {},
 			ISerializable::Header a_header = { "DKU_X: <intenral resolver>", 0x1234, DKU_XS_VERSION })
 		{
 			if constexpr (PROMPT) {

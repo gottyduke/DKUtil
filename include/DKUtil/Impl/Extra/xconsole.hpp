@@ -3,7 +3,6 @@
 #include "DKUtil/Logger.hpp"
 #include "DKUtil/Utility.hpp"
 
-
 #define CONSOLE(...)                                                          \
 	{                                                                         \
 		if (auto* console = RE::ConsoleLog::GetSingleton()) {                 \

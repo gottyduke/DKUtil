@@ -1,6 +1,5 @@
 #pragma once
 
-
 /*
 * 
  * 1.0.0
@@ -11,18 +10,14 @@
  * 
  */
 
-
 #include "DKUtil/Logger.hpp"
 #include "DKUtil/Utility.hpp"
 
-
 //#define DKU_X_MOCK
-
 
 #ifndef DKU_X_STRICT_SERIALIZATION
 #	define DKU_X_STRICT_SERIALIZATION false
 #endif
-
 
 #include "Serialization/exception.hpp"
 #include "Serialization/interface.hpp"
@@ -30,7 +25,6 @@
 #include "Serialization/resolver.hpp"
 #include "Serialization/shared.hpp"
 #include "Serialization/variant.hpp"
-
 
 namespace DKUtil::serialization
 {
@@ -80,7 +74,7 @@ namespace DKUtil::serialization
 
 		constexpr auto* operator->() noexcept { return std::addressof(_data); }
 		constexpr auto& operator*() noexcept { return _data; }
-		constexpr auto get() noexcept { return _data; }
+		constexpr auto  get() noexcept { return _data; }
 
 		constexpr void add_resolver(resolver_func_t a_func) noexcept
 		{
@@ -136,7 +130,7 @@ namespace DKUtil::serialization
 		}
 
 	private:
-		type _data;
+		type                         _data;
 		std::vector<resolver_func_t> _resolvers;
 	};
 }  // namespace DKUtil::serialization

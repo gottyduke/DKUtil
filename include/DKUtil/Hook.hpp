@@ -1,6 +1,5 @@
 #pragma once
 
-
 /* 
  * 2.6.5
  * Added AssumeNonVolatile helper for preserving registers across call boundaries;
@@ -106,29 +105,23 @@
  * Added prototype of InjectAt< ID, START, END >( a_hookFunc, a_prePatch, a_postPatch );
  */
 
-
 #define DKU_H_VERSION_MAJOR 2
 #define DKU_H_VERSION_MINOR 6
 #define DKU_H_VERSION_REVISION 4
 
-
 #pragma warning(push)
 #pragma warning(disable: 4244)
 
-
 #include "Impl/pch.hpp"
-
 
 namespace DKUtil
 {
 	constexpr auto DKU_H_VERSION = DKU_H_VERSION_MAJOR * 10000 + DKU_H_VERSION_MINOR * 100 + DKU_H_VERSION_REVISION;
 }  // namespace DKUtil
 
-
 #include "Impl/Hook/shared.hpp"
 
 #include "Impl/Hook/api.hpp"
-
 
 namespace DKUtil::Alias
 {
@@ -144,6 +137,5 @@ namespace DKUtil::Alias
 
 	using HookFlag = DKUtil::Hook::HookFlag;
 }  // namespace DKUtil::Alias
-
 
 #pragma warning(pop)

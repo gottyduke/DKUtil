@@ -1,17 +1,14 @@
 #define CONFIG_ENTRY "D:\\WorkSpace\\SKSEPlugins\\Build\\bin\\Debug"
 #include "DKUtil/Config.hpp"
 
-
 namespace Test::Config
 {
 	using namespace DKUtil::Alias;
 
-
 	static Integer iA{ "iAwesome" };
-	static String sA{ "sAwesome" };
+	static String  sA{ "sAwesome" };
 	static Boolean bA{ "bAwesome" };
-	static Double dA{ "dAwesome" };
-
+	static Double  dA{ "dAwesome" };
 
 	void Run()
 	{

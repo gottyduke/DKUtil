@@ -1,6 +1,5 @@
 #pragma once
 
-
 namespace DKUtil::string
 {
 	// CLib
@@ -36,11 +35,11 @@ namespace DKUtil::string
 		}
 
 		[[nodiscard]] consteval const_reference back() const noexcept { return (*this)[size() - 1]; }
-		[[nodiscard]] consteval const_pointer data() const noexcept { return c; }
-		[[nodiscard]] consteval bool empty() const noexcept { return this->size() == 0; }
+		[[nodiscard]] consteval const_pointer   data() const noexcept { return c; }
+		[[nodiscard]] consteval bool            empty() const noexcept { return this->size() == 0; }
 		[[nodiscard]] consteval const_reference front() const noexcept { return (*this)[0]; }
-		[[nodiscard]] consteval size_type length() const noexcept { return N; }
-		[[nodiscard]] consteval size_type size() const noexcept { return length(); }
+		[[nodiscard]] consteval size_type       length() const noexcept { return N; }
+		[[nodiscard]] consteval size_type       size() const noexcept { return length(); }
 
 		template <std::size_t POS = 0, std::size_t COUNT = npos>
 		[[nodiscard]] consteval auto substr() const noexcept
@@ -179,9 +178,9 @@ namespace DKUtil::string
 			// workaround for P2328#1
 			return a_str | std::views::split(a_pattern) | std::views::join_with(a_replace) | std::ranges::to<std::string>();
 		} else {  // selective
-			auto sv = a_str | std::views::split(a_pattern);
+			auto      sv = a_str | std::views::split(a_pattern);
 			const int splits = std::ranges::distance(sv) - 1;
-			auto nth = std::clamp(a_nth, -splits, splits);
+			auto      nth = std::clamp(a_nth, -splits, splits);
 			nth = nth < 0 ? splits + nth + 1 : nth;
 
 			auto res = sv | std::views::take(nth) | std::views::join_with(a_pattern) | std::ranges::to<std::string>();
@@ -195,8 +194,8 @@ namespace DKUtil::string
 	[[nodiscard]] inline constexpr std::vector<std::string> split(const std::string_view a_str, const std::convertible_to<std::string_view> auto&... a_deliminators) noexcept
 	{
 		std::vector<std::string> list;
-		std::string_view chunk{};
-		std::size_t p{ 0 }, n{ 0 };
+		std::string_view         chunk{};
+		std::size_t              p{ 0 }, n{ 0 };
 
 		const auto slide_split = [&](std::string_view delim) {
 			if (auto pos = chunk.rfind(delim); pos != std::string_view::npos) {

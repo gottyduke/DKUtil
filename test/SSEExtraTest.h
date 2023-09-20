@@ -1,17 +1,14 @@
 #pragma once
 
-
 #include "DKUtil/Extra.hpp"
-
 
 namespace Test::Extra
 {
 	struct ActorDeathInfo
 	{
-		int actor;
+		int         actor;
 		std::string reason;
 	};
-
 
 	void Run()
 	{
@@ -21,7 +18,7 @@ namespace Test::Extra
 			{ 1, { 22, "testB" } },
 			{ 2, { 33, "testC" } },
 		}); /**/
-		dku::serializable<ActorDeathInfo, "SingleInfo"> actorDeathInfoSerial({ 1234, "test" });
+		dku::serializable<ActorDeathInfo, "SingleInfo">                    actorDeathInfoSerial({ 1234, "test" });
 
 		/**
 		dku::serializable<std::map<int, int>, "MapInfo"> actorDeathInfoMapSerial({
@@ -31,7 +28,7 @@ namespace Test::Extra
 		}); /**/
 
 		std::tuple<void*, std::string> testTuple(nullptr, "test");
-		std::pair<const int, int> as = std::make_tuple(1, 2);
+		std::pair<const int, int>      as = std::make_tuple(1, 2);
 
 		for (auto& [f, s] : *actorDeathInfoMapSerial) {
 			INFO("{} {}", f, s.reason);

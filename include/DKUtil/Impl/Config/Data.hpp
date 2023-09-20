@@ -1,8 +1,6 @@
 #pragma once
 
-
 #include "shared.hpp"
-
 
 namespace DKUtil::Config::detail
 {
@@ -15,7 +13,6 @@ namespace DKUtil::Config::detail
 
 		kError,
 	};
-
 
 	template <typename data_t>
 	struct data_trait
@@ -41,7 +38,6 @@ namespace DKUtil::Config::detail
 	template <typename data_t>
 	static constexpr auto data_trait_v = data_trait<data_t>::value();
 
-
 	class IData
 	{
 	public:
@@ -59,7 +55,6 @@ namespace DKUtil::Config::detail
 		DataType _type;
 	};
 
-
 	// automatic data with collection enabled
 	template <
 		typename data_t,
@@ -74,7 +69,6 @@ namespace DKUtil::Config::detail
 		constexpr AData(const std::string& a_key, const std::string& a_section = "") :
 			IData(TYPE), _key(std::move(a_key)), _section(std::move(a_section))
 		{}
-
 
 		constexpr AData(const AData&) noexcept = delete;
 		constexpr AData(AData&&) noexcept = delete;
@@ -95,13 +89,13 @@ namespace DKUtil::Config::detail
 		{
 			return _data;
 		}
-		[[nodiscard]] constexpr auto& operator*() noexcept { return _data; }
+		[[nodiscard]] constexpr auto&            operator*() noexcept { return _data; }
 		[[nodiscard]] constexpr std::string_view get_key() const noexcept { return _key; }
 		[[nodiscard]] constexpr std::string_view get_section() const noexcept { return _section; }
-		[[nodiscard]] constexpr auto is_collection() const noexcept { return _isCollection; }
+		[[nodiscard]] constexpr auto             is_collection() const noexcept { return _isCollection; }
 
 		[[nodiscard]] constexpr const auto get_data() const noexcept { return _data; }
-		[[nodiscard]] constexpr auto& get_collection() noexcept
+		[[nodiscard]] constexpr auto&      get_collection() noexcept
 		{
 			if (_isCollection) {
 				return *_collection;
@@ -112,7 +106,7 @@ namespace DKUtil::Config::detail
 		}
 		[[nodiscard]] constexpr auto get_size() const noexcept { return _isCollection ? _collection->size() : 0; }
 		[[nodiscard]] constexpr auto get_type() const noexcept { return typeid(data_t).name(); }
-		constexpr void debug_dump() const noexcept
+		constexpr void               debug_dump() const noexcept
 		{
 #ifndef NDEBUG
 			if (_isCollection) {
@@ -190,23 +184,20 @@ namespace DKUtil::Config::detail
 			}
 		}
 
-
 	private:
-		const std::string _key;
-		const std::string _section;
-		bool _isCollection = false;
-		data_t _data;
-		std::pair<data_t, data_t> _range;
+		const std::string           _key;
+		const std::string           _section;
+		bool                        _isCollection = false;
+		data_t                      _data;
+		std::pair<data_t, data_t>   _range;
 		std::unique_ptr<collection> _collection{ nullptr };
 	};
-
 
 	template <typename data_t>
 	auto* IData::As()
 	{
 		return dynamic_cast<AData<data_t>*>(this);
 	}
-
 
 	extern template class AData<bool>;
 	extern template class AData<std::int64_t>;

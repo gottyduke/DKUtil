@@ -1,11 +1,10 @@
 #include "DKUtil/Extra.hpp"
 #include "DKUtil/Logger.hpp"
 
-
 namespace Test::Logger
 {
-	bool bT = true, bF = false;
-	int siP = 200, siN = -119;
+	bool          bT = true, bF = false;
+	int           siP = 200, siN = -119;
 	std::uint32_t underflowUL = static_cast<std::uint32_t>(-1ul), overflowUL = 0xFFFFFFFFul + 1ul;
 
 	void Run()

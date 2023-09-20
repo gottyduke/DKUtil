@@ -1,10 +1,8 @@
 #pragma once
 
-
 #include "assembly.hpp"
 #include "jit.hpp"
 #include "trampoline.hpp"
-
 
 #if defined(SKSEAPI)
 #	include "SKSE/API.h"
@@ -27,7 +25,6 @@
 #	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
 #endif
 
-
 namespace DKUtil::Hook
 {
 	using namespace Assembly;
@@ -37,15 +34,12 @@ namespace DKUtil::Hook
 	public:
 		virtual ~HookHandle() = default;
 
-
 		virtual void Enable() noexcept = 0;
 		virtual void Disable() noexcept = 0;
 
-
 		const std::uintptr_t Address;
 		const std::uintptr_t TramEntry;
-		std::uintptr_t TramPtr{ 0x0 };
-
+		std::uintptr_t       TramPtr{ 0x0 };
 
 		template <std::derived_from<HookHandle> derived_t>
 		constexpr derived_t* As() noexcept
@@ -60,9 +54,7 @@ namespace DKUtil::Hook
 	};
 }  // namespace DKUtil::Hook
 
-
 #define DKU_H_INTERNAL_IMPORTS DKU_H_VERSION_MAJOR
-
 
 #include "Internal/ASMPatch.hpp"
 #include "Internal/CaveHook.hpp"

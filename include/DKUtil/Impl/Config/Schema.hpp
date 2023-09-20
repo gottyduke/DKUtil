@@ -1,10 +1,8 @@
 #pragma once
 
-
 #include "data.hpp"
 
 #include "SimpleIni.h"
-
 
 namespace DKUtil::Config::detail
 {

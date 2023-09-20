@@ -1,11 +1,9 @@
 #pragma once
 
-
 #include "assembly.hpp"
 #include "internal.hpp"
 #include "shared.hpp"
 #include "trampoline.hpp"
-
 
 namespace DKUtil::Hook
 {
@@ -23,29 +21,29 @@ namespace DKUtil::Hook
 	}
 
 	inline auto AddASMPatch(
-		const std::uintptr_t a_address,
-		const offset_pair a_offset,
+		const std::uintptr_t        a_address,
+		const offset_pair           a_offset,
 		const Xbyak::CodeGenerator* a_xbyak,
-		const bool a_forward = true) noexcept
+		const bool                  a_forward = true) noexcept
 	{
 		return AddASMPatch(a_address, a_offset, std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()), a_forward);
 	}
 
 	inline auto AddASMPatch(
 		const std::uintptr_t a_address,
-		const offset_pair a_offset,
-		const Patch* a_patch,
-		const bool a_forward = true) noexcept
+		const offset_pair    a_offset,
+		const Patch*         a_patch,
+		const bool           a_forward = true) noexcept
 	{
 		return AddASMPatch(a_address, a_offset, std::make_pair(a_patch->Data, a_patch->Size), a_forward);
 	}
 
 	inline auto AddCaveHook(
-		const std::uintptr_t a_address,
-		const offset_pair a_offset,
-		const FuncInfo a_funcInfo,
-		const Xbyak::CodeGenerator* a_prolog,
-		const Xbyak::CodeGenerator* a_epilog,
+		const std::uintptr_t         a_address,
+		const offset_pair            a_offset,
+		const FuncInfo               a_funcInfo,
+		const Xbyak::CodeGenerator*  a_prolog,
+		const Xbyak::CodeGenerator*  a_epilog,
 		model::enumeration<HookFlag> a_flag = HookFlag::kSkipNOP) noexcept
 	{
 		return AddCaveHook(
@@ -56,11 +54,11 @@ namespace DKUtil::Hook
 	}
 
 	inline auto AddCaveHook(
-		const std::uintptr_t a_address,
-		const offset_pair a_offset,
-		const FuncInfo a_funcInfo,
-		const Patch* a_prolog,
-		const Patch* a_epilog,
+		const std::uintptr_t         a_address,
+		const offset_pair            a_offset,
+		const FuncInfo               a_funcInfo,
+		const Patch*                 a_prolog,
+		const Patch*                 a_epilog,
 		model::enumeration<HookFlag> a_flag = HookFlag::kSkipNOP) noexcept
 	{
 		return AddCaveHook(
@@ -71,28 +69,28 @@ namespace DKUtil::Hook
 	}
 
 	inline auto AddVMTHook(
-		const void* a_vtbl,
-		const std::uint16_t a_index,
-		const FuncInfo a_funcInfo,
+		const void*                 a_vtbl,
+		const std::uint16_t         a_index,
+		const FuncInfo              a_funcInfo,
 		const Xbyak::CodeGenerator* a_xbyak) noexcept
 	{
 		return AddVMTHook(a_vtbl, a_index, a_funcInfo, std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()));
 	}
 
 	inline auto AddVMTHook(
-		const void* a_vtbl,
+		const void*         a_vtbl,
 		const std::uint16_t a_index,
-		const FuncInfo a_funcInfo,
-		const Patch* a_patch) noexcept
+		const FuncInfo      a_funcInfo,
+		const Patch*        a_patch) noexcept
 	{
 		return AddVMTHook(a_vtbl, a_index, a_funcInfo, std::make_pair(a_patch->Data, a_patch->Size));
 	}
 
 	inline auto AddIATHook(
-		std::string_view a_moduleName,
-		std::string_view a_libraryName,
-		std::string_view a_importName,
-		const FuncInfo a_funcInfo,
+		std::string_view            a_moduleName,
+		std::string_view            a_libraryName,
+		std::string_view            a_importName,
+		const FuncInfo              a_funcInfo,
 		const Xbyak::CodeGenerator* a_xbyak) noexcept
 	{
 		return AddIATHook(a_moduleName, a_libraryName, a_importName, a_funcInfo, std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()));
@@ -102,8 +100,8 @@ namespace DKUtil::Hook
 		std::string_view a_moduleName,
 		std::string_view a_libraryName,
 		std::string_view a_importName,
-		const FuncInfo a_funcInfo,
-		const Patch* a_patch) noexcept
+		const FuncInfo   a_funcInfo,
+		const Patch*     a_patch) noexcept
 	{
 		return AddIATHook(a_moduleName, a_libraryName, a_importName, a_funcInfo, std::make_pair(a_patch->Data, a_patch->Size));
 	}

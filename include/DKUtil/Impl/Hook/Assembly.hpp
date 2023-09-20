@@ -1,8 +1,6 @@
 #pragma once
 
-
 #include "shared.hpp"
-
 
 namespace DKUtil::Hook::Assembly
 {
@@ -72,7 +70,6 @@ namespace DKUtil::Hook::Assembly
 		return sizeof(*this);                   \
 	}
 
-
 	template <bool RETN = false>
 	struct BranchRel
 	{
@@ -90,7 +87,6 @@ namespace DKUtil::Hook::Assembly
 	static_assert(sizeof(CallRel) == 0x5);
 	static_assert(sizeof(JmpRel) == 0x5);
 
-
 	template <bool RETN = false>
 	struct BranchRip
 	{
@@ -101,14 +97,13 @@ namespace DKUtil::Hook::Assembly
 		DEF_ASM
 
 		OpCode Op = 0xFF;  // 2 | 4
-		ModRM Rm = 0x25;   // 1 0 1
+		ModRM  Rm = 0x25;  // 1 0 1
 		Disp32 Disp = 0x00000000;
 	};
 	using CallRip = BranchRip<true>;
 	using JmpRip = BranchRip<false>;
 	static_assert(sizeof(CallRip) == 0x6);
 	static_assert(sizeof(JmpRip) == 0x6);
-
 
 	struct PushImm64
 	{
@@ -121,15 +116,14 @@ namespace DKUtil::Hook::Assembly
 		constexpr auto full() noexcept { return static_cast<Imm64>(Low) << 32 | High; }
 
 		OpCode Push = 0x68;  // id
-		Imm32 Low = 0x00000000u;
+		Imm32  Low = 0x00000000u;
 		OpCode Mov = 0xC7;  // 0 id
-		ModRM Sib = 0x44;   // 1 0 0
+		ModRM  Sib = 0x44;  // 1 0 0
 		SIndex Rsp = 0x24;
-		Disp8 Disp = sizeof(Imm32);
-		Imm32 High = 0x00000000u;
+		Disp8  Disp = sizeof(Imm32);
+		Imm32  High = 0x00000000u;
 	};
 	static_assert(sizeof(PushImm64) == 0xD);
-
 
 	template <bool ADD = false>
 	struct SubRsp
@@ -140,15 +134,14 @@ namespace DKUtil::Hook::Assembly
 
 		DEF_ASM
 
-		REX W = 0x48;
+		REX    W = 0x48;
 		OpCode Op = 0x83;  // 0 | 5 ib
-		ModRM Rm = 0xEC;   // 1 0 0
-		Imm8 Size = 0x00;
+		ModRM  Rm = 0xEC;  // 1 0 0
+		Imm8   Size = 0x00;
 	};
 	static_assert(sizeof(SubRsp<true>) == 0x4);
 	static_assert(sizeof(SubRsp<false>) == 0x4);
 	using AddRsp = SubRsp<true>;
-
 
 	template <bool POP = false>
 	struct PushR64
@@ -174,7 +167,6 @@ namespace DKUtil::Hook::Assembly
 	using PopR64 = PushR64<true>;
 	static_assert(sizeof(PopR64) == 0x1);
 
-
 	template <bool POP = false>
 	struct PushR64W
 	{
@@ -192,7 +184,7 @@ namespace DKUtil::Hook::Assembly
 
 		DEF_ASM
 
-		REX B = 0x41;
+		REX    B = 0x41;
 		OpCode Push = 0x50;  // id
 	};
 	static_assert(sizeof(PushR64W<false>) == 0x2);
@@ -201,7 +193,6 @@ namespace DKUtil::Hook::Assembly
 	static_assert(sizeof(PopR64W) == 0x2);
 
 #pragma pack(pop)
-
 
 	namespace Pattern
 	{
@@ -250,7 +241,6 @@ namespace DKUtil::Hook::Assembly
 					lut[static_cast<unsigned char>(a_lo)]);
 			}
 
-
 			template <char HI, char LO>
 			class Hexadecimal
 			{
@@ -261,7 +251,6 @@ namespace DKUtil::Hook::Assembly
 					return a_byte == expected;
 				}
 			};
-
 
 			class Wildcard
 			{
