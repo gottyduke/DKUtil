@@ -3,30 +3,30 @@
 Some utilitarian headers to help with x64 native plugin development
 
 # Implementations
-[![Config](https://img.shields.io/badge/Config-1.1.6-R.svg)](/docs/Config.md)
-[![Hook](https://img.shields.io/badge/Hook-2.6.4-R.svg)](/docs/Hook.md)
-[![Logger](https://img.shields.io/badge/Logger-1.2.3-R.svg)](/docs/Logger.md)
-[![Utility](https://img.shields.io/badge/Utility-untracked-R.svg)](/docs/Utility.md)
-[![Extra(For SKSE)](https://img.shields.io/badge/Extra-1.0.0-R.svg)](/docs/Extra.md)  
+[![Config](https://img.shields.io/badge/Config-1.1.6-R.svg)](https://github.com/gottyduke/DKUtil/wiki/1.-Config)
+[![Hook](https://img.shields.io/badge/Hook-2.6.4-R.svg)](https://github.com/gottyduke/DKUtil/wiki/2.0-Hook:-Memory-Editing)
+[![Logger](https://img.shields.io/badge/Logger-1.2.3-R.svg)](https://github.com/gottyduke/DKUtil/wiki/3.-Logger)
+[![Utility](https://img.shields.io/badge/Utility-untracked-R.svg)](https://github.com/gottyduke/DKUtil/wiki/4.0-Utility:-enumeration)
+[![Extra(For SKSE)](https://img.shields.io/badge/Extra-1.0.0-R.svg)](https://github.com/gottyduke/DKUtil/wiki/5-Extra:-serializable(SKSE))  
 
-+ [Config](/docs/Config.md)
++ [Config](https://github.com/gottyduke/DKUtil/wiki/1.-Config)
     - abstracted and contained config layer
     - `ini`, `toml`, `json` file support
     - `bool`, `int64_t`, `double`, `string` type support
     - built in array support
     - multiple file loads
     - generate default file
-+ [Hook](/docs/Hook.md)
-    - pattern scanner 
-    - asm patch
-    - cave hook
-    - virtual method table swap
++ [Hook](https://github.com/gottyduke/DKUtil/wiki/2.0-Hook:-Memory-Editing)
+    - [pattern scanner](https://github.com/gottyduke/DKUtil/wiki/2.1-Hook:-Address-Fetching) 
+    - [asm patch](https://github.com/gottyduke/DKUtil/wiki/2.4-Hook:-ASM-Patch)
+    - [cave hook](https://github.com/gottyduke/DKUtil/wiki/2.5-Hook:-Cave-Hook)
+    - [virtual method table swap](https://github.com/gottyduke/DKUtil/wiki/2.6-Hook:-VTable-Swap)
     - import address table swap
-    - simple function hook (write_call/write_branch)
+    - [simple function hook (write_call/write_branch)](https://github.com/gottyduke/DKUtil/wiki/2.2-Hook:-Relocation-Hook)
     - various usefully gathered utils
-+ [Logger](/docs/Logger.md)
++ [Logger](https://github.com/gottyduke/DKUtil/wiki/3.-Logger)
     - logging macros
-+ [Utility](/docs/Utility.md)
++ [Utility](https://github.com/gottyduke/DKUtil/wiki/4.0-Utility:-enumeration)
     + function
         + `consteval` helper functions retrieving the argument count of a function.
     + model
@@ -43,7 +43,7 @@ Some utilitarian headers to help with x64 native plugin development
         + `to_wstring` method
         + `concat` compile time string concatenation.
         + various string related functions using `std::ranges`
-+ [Extra(For SKSE)](/docs/Extra.md)  
++ [Extra(For SKSE)](https://github.com/gottyduke/DKUtil/wiki/5-Extra:-serializable(SKSE))  
     + `CONSOLE` logging macro but for in-game console.
     + `serializable` painless, all-in-one serialization solution for SKSE plugins.(Planned to move to general support instead of strict SKSE)
 
