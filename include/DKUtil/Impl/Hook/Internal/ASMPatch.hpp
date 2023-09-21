@@ -17,33 +17,32 @@ namespace DKUtil::Hook
 			Offset(a_offset), PatchSize(a_offset.second - a_offset.first)
 		{
 			OldBytes.resize(PatchSize);
-			PatchBuf.resize(PatchSize);
+			PatchBuf.resize(PatchSize, NOP);
 			std::memcpy(OldBytes.data(), AsPointer(TramEntry), PatchSize);
-			std::ranges::fill(PatchBuf, NOP);
 
 			__DEBUG("DKU_H: Patch capacity: {} bytes\nPatch entry @ {:X}", PatchSize, TramEntry);
 		}
 
+		// TramEntry is the CaveEntry for asm patch
 		void Enable() noexcept override
 		{
 			WriteData(TramEntry, PatchBuf.data(), PatchSize, false);
-			__DEBUG("DKU_H: Enabled ASM patch");
+			__DEBUG("DKU_H: Enabled ASM patch @ {:X}", TramEntry);
 		}
 
 		void Disable() noexcept override
 		{
 			WriteData(TramEntry, OldBytes.data(), PatchSize, false);
-			__DEBUG("DKU_H: Disabled ASM patch");
+			__DEBUG("DKU_H: Disabled ASM patch @ {:X}", TramEntry);
 		}
 
 		const offset_pair Offset;
 		const std::size_t PatchSize;
-
 		std::vector<OpCode> OldBytes{};
 		std::vector<OpCode> PatchBuf{};
 	};
 
-	/* Apply assembly patch in the body of execution
+	/* @brief Apply assembly patch in the body of execution
 	 * @param a_address : Memory address of the BEGINNING of target function
 	 * @param a_offset : Offset pairs for <beginning, end> of cave entry from the head of function
 	 * @param a_patch : Assembly patch
@@ -70,7 +69,7 @@ namespace DKUtil::Hook
 			JmpRel asmReturn;  // tram -> cave
 
 			handle->TramPtr = TRAM_ALLOC(0);
-			__DEBUG("DKU_H: ASM patch tramoline entry -> {:X}", handle->TramPtr);
+			__DEBUG("DKU_H: ASM patch trampoline entry -> {:X}", handle->TramPtr);
 
 			std::ptrdiff_t disp = handle->TramPtr - handle->TramEntry - asmDetour.size();
 			assert_trampoline_range(disp);

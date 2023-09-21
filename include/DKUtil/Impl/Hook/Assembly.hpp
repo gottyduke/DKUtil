@@ -10,53 +10,53 @@ namespace DKUtil::Hook::Assembly
 
 	enum class Register : std::uint32_t
 	{
-		NONE = 0u,
+		NONE = 1u << 0,
 
-		RAX = 1u << 0,
-		RCX = 1u << 1,
-		RDX = 1u << 2,
-		RBX = 1u << 3,
-		RSP = 1u << 4,
-		RBP = 1u << 5,
-		RSI = 1u << 6,
-		RDI = 1u << 7,
+		RAX = 1u << 1,
+		RCX = 1u << 2,
+		RDX = 1u << 3,
+		RBX = 1u << 4,
+		RSP = 1u << 5,
+		RBP = 1u << 6,
+		RSI = 1u << 7,
+		RDI = 1u << 8,
 
-		RF = 1u << 8,
+		RF = 1u << 9,
 
-		R8 = 1u << 9,
-		R9 = 1u << 10,
-		R10 = 1u << 11,
-		R11 = 1u << 12,
-		R12 = 1u << 13,
-		R13 = 1u << 14,
-		R14 = 1u << 15,
-		R15 = 1u << 16,
+		R8 = 1u << 10,
+		R9 = 1u << 11,
+		R10 = 1u << 12,
+		R11 = 1u << 13,
+		R12 = 1u << 14,
+		R13 = 1u << 15,
+		R14 = 1u << 16,
+		R15 = 1u << 17,
 
-		ALL = 1u << 17,
+		ALL = 1u << 18,
 	};
 
 	enum class SIMD : std::uint32_t
 	{
-		NONE = 0u,
+		NONE = 1u << 0,
 
-		XMM0 = 1u << 0,
-		XMM1 = 1u << 1,
-		XMM2 = 1u << 2,
-		XMM3 = 1u << 3,
-		XMM4 = 1u << 4,
-		XMM5 = 1u << 5,
-		XMM6 = 1u << 6,
-		XMM7 = 1u << 7,
-		XMM8 = 1u << 8,
-		XMM9 = 1u << 9,
-		XMM10 = 1u << 10,
-		XMM11 = 1u << 11,
-		XMM12 = 1u << 12,
-		XMM13 = 1u << 13,
-		XMM14 = 1u << 14,
-		XMM15 = 1u << 15,
+		XMM0 = 1u << 1,
+		XMM1 = 1u << 2,
+		XMM2 = 1u << 3,
+		XMM3 = 1u << 4,
+		XMM4 = 1u << 5,
+		XMM5 = 1u << 6,
+		XMM6 = 1u << 7,
+		XMM7 = 1u << 8,
+		XMM8 = 1u << 9,
+		XMM9 = 1u << 10,
+		XMM10 = 1u << 11,
+		XMM11 = 1u << 12,
+		XMM12 = 1u << 13,
+		XMM13 = 1u << 14,
+		XMM14 = 1u << 15,
+		XMM15 = 1u << 16,
 
-		ALL = 1u << 16,
+		ALL = 1u << 17,
 	};
 
 #pragma pack(push, 1)
@@ -126,9 +126,9 @@ namespace DKUtil::Hook::Assembly
 	static_assert(sizeof(PushImm64) == 0xD);
 
 	template <bool ADD = false>
-	struct SubRsp
+	struct _SubRsp
 	{
-		constexpr SubRsp(Imm8 s = 0) :
+		constexpr _SubRsp(Imm8 s = 0) :
 			Rm(ADD ? 0xC4 : 0xEC), Size(s)
 		{}
 
@@ -139,47 +139,50 @@ namespace DKUtil::Hook::Assembly
 		ModRM  Rm = 0xEC;  // 1 0 0
 		Imm8   Size = 0x00;
 	};
-	static_assert(sizeof(SubRsp<true>) == 0x4);
-	static_assert(sizeof(SubRsp<false>) == 0x4);
-	using AddRsp = SubRsp<true>;
+	using SubRsp = _SubRsp<false>;
+	static_assert(sizeof(SubRsp) == 0x4);
+	using AddRsp = _SubRsp<true>;
+	static_assert(sizeof(AddRsp) == 0x4);
 
 	template <bool POP = false>
-	struct PushR64
+	struct _PushR64
 	{
-		constexpr PushR64(model::enumeration<Register> reg = Register::RAX)
+		constexpr _PushR64(model::enumeration<Register> reg = Register::RAX)
 		{
 			if constexpr (POP) {
-				Push += ((reg == Register::RF) ? 0x1 : 0x8);
+				Push += reg.any(Register::RF)? 0x1 : 0x8;
 			}
 
-			constexpr auto rm = std::bit_cast<std::uint32_t>(reg);
-			dku_cassert(rm <= 0xEC, "Use PushR64W for REX.B operations (2 byte opcode)");
-
+			const auto rm = std::bit_width(reg.underlying()) + (reg.any(Register::RF) ? 0x42 : -0x2);
 			Push += rm;
+
+			dku_assert(Push <= 0x5F || Push == 0x9C || Push == 0x9D,
+				"Use [Push|Pop]R64B for REX.B operations (2 bytes opcode)");
 		}
 
 		DEF_ASM
 
 		OpCode Push = 0x50;  // id
 	};
-	static_assert(sizeof(PushR64<false>) == 0x1);
-
-	using PopR64 = PushR64<true>;
+	using PushR64 = _PushR64<false>;
+	static_assert(sizeof(PushR64) == 0x1);
+	using PopR64 = _PushR64<true>;
 	static_assert(sizeof(PopR64) == 0x1);
 
 	template <bool POP = false>
-	struct PushR64W
+	struct _PushR64B
 	{
-		constexpr PushR64W(model::enumeration<Register> reg = Register::RAX)
+		constexpr _PushR64B(model::enumeration<Register> reg = Register::RAX)
 		{
 			if constexpr (POP) {
 				Push += 0x8;
 			}
 
-			constexpr auto rm = std::bit_cast<std::uint32_t>(reg);
-			dku_cassert(rm > 0xEC, "Use PushR64 for base operations (1 byte opcode)");
-
+			const auto rm = std::bit_width(reg.underlying()) - 0xB;
 			Push += rm;
+
+			dku_assert(Push <= 0x5F,
+				"Use [Push|Pop]R64 for base operations (1 byte opcode)");
 		}
 
 		DEF_ASM
@@ -187,10 +190,10 @@ namespace DKUtil::Hook::Assembly
 		REX    B = 0x41;
 		OpCode Push = 0x50;  // id
 	};
-	static_assert(sizeof(PushR64W<false>) == 0x2);
-
-	using PopR64W = PushR64W<true>;
-	static_assert(sizeof(PopR64W) == 0x2);
+	using PushR64B = _PushR64B<false>;
+	static_assert(sizeof(PushR64B) == 0x2);
+	using PopR64B = _PushR64B<true>;
+	static_assert(sizeof(PopR64B) == 0x2);
 
 #pragma pack(pop)
 

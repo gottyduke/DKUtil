@@ -18,14 +18,13 @@ namespace DKUtil::Hook
 			Offset(a_offset), CaveSize(a_offset.second - a_offset.first), CaveEntry(Address + a_offset.first), CavePtr(Address + a_offset.first)
 		{
 			OldBytes.resize(CaveSize);
-			CaveBuf.resize(CaveSize);
+			CaveBuf.resize(CaveSize, NOP);
 			std::memcpy(OldBytes.data(), AsPointer(CaveEntry), CaveSize);
-			std::ranges::fill(CaveBuf, NOP);
 
 			__DEBUG(
 				"DKU_H: Cave capacity: {} bytes\n"
-				"cave entry : 0x{:X}\n"
-				"tram entry : 0x{:X}",
+				"cave entry : {:X}\n"
+				"tram entry : {:X}",
 				CaveSize, CaveEntry, TramEntry);
 		}
 
@@ -33,26 +32,14 @@ namespace DKUtil::Hook
 		{
 			WriteData(CavePtr, CaveBuf.data(), CaveSize, false);
 			CavePtr += CaveSize;
-			__DEBUG("DKU_H: Enabled cave hook");
+			__DEBUG("DKU_H: Enabled cave hook @ {:X}", CaveEntry);
 		}
 
 		void Disable() noexcept override
 		{
 			WriteData(CavePtr - CaveSize, OldBytes.data(), CaveSize, false);
 			CavePtr -= CaveSize;
-			__DEBUG("DKU_H: Disabled cave hook");
-		}
-
-		template <typename F = std::uintptr_t>
-		F ReDisp(const std::ptrdiff_t a_offset = 0) noexcept
-		{
-			Disp32 rel{ 0 };
-			if (a_offset <= CaveSize - sizeof(Assembly::JmpRel)) {
-				rel = *adjust_pointer<Disp32>(OldBytes.data(), a_offset + sizeof(OpCode));
-				rel += sizeof(Assembly::JmpRel);
-			}
-
-			return std::bit_cast<F>(CaveEntry + a_offset + rel);
+			__DEBUG("DKU_H: Disabled cave hook @ {:X}", CaveEntry);
 		}
 
 		const offset_pair    Offset;
@@ -63,8 +50,7 @@ namespace DKUtil::Hook
 		std::vector<OpCode>  CaveBuf{};
 	};
 
-	/* Branch to hook function in the body of execution from target function.
-	 * If stack manipulation is involved in epilog patch, add stack offset (sizeof(std::uintptr_t) * (target function argument(s) count))
+	/* @brief Branch to hook function in the body of execution from target function.
 	 * @param a_offset : Offset pairs for <beginning, end> of cave entry from the head of function
 	 * @param a_address : Memory address of the BEGINNING of target function
 	 * @param a_funcInfo : FUNC_INFO or RT_INFO wrapper of hook function
@@ -105,6 +91,7 @@ namespace DKUtil::Hook
 		// [jmp rel32]
 		auto tramPtr = TRAM_ALLOC(0);
 
+		// tram entry
 		WriteImm(tramPtr, a_funcInfo.address(), true);
 		tramPtr += sizeof(a_funcInfo.address());
 		__DEBUG(

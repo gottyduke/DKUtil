@@ -16,15 +16,15 @@ namespace DKUtil::Hook
 		virtual void Enable() noexcept = 0;
 		virtual void Disable() noexcept = 0;
 
-		const std::uintptr_t Address;
-		const std::uintptr_t TramEntry;
-		std::uintptr_t       TramPtr{ 0x0 };
-
 		template <std::derived_from<HookHandle> derived_t>
 		constexpr derived_t* As() noexcept
 		{
 			return dynamic_cast<derived_t*>(this);
 		}
+
+		const std::uintptr_t Address;
+		const std::uintptr_t TramEntry;
+		std::uintptr_t       TramPtr{ 0x0 };
 
 	protected:
 		HookHandle(const std::uintptr_t a_address, const std::uintptr_t a_tramEntry) :
