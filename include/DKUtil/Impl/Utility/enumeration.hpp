@@ -209,7 +209,7 @@ namespace DKUtil::model
 		{
 #ifndef DKU_SLIM
 			build_cache();
-			dku_assert(is_flag(), 
+			dku_assert(is_flag(),
 				"flag_range() iterator called but enum is value_type!\nEnum name: {}\nEnum type: {}", enum_name(), type_name());
 #endif
 			dku_assert(a_begin != a_end,

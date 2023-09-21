@@ -9,8 +9,6 @@ namespace DKUtil::Hook
 	class RelHookHandle : public HookHandle
 	{
 	public:
-
-
 		void Enable() noexcept override
 		{
 		}
@@ -18,10 +16,7 @@ namespace DKUtil::Hook
 		void Disable() noexcept override
 		{
 		}
-
-		
 	};
-
 
 	template <std::size_t N, bool RETN>
 	inline auto AddRelHook(std::uintptr_t a_src, std::uintptr_t a_dst)  // noexcept
