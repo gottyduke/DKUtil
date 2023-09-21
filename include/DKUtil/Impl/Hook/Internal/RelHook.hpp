@@ -9,33 +9,76 @@ namespace DKUtil::Hook
 	class RelHookHandle : public HookHandle
 	{
 	public:
+		RelHookHandle(
+			const std::uintptr_t a_callsite,
+			const std::uintptr_t a_tramPtr,
+			const std::uintptr_t a_dstAddr,
+			const std::uint8_t a_opSize) noexcept :
+			HookHandle(a_callsite, a_tramPtr),
+			OpSeqSize(a_opSize),
+			OriginalFunc(GetDisp(a_callsite)),
+			Destination(a_dstAddr)
+		{
+			__DEBUG(
+				"DKU_H: Relocation<{}>\n"
+				"from : {}.{:X}\n"
+				"call : {:X}\n"
+				"to   : {}.{:X}",
+				OpSeqSize, GetProcessName(), Address, OriginalFunc, PROJECT_NAME, Destination);
+		}
+
 		void Enable() noexcept override
 		{
+			WriteData(Address, Detour.data(), Detour.size(), false);
+			__DEBUG("DKU_H: Enabled relocation hook @ {:X}", Address);
 		}
 
 		void Disable() noexcept override
 		{
+			WriteData(Address, OldBytes.data(), OldBytes.size(), false);
+			__DEBUG("DKU_H: Disabled relocation hook @ {:X}", Address);
 		}
+
+		template <typename F>
+			requires(model::concepts::dku_memory<F>)
+		constexpr operator F() const noexcept
+		{
+			return std::bit_cast<F>(OriginalFunc);
+		}
+
+		const std::uint8_t  OpSeqSize;
+		const Imm64         OriginalFunc;
+		Imm64               Destination;
+		std::vector<OpCode> OldBytes{};
+		std::vector<OpCode> Detour{};
 	};
 
+	/* @brief Relocate a call/jmp site with target hook function
+	 * @param <N> : Length of source instruction
+	 * @param <RETN> : Return or branch (call/jmp)
+	 * @param a_src : Address of call/jmp instruction
+	 * @param a_dst : Destination function
+	 * @returns RelHookHandle
+	 */
 	template <std::size_t N, bool RETN>
-	inline auto AddRelHook(std::uintptr_t a_src, std::uintptr_t a_dst)  // noexcept
+	inline auto AddRelHook(
+		std::uintptr_t a_src, 
+		std::uintptr_t a_dst)  // noexcept
 	{
 		static_assert(N == 5 || N == 6, "unsupported instruction size");
 		using DetourAsm = std::conditional_t<N == 5, BranchRel<RETN>, BranchRip<RETN>>;
 
 		auto tramPtr = TRAM_ALLOC(0);
 
-		// assumes assembly is safe to read
-		Imm64 func = GetDisp(a_src);
-		// /2 /4 indirect
-		if constexpr (N == 6) {
-			func = *std::bit_cast<Imm64*>(func);
-		}
-
 		// tram entry
 		WriteImm(tramPtr, a_dst, true);
 		tramPtr += sizeof(a_dst);
+
+		// handle
+		auto handle = std::make_unique<RelHookHandle>(a_src, tramPtr, a_dst, N);
+		handle->OldBytes.resize(N);
+		std::memcpy(handle->OldBytes.data(), AsPointer(a_src), N);
+		handle->Detour.resize(N, NOP);
 
 		// detour
 		DetourAsm      asmDetour{};
@@ -46,7 +89,7 @@ namespace DKUtil::Hook
 		assert_trampoline_range(disp);
 
 		asmDetour.Disp = static_cast<Disp32>(disp);
-		WriteData(a_src, asmDetour.data(), asmDetour.size(), false);
+		std::memcpy(handle->Detour.data(), asmDetour.data(), asmDetour.size());
 
 		if constexpr (N == 5) {
 			// branch
@@ -58,13 +101,6 @@ namespace DKUtil::Hook
 			tramPtr += asmBranch.size();
 		}
 
-		__DEBUG(
-			"DKU_H: Detouring...\n"
-			"from : {}.{:X}\n"
-			"call : {:X}\n"
-			"to   : {}.{:X}",
-			GetProcessName(), a_src, func, PROJECT_NAME, a_dst);
-
-		return func;
+		return std::move(handle);
 	}
 }  // namespace DKUtil::Hook
