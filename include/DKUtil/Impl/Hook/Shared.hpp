@@ -8,6 +8,7 @@
 
 #define AsAddress(PTR) std::bit_cast<std::uintptr_t>(PTR)
 #define AsPointer(ADDR) std::bit_cast<void*>(ADDR)
+#define AsRawAddr(ADDR) dku::Hook::GetRawAddress(AsAddress(ADDR))
 
 #define NO_PATCH   \
 	{              \
@@ -110,7 +111,10 @@ namespace DKUtil
 				success = ::VirtualProtect(AsPointer(a_dst), a_size, oldProtect, std::addressof(oldProtect));
 			}
 
-			assert(success != FALSE);
+			dku_assert(success != FALSE, 
+				"DKU_H: Failed to write data, error code {}\n"
+				"at   : {:X}\ndata : {:X}\nsize : {}\nalloc: {}",
+				success, AsAddress(a_dst), AsAddress(a_data), a_size, a_requestAlloc);
 		}
 
 		// imm
@@ -254,7 +258,12 @@ namespace DKUtil
 						// FF /3 | /5 is not supported
 						dku_assert(opSeq[1] != 0x1D && opSeq[1] != 0x2D,
 							"DKU_H: GetDisp does not support reading FAR proc memory in different segment");
+
+						auto disp = *adjust_pointer<Disp32>(opSeq, 6 - sizeof(Disp32)) + 6;
+						dst = AsAddress(a_src) + disp;
+						dst = *std::bit_cast<Imm64*>(dst);
 					}
+					break;
 				// mov/lea /r
 				case 0x88:
 				case 0x89:
@@ -442,6 +451,28 @@ namespace DKUtil
 			}
 
 			return func[a_addr];
+		}
+
+		/*
+		 * @brief Get RVA of a full address
+		 */
+		[[nodiscard]] inline std::uintptr_t GetRva(std::uintptr_t a_address)
+		{
+			const auto base = Module::get().base();
+			dku_assert(a_address > base,
+				"DKU_H: Cannot calculate RVA from address {:X} "
+				"because it's not in the same memory region",
+				a_address);
+
+			return a_address - base;
+		}
+
+		/*
+		 * @brief Get aslr disabled address from a full relocated address
+		 */
+		[[nodiscard]] inline std::uintptr_t GetRawAddress(std::uintptr_t a_address)
+		{
+			return GetRva(a_address) + 0x140000000;
 		}
 	}  // namespace Hook
 }  // namespace DKUtil
