@@ -209,19 +209,16 @@ namespace DKUtil::model
 		{
 #ifndef DKU_SLIM
 			build_cache();
-			if (!is_flag()) {
-				ERROR("flag_range iterator called but enum is value_type!\nEnum name: {}\nEnum type: {}", enum_name(), type_name());
-			}
+			dku_assert(is_flag(), 
+				"flag_range() iterator called but enum is value_type!\nEnum name: {}\nEnum type: {}", enum_name(), type_name());
 #endif
-			if (a_begin == a_end) {
-				ERROR("Range iterator mandates different elements AND operable step value to construct a valid range!");
-			}
+			dku_assert(a_begin != a_end,
+				"Range iterator mandates different elements AND operable step value to construct a valid range!");
 
 			return std::views::iota(
 					   std::bit_width<underlying_type>(std::to_underlying(a_begin)),
-					   std::bit_width<underlying_type>(std::to_underlying(a_end))) |
-			       std::views::transform([](auto i) { auto bit = (!i ? 0 : (1 << i));
-						   return std::bit_cast<enum_type>(static_cast<underlying_type>(bit)); });
+					   std::bit_width<underlying_type>(std::to_underlying(a_end)) + 1) |
+			       std::views::transform([a_begin](auto i) { return std::bit_cast<enum_type>(static_cast<underlying_type>(1 << (i - 1))); });
 		}
 
 		[[nodiscard]] constexpr underlying_type index_of(enum_type a_enum) const noexcept { return std::bit_width<underlying_type>(std::to_underlying(a_enum)); }
@@ -272,7 +269,7 @@ namespace DKUtil::model
 			if (_reflection.isFlag) {
 				_reflection.nameTbl.clear();
 
-				std::string info = cache<static_cast<enum_type>(0)>();
+				std::string info = cache<static_cast<enum_type>(1 << 0)>();
 				DKU_FOR_EACH_ENUM(DKU_BUILD_FLAG_CACHE);
 			}
 
