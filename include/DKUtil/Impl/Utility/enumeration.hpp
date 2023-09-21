@@ -54,7 +54,7 @@ namespace DKUtil::model
 		{}
 		constexpr enumeration(enumeration&&) noexcept = default;
 
-		template <class U2> 
+		template <class U2>
 		constexpr enumeration(enumeration<enum_type, U2> a_rhs) noexcept :
 			_impl(static_cast<underlying_type>(a_rhs.get()))
 		{}
