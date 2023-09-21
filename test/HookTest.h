@@ -3,6 +3,7 @@
 namespace Test::Hook
 {
 	using namespace DKUtil::Alias;
+	using namespace dku::Hook::Assembly;
 
 	// taken from MaxSu
 	namespace Impl
@@ -246,10 +247,34 @@ namespace Test::Hook
 		dku_assert(packed == disp, "");
 	}
 
+	void TestJIT()
+	{
+		// 1) regular registers
+		{
+			auto [prolog, epilog] = dku::Hook::JIT::MakeNonVolatilePatch({ Register::ALL });
+			// clang-format off
+			constexpr OpCode expected_prolog[] = { 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x9C, 0x41, 0x50, 0x41, 0x51, 0x41, 0x52, 0x41, 0x53, 0x41, 0x54, 0x41, 0x55, 0x41, 0x56, 0x41, 0x57 };
+			constexpr OpCode expected_epilog[] = { 0x41, 0x5F, 0x41, 0x5E, 0x41, 0x5D, 0x41, 0x5C, 0x41, 0x5B, 0x41, 0x5A, 0x41, 0x59, 0x41, 0x58, 0x9D, 0x5F, 0x5E, 0x5D, 0x5C, 0x5B, 0x5A, 0x59, 0x58 };
+			// clang-format on
+
+			dku_assert(std::ranges::equal(prolog, expected_prolog),
+				"prolog incorrect");
+			dku_assert(std::ranges::equal(epilog, expected_epilog),
+				"epilog incorrect");
+		}
+
+		// 2) sse registers
+	}
+
 	void Run()
 	{
 		//TestHooks();
 		//TestPattern();
-		TestDispHelpers();
+		//TestDispHelpers();
+		TestJIT();
+
+		dku::Hook::write_call_ex<6>(0, 0,
+			{ Register::RAX, Register::RCX, Register::RDX, Register::RBX });
+
 	}
 }
