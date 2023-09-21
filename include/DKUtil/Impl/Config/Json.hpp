@@ -73,7 +73,7 @@ namespace DKUtil::Config::detail
 			}
 
 			_content = std::move(_json.dump());
-			DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
+			__DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
 		}
 
 		void Write(const std::string_view a_filePath) noexcept override
@@ -87,7 +87,7 @@ namespace DKUtil::Config::detail
 			file << _json.dump(4);
 			file.close();
 
-			DEBUG("DKU_C: Parser#{}: Writing finished", _id);
+			__DEBUG("DKU_C: Parser#{}: Writing finished", _id);
 		}
 
 		void Generate() noexcept override

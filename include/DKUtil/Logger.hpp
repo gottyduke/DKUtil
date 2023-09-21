@@ -33,70 +33,71 @@
 #ifndef PROJECT_NAME
 #	define PROJECT_NAME Plugin::NAME.data()
 #endif
+#ifdef DKU_CONSOLE
+#	include <spdlog/sinks/stdout_color_sinks.h>
+#else
+#	include <spdlog/sinks/basic_file_sink.h>
+#endif
 
-#ifndef DKU_DISABLE_LOGGING
+#include <spdlog/spdlog.h>
 
-#	ifdef DKU_CONSOLE
-#		include <spdlog/sinks/stdout_color_sinks.h>
+#define __LOG(LEVEL, ...)                                                                       \
+	{                                                                                           \
+		const auto src = DKUtil::Logger::detail::make_current(std::source_location::current()); \
+		spdlog::log(src, spdlog::level::LEVEL, __VA_ARGS__);                                    \
+	}
+
+#define __SHORTF__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+#define __REPORT(DO_EXIT, PROMPT, ...)                                                   \
+	{                                                                                    \
+		__LOG(critical, __VA_ARGS__);                                                    \
+		const auto src = std::source_location::current();                                \
+		const auto fmt = fmt::format(DKUtil::Logger::detail::prompt::PROMPT,             \
+			src.file_name(), src.line(), src.function_name(), fmt::format(__VA_ARGS__)); \
+		DKUtil::Logger::detail::report_error(DO_EXIT, fmt);                              \
+	}
+#define INFO(...) __LOG(info, __VA_ARGS__)
+#define DEBUG(...) __LOG(debug, __VA_ARGS__)
+#define TRACE(...) __LOG(trace, __VA_ARGS__)
+#define WARN(...) __LOG(warn, __VA_ARGS__)
+#define ERROR(...) __REPORT(false, error, __VA_ARGS__)
+#define FATAL(...) __REPORT(true, fatal, __VA_ARGS__)
+
+#define ENABLE_DEBUG DKUtil::Logger::SetLevel(spdlog::level::debug);
+#define DISABLE_DEBUG DKUtil::Logger::SetLevel(spdlog::level::info);
+
+#ifndef LOG_PATH
+
+#	if defined(F4SEAPI)
+#		define LOG_PATH "My Games\\Fallout4\\F4SE"sv
+#	elif defined(SFSEAPI)
+#		define LOG_PATH "My Games\\Starfield\\SFSE\\Logs"sv
+#	elif defined(SKSEAPI)
+#		define IS_AE REL::Module::IsAE()
+#		define IS_SE REL::Module::IsSE()
+#		define IS_VR REL::Module::IsVR()
+#		define LOG_PATH "My Games\\Skyrim Special Edition\\SKSE"sv
+#		define LOG_PATH_VR "My Games\\Skyrim VR\\SKSE"sv
 #	else
-#		include <spdlog/sinks/basic_file_sink.h>
+#		define LOG_PATH ""
+#		define PLUGIN_MODE
 #	endif
 
-#	include <spdlog/spdlog.h>
+#endif
 
-#	define __LOG(LEVEL, ...)                                                                       \
-		{                                                                                           \
-			const auto src = DKUtil::Logger::detail::make_current(std::source_location::current()); \
-			spdlog::log(src, spdlog::level::LEVEL, __VA_ARGS__);                                    \
-		}
+#ifndef DKU_DISABLE_INTERNAL_LOGGING
 
-#	define __SHORTF__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
-#	define __REPORT(DO_EXIT, PROMPT, ...)                                                   \
-		{                                                                                    \
-			__LOG(critical, __VA_ARGS__);                                                    \
-			const auto src = std::source_location::current();                                \
-			const auto fmt = fmt::format(DKUtil::Logger::detail::prompt::PROMPT,             \
-				src.file_name(), src.line(), src.function_name(), fmt::format(__VA_ARGS__)); \
-			DKUtil::Logger::detail::report_error(DO_EXIT, fmt);                              \
-		}
-#	define INFO(...) __LOG(info, __VA_ARGS__)
-#	define DEBUG(...) __LOG(debug, __VA_ARGS__)
-#	define TRACE(...) __LOG(trace, __VA_ARGS__)
-#	define WARN(...) __LOG(warn, __VA_ARGS__)
-#	define ERROR(...) __REPORT(false, error, __VA_ARGS__)
-#	define FATAL(...) __REPORT(true, fatal, __VA_ARGS__)
-
-#	define ENABLE_DEBUG DKUtil::Logger::SetLevel(spdlog::level::debug);
-#	define DISABLE_DEBUG DKUtil::Logger::SetLevel(spdlog::level::info);
-
-#	ifndef LOG_PATH
-
-#		if defined(F4SEAPI)
-#			define LOG_PATH "My Games\\Fallout4\\F4SE"sv
-#		elif defined(SFSEAPI)
-#			define LOG_PATH "My Games\\Starfield\\SFSE\\Logs"sv
-#		elif defined(SKSEAPI)
-#			define IS_AE REL::Module::IsAE()
-#			define IS_SE REL::Module::IsSE()
-#			define IS_VR REL::Module::IsVR()
-#			define LOG_PATH "My Games\\Skyrim Special Edition\\SKSE"sv
-#			define LOG_PATH_VR "My Games\\Skyrim VR\\SKSE"sv
-#		else
-#			define LOG_PATH ""
-#			define PLUGIN_MODE
-#		endif
-
-#	endif
+#	define __INFO(...) INFO(__VA_ARGS__)
+#	define __DEBUG(...) DEBUG(__VA_ARGS__)
+#	define __TRACE(...) TRACE(__VA_ARGS__)
+#	define __WARN(...) WARN(__VA_ARGS__)
 
 #else
 
-#	define TRACE(...) void(0)
-#	define DEBUG(...) void(0)
-#	define ERROR(...) void(0)
-#	define INFO(...) void(0)
-
-#	define ENABLE_DEBUG void(0)
-#	define DISABLE_DEBUG void(0)
+#	define __TRACE(...) void(0)
+#	define __DEBUG(...) void(0)
+#	define __TRACE(...) void(0)
+#	define __WARN(...) void(0)
 
 #endif
 

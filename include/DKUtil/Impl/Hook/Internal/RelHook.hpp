@@ -6,8 +6,25 @@
 
 namespace DKUtil::Hook
 {
+	class RelHookHandle : public HookHandle
+	{
+	public:
+
+
+		void Enable() noexcept override
+		{
+		}
+
+		void Disable() noexcept override
+		{
+		}
+
+		
+	};
+
+
 	template <std::size_t N, bool RETN>
-	std::uintptr_t AddRelHook(std::uintptr_t a_src, std::uintptr_t a_dst)  // noexcept
+	inline auto AddRelHook(std::uintptr_t a_src, std::uintptr_t a_dst)  // noexcept
 	{
 		static_assert(N == 5 || N == 6, "unsupported instruction size");
 		using DetourAsm = std::conditional_t<N == 5, BranchRel<RETN>, BranchRip<RETN>>;
@@ -46,7 +63,7 @@ namespace DKUtil::Hook
 			tramPtr += asmBranch.size();
 		}
 
-		DEBUG(
+		__DEBUG(
 			"DKU_H: Detouring...\n"
 			"from : {}.{:X}\n"
 			"call : {:X}\n"

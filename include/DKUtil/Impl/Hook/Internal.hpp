@@ -4,27 +4,6 @@
 #include "jit.hpp"
 #include "trampoline.hpp"
 
-#if defined(SKSEAPI)
-#	include "SKSE/API.h"
-#	define IS_AE REL::Module::IsAE()
-#	define IS_SE REL::Module::IsSE()
-#	define IS_VR REL::Module::IsVR()
-
-#	define TRAMPOLINE SKSE::GetTrampoline()
-#	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
-#elif defined(F4SEAPI)
-#	include "F4SE/API.h"
-#	define TRAMPOLINE F4SE::GetTrampoline()
-#	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
-#elif defined(SFSEAPI)
-#	include "SFSE/API.h"
-#	define TRAMPOLINE SFSE::GetTrampoline()
-#	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
-#elif defined(PLUGIN_MODE)
-#	define TRAMPOLINE Trampoline::GetTrampoline()
-#	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
-#endif
-
 namespace DKUtil::Hook
 {
 	using namespace Assembly;
@@ -61,3 +40,5 @@ namespace DKUtil::Hook
 #include "Internal/IATHook.hpp"
 #include "Internal/RelHook.hpp"
 #include "Internal/VMTHook.hpp"
+
+#undef DKU_H_INTERNAL_IMPORTS

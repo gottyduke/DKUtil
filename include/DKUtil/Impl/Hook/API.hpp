@@ -7,19 +7,6 @@
 
 namespace DKUtil::Hook
 {
-	// wrapped write_call APIs in CLib style
-	template <std::size_t N, class F>
-	inline F write_branch(std::uintptr_t a_src, F a_dst)
-	{
-		return std::bit_cast<F>(AddRelHook<N, false>(a_src, unrestricted_cast<std::uintptr_t>(a_dst)));
-	}
-
-	template <std::size_t N, class F>
-	inline F write_call(std::uintptr_t a_src, F a_dst)
-	{
-		return std::bit_cast<F>(AddRelHook<N, true>(a_src, unrestricted_cast<std::uintptr_t>(a_dst)));
-	}
-
 	inline auto AddASMPatch(
 		const std::uintptr_t        a_address,
 		const offset_pair           a_offset,
@@ -104,5 +91,17 @@ namespace DKUtil::Hook
 		const Patch*     a_patch) noexcept
 	{
 		return AddIATHook(a_moduleName, a_libraryName, a_importName, a_funcInfo, std::make_pair(a_patch->Data, a_patch->Size));
+	}
+
+	template <std::size_t N, class F>
+	inline auto write_branch(std::uintptr_t a_src, F a_dst)
+	{
+		return AddRelHook<N, false>(a_src, unrestricted_cast<std::uintptr_t>(a_dst));
+	}
+
+	template <std::size_t N, class F>
+	inline auto write_call(std::uintptr_t a_src, F a_dst)
+	{
+		return AddRelHook<N, true>(a_src, unrestricted_cast<std::uintptr_t>(a_dst));
 	}
 }  // namespace DKUtil::Hook

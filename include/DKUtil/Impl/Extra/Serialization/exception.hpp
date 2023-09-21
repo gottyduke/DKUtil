@@ -33,7 +33,7 @@ namespace DKUtil::serialization
 			if constexpr (PROMPT) {
 				ERROR(DKU_XS_EXCEPTION_FMT);
 			} else {
-				WARN(DKU_XS_EXCEPTION_FMT);
+				__WARN(DKU_XS_EXCEPTION_FMT);
 			}
 		}
 	}  // namespace exception

@@ -12,7 +12,7 @@ namespace DKUtil::serialization
 		{
 #ifdef DKU_X_MOCK
 			inline static std::unordered_map<key_type, std::uint32_t> ResolvedLayoutMap = {};
-#	define DKU_X_ENTER_LAYOUT(t) INFO("\t{:->{}}"##t, "", ++detail::ResolvedLayoutMap[a_res.header.name])
+#	define DKU_X_ENTER_LAYOUT(t) __INFO("\t{:->{}}"##t, "", ++detail::ResolvedLayoutMap[a_res.header.name])
 #	define DKU_X_LEAVE_LAYOUT() --detail::ResolvedLayoutMap[a_res.header.name]
 #	define DKU_X_CLEAR_LAYOUT() detail::ResolvedLayoutMap[a_header.name] = 0;
 #else
@@ -276,7 +276,7 @@ namespace DKUtil::serialization
 		{
 			using type = std::remove_cvref_t<T>;
 
-			DEBUG("DKU_X: saving resolver -> {}\n{}", a_header.name, typeid(type).name());
+			__DEBUG("DKU_X: saving resolver -> {}\n{}", a_header.name, typeid(type).name());
 			DKU_X_CLEAR_LAYOUT();
 
 			auto info = ResolveInfo{ ResolveOrder::kSave, a_header };
@@ -291,7 +291,7 @@ namespace DKUtil::serialization
 		{
 			using type = std::remove_cvref_t<T>;
 
-			DEBUG("DKU_X: loading resolver -> {}\n{}", a_header.name, typeid(type).name());
+			__DEBUG("DKU_X: loading resolver -> {}\n{}", a_header.name, typeid(type).name());
 			DKU_X_CLEAR_LAYOUT();
 
 			auto info = ResolveInfo{ ResolveOrder::kLoad, a_header };

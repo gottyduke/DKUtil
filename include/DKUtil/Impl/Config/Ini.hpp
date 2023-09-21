@@ -121,7 +121,7 @@ namespace DKUtil::Config::detail
 				ERROR("DKU_C: Parser#{}: Saving data failed!\n{}", _id, err_getmsg());
 			}
 
-			DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
+			__DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
 		}
 
 		void Write(const std::string_view a_filePath) noexcept override
@@ -131,7 +131,7 @@ namespace DKUtil::Config::detail
 				ERROR("DKU_C: Parser#{}: Writing file failed!\n{}", _id, err_getmsg());
 			}
 
-			DEBUG("DKU_C: Parser#{}: Writing finished", _id);
+			__DEBUG("DKU_C: Parser#{}: Writing finished", _id);
 		}
 
 		void Generate() noexcept override
@@ -188,7 +188,7 @@ namespace DKUtil::Config::detail
 				}
 			}
 
-			DEBUG("DKU_C: Parser#{}: Generating finished", _id);
+			__DEBUG("DKU_C: Parser#{}: Generating finished", _id);
 		}
 
 	private:

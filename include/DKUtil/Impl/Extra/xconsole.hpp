@@ -7,7 +7,7 @@
 	{                                                                         \
 		if (auto* console = RE::ConsoleLog::GetSingleton()) {                 \
 			auto fmt = fmt::format(__VA_ARGS__);                              \
-			INFO("[console] {}", fmt);                                        \
+			__INFO("[console] {}", fmt);                                        \
 			console->Print(fmt::format("{}->{}", PROJECT_NAME, fmt).c_str()); \
 		}                                                                     \
 	}

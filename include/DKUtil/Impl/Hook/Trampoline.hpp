@@ -110,7 +110,7 @@ namespace DKUtil::Hook::Trampoline
 		void log_stats() const noexcept
 		{
 			auto pct = (static_cast<double>(_used) / static_cast<double>(_capacity)) * 100.0;
-			DEBUG("Trampoline => {}B / {}B ({:05.2f}%)", _used, _capacity, pct);
+			__DEBUG("Trampoline => {}B / {}B ({:05.2f}%)", _used, _capacity, pct);
 		}
 
 		std::byte*  _data{ nullptr };

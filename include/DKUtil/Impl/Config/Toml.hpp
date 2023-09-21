@@ -22,7 +22,7 @@ namespace DKUtil::Config::detail
 			_toml = std::move(result).table();
 			for (auto& [section, table] : _toml) {
 				if (!table.is_table()) {
-					INFO("DKU_C: WARNING\nParser#{}: Sectionless configuration present and skipped.\nPossible inappropriate formatting at [{}]", _id, section.str());
+					__INFO("DKU_C: WARNING\nParser#{}: Sectionless configuration present and skipped.\nPossible inappropriate formatting at [{}]", _id, section.str());
 					continue;
 				} else {
 					for (auto& [key, value] : _manager) {
@@ -138,7 +138,7 @@ namespace DKUtil::Config::detail
 			os << _toml;
 			_content = std::move(os.str());
 
-			DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
+			__DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
 		}
 
 		void Write(const std::string_view a_filePath) noexcept override
@@ -152,7 +152,7 @@ namespace DKUtil::Config::detail
 			file << _toml;
 			file.close();
 
-			DEBUG("DKU_C: Parser#{}: Writing finished", _id);
+			__DEBUG("DKU_C: Parser#{}: Writing finished", _id);
 		}
 
 		void Generate() noexcept override

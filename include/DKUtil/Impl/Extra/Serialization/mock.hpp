@@ -25,7 +25,7 @@ namespace DKUtil::serialization
 		{
 			std::memcpy(a_buf, Buffer.data() + ReadPos, a_length);
 			ReadPos += a_length;
-			INFO(fmt::format(
+			__INFO(fmt::format(
 				fmt::bg(fmt::terminal_color::green) | fmt::fg(fmt::terminal_color::black),
 				"[mock] read {}B", a_length));
 		}
@@ -34,7 +34,7 @@ namespace DKUtil::serialization
 		{
 			std::memcpy(Buffer.data() + WritePos, a_buf, a_length);
 			WritePos += a_length;
-			INFO(fmt::format(
+			__INFO(fmt::format(
 				fmt::bg(fmt::terminal_color::cyan) | fmt::fg(fmt::terminal_color::black),
 				"[mock] write {}B", a_length));
 		}
@@ -48,8 +48,8 @@ namespace DKUtil::serialization
 
 		inline void report() noexcept
 		{
-			INFO("[mock] current read {}B", ReadPos);
-			INFO("[mock] current write {}B", WritePos);
+			__INFO("[mock] current read {}B", ReadPos);
+			__INFO("[mock] current write {}B", WritePos);
 		}
 	}  // namespace mock
 }  // namespace DKUtil::serialization

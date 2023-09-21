@@ -83,7 +83,7 @@ namespace DKUtil::serialization
 
 		virtual void try_save() noexcept override
 		{
-			DEBUG("saving {}...", header.name);
+			__DEBUG("saving {}...", header.name);
 
 			resolver::resolve_save(header, _data);
 
@@ -91,7 +91,7 @@ namespace DKUtil::serialization
 				resolver(_data, ResolveOrder::kSave);
 			}
 
-			DEBUG("...done saving {}", header.name);
+			__DEBUG("...done saving {}", header.name);
 		}
 
 		virtual void try_load(hash_type a_hash, version_type a_version) noexcept override
@@ -105,7 +105,7 @@ namespace DKUtil::serialization
 				return;
 			}
 
-			DEBUG("loading {}...", header.name);
+			__DEBUG("loading {}...", header.name);
 
 			_data = resolver::resolve_load(header, _data);
 
@@ -113,12 +113,12 @@ namespace DKUtil::serialization
 				resolver(_data, ResolveOrder::kLoad);
 			}
 
-			DEBUG("...done loading {}", header.name);
+			__DEBUG("...done loading {}", header.name);
 		}
 
 		virtual void try_revert() noexcept override
 		{
-			DEBUG("reverting {}...", header.name);
+			__DEBUG("reverting {}...", header.name);
 
 			_data = type{};
 
@@ -126,7 +126,7 @@ namespace DKUtil::serialization
 				resolver(_data, ResolveOrder::kRevert);
 			}
 
-			DEBUG("...done reverting {}", header.name);
+			__DEBUG("...done reverting {}", header.name);
 		}
 
 	private:

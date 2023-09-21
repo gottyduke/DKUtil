@@ -22,7 +22,7 @@ namespace DKUtil::Hook
 			std::memcpy(OldBytes.data(), AsPointer(CaveEntry), CaveSize);
 			std::ranges::fill(CaveBuf, NOP);
 
-			DEBUG(
+			__DEBUG(
 				"DKU_H: Cave capacity: {} bytes\n"
 				"cave entry : 0x{:X}\n"
 				"tram entry : 0x{:X}",
@@ -33,14 +33,14 @@ namespace DKUtil::Hook
 		{
 			WriteData(CavePtr, CaveBuf.data(), CaveSize, false);
 			CavePtr += CaveSize;
-			DEBUG("DKU_H: Enabled cave hook");
+			__DEBUG("DKU_H: Enabled cave hook");
 		}
 
 		void Disable() noexcept override
 		{
 			WriteData(CavePtr - CaveSize, OldBytes.data(), CaveSize, false);
 			CavePtr -= CaveSize;
-			DEBUG("DKU_H: Disabled cave hook");
+			__DEBUG("DKU_H: Disabled cave hook");
 		}
 
 		template <typename F = std::uintptr_t>
@@ -107,7 +107,7 @@ namespace DKUtil::Hook
 
 		WriteImm(tramPtr, a_funcInfo.address(), true);
 		tramPtr += sizeof(a_funcInfo.address());
-		DEBUG(
+		__DEBUG(
 			"DKU_H: Detouring...\n"
 			"from : {}.{:X}\n"
 			"to   : {} @ {}.{:X}",

@@ -69,6 +69,7 @@ namespace DKUtil
 
 		using namespace Alias;
 
+		// COMPAT
 #include "Shared_Compat.hpp"
 
 		inline std::string_view GetProcessName(HMODULE a_handle = 0) noexcept

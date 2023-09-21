@@ -75,7 +75,7 @@ namespace DKUtil::Config
 			_filename(a_file),
 			_type(ConfigFileType), _parser(std::make_unique<parser_t>(a_file, _id, _manager))
 		{
-			DEBUG("DKU_C: Proxy#{}: Compile -> {}", _id, _filename);
+			__DEBUG("DKU_C: Proxy#{}: Compile -> {}", _id, _filename);
 		}
 
 		// runtime defined
@@ -95,7 +95,7 @@ namespace DKUtil::Config
 				ERROR("DKU_C: Proxy#{}: No suitable parser found for file -> {}", _id, a_file);
 			}
 
-			DEBUG("DKU_C: Proxy#{}: Runtime -> {}", _id, _filename);
+			__DEBUG("DKU_C: Proxy#{}: Runtime -> {}", _id, _filename);
 		}
 
 		Proxy() = default;
@@ -108,7 +108,7 @@ namespace DKUtil::Config
 
 		void Load(const char* a_data = nullptr) noexcept
 		{
-			DEBUG("DKU_C: Proxy#{}: Loading -> {}", _id, _filename);
+			__DEBUG("DKU_C: Proxy#{}: Loading -> {}", _id, _filename);
 
 			if (GenerateIfMissing()) {
 				_parser->Parse(a_data);
@@ -117,7 +117,7 @@ namespace DKUtil::Config
 
 		void Write(const std::string_view a_file = {}) noexcept
 		{
-			DEBUG("DKU_C: Proxy#{}: Writing -> {}", _id, _filename);
+			__DEBUG("DKU_C: Proxy#{}: Writing -> {}", _id, _filename);
 
 			_parser->Write(a_file);
 		}
@@ -137,7 +137,7 @@ namespace DKUtil::Config
 
 		constexpr void Generate() noexcept
 		{
-			DEBUG("DKU_C: Proxy#{}: Generating -> {}", _id, _filename);
+			__DEBUG("DKU_C: Proxy#{}: Generating -> {}", _id, _filename);
 
 			_parser->Generate();
 		}

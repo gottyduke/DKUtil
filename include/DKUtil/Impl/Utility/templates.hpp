@@ -88,7 +88,7 @@ namespace DKUtil::model
 		template <typename T>
 		concept dku_memory = 
 			std::is_pointer_v<T> ||
-			std::is_constructible_v<T, std::uintptr_t>;
+			std::is_convertible_v<T, std::uintptr_t>;
 	} // namespace concepts
 	// clang-format on
 

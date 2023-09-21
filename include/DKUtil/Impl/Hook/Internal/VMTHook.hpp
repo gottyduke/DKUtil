@@ -18,19 +18,19 @@ namespace DKUtil::Hook
 			HookHandle(TblToAbs(a_address, a_index), a_tramEntry),
 			OldAddress(*std::bit_cast<std::uintptr_t*>(Address))
 		{
-			DEBUG("DKU_H: VMT @ {:X} [{}]\nOld entry @ {:X} | New entry @ {:X}", a_address, a_index, OldAddress, TramEntry);
+			__DEBUG("DKU_H: VMT @ {:X} [{}]\nOld entry @ {:X} | New entry @ {:X}", a_address, a_index, OldAddress, TramEntry);
 		}
 
 		void Enable() noexcept override
 		{
 			WriteImm(Address, TramEntry, false);
-			DEBUG("DKU_H: Enabled VMT hook");
+			__DEBUG("DKU_H: Enabled VMT hook");
 		}
 
 		void Disable() noexcept override
 		{
 			WriteImm(Address, OldAddress, false);
-			DEBUG("DKU_H: Disabled VMT hook");
+			__DEBUG("DKU_H: Disabled VMT hook");
 		}
 
 		const std::uintptr_t OldAddress;
@@ -52,7 +52,7 @@ namespace DKUtil::Hook
 		if (!a_funcInfo.address()) {
 			ERROR("DKU_H: VMT hook must have a valid function pointer");
 		}
-		DEBUG("DKU_H: Detour -> {} @ {}.{:X}", a_funcInfo.name().data(), PROJECT_NAME, a_funcInfo.address());
+		__DEBUG("DKU_H: Detour -> {} @ {}.{:X}", a_funcInfo.name().data(), PROJECT_NAME, a_funcInfo.address());
 
 		if (a_patch.first && a_patch.second) {
 			auto tramPtr = TRAM_ALLOC(0);

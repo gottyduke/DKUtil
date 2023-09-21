@@ -18,7 +18,7 @@ namespace DKUtil::Hook
 			HookHandle(a_address, a_tramEntry),
 			OldAddress(*dku::Hook::unrestricted_cast<std::uintptr_t*>(Address))
 		{
-			DEBUG(
+			__DEBUG(
 				"DKU_H: IAT @ {:X}\n"
 				"old : {} @ {:X}\n"
 				"new : {} @ {}.{:X}",
@@ -28,13 +28,13 @@ namespace DKUtil::Hook
 		void Enable() noexcept override
 		{
 			WriteImm(Address, TramEntry, false);
-			DEBUG("DKU_H: Enabled IAT hook");
+			__DEBUG("DKU_H: Enabled IAT hook");
 		}
 
 		void Disable() noexcept override
 		{
 			WriteImm(Address, OldAddress, false);
-			DEBUG("DKU_H: Disabled IAT hook");
+			__DEBUG("DKU_H: Disabled IAT hook");
 		}
 
 		const std::uintptr_t OldAddress;

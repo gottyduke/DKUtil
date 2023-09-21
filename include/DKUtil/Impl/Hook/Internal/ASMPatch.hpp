@@ -21,19 +21,19 @@ namespace DKUtil::Hook
 			std::memcpy(OldBytes.data(), AsPointer(TramEntry), PatchSize);
 			std::ranges::fill(PatchBuf, NOP);
 
-			DEBUG("DKU_H: Patch capacity: {} bytes\nPatch entry @ {:X}", PatchSize, TramEntry);
+			__DEBUG("DKU_H: Patch capacity: {} bytes\nPatch entry @ {:X}", PatchSize, TramEntry);
 		}
 
 		void Enable() noexcept override
 		{
 			WriteData(TramEntry, PatchBuf.data(), PatchSize, false);
-			DEBUG("DKU_H: Enabled ASM patch");
+			__DEBUG("DKU_H: Enabled ASM patch");
 		}
 
 		void Disable() noexcept override
 		{
 			WriteData(TramEntry, OldBytes.data(), PatchSize, false);
-			DEBUG("DKU_H: Disabled ASM patch");
+			__DEBUG("DKU_H: Disabled ASM patch");
 		}
 
 		const offset_pair Offset;
@@ -62,7 +62,7 @@ namespace DKUtil::Hook
 		auto handle = std::make_unique<ASMPatchHandle>(a_address, a_offset);
 
 		if (a_patch.second > (a_offset.second - a_offset.first)) {
-			DEBUG("DKU_H: ASM patch size exceeds the patch capacity, enabled trampoline");
+			__DEBUG("DKU_H: ASM patch size exceeds the patch capacity, enabled trampoline");
 			dku_assert((a_offset.second - a_offset.first) >= sizeof(JmpRel),
 				"DKU_H: ASM patch size exceeds the patch capacity & cannot fulfill the minimal trampoline requirement");
 
@@ -70,7 +70,7 @@ namespace DKUtil::Hook
 			JmpRel asmReturn;  // tram -> cave
 
 			handle->TramPtr = TRAM_ALLOC(0);
-			DEBUG("DKU_H: ASM patch tramoline entry -> {:X}", handle->TramPtr);
+			__DEBUG("DKU_H: ASM patch tramoline entry -> {:X}", handle->TramPtr);
 
 			std::ptrdiff_t disp = handle->TramPtr - handle->TramEntry - asmDetour.size();
 			assert_trampoline_range(disp);
@@ -97,7 +97,7 @@ namespace DKUtil::Hook
 				asmForward.Disp = static_cast<Disp32>(handle->TramEntry + handle->PatchSize - handle->TramEntry - a_patch.second - asmForward.size());
 				std::memcpy(handle->PatchBuf.data() + a_patch.second, asmForward.data(), asmForward.size());
 
-				DEBUG("DKU_H: ASM patch forwarded");
+				__DEBUG("DKU_H: ASM patch forwarded");
 			}
 		}
 

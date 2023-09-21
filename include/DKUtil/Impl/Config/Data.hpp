@@ -111,10 +111,10 @@ namespace DKUtil::Config::detail
 #ifndef NDEBUG
 			if (_isCollection) {
 				std::ranges::for_each(*_collection, [&](data_t val) {
-					DEBUG("Setting collection value [{}] to [{}]", val, _key);
+					__DEBUG("Setting collection value [{}] to [{}]", val, _key);
 				});
 			} else {
-				DEBUG("Setting value [{}] to [{}]", _data, _key);
+				__DEBUG("Setting value [{}] to [{}]", _data, _key);
 			}
 #endif
 		}

@@ -104,7 +104,7 @@ namespace DKUtil::serialization
 		inline void report() noexcept
 		{
 			const auto* intfc = detail::check_skse_intfc();
-			DEBUG("\nSKSE::SerializationInterface version: {}\nDKU_X_SERIALIZE version: {}", intfc->Version(), DKU_XS_VERSION);
+			__DEBUG("\nSKSE::SerializationInterface version: {}\nDKU_X_SERIALIZE version: {}", intfc->Version(), DKU_XS_VERSION);
 		}
 #endif
 
@@ -120,7 +120,7 @@ namespace DKUtil::serialization
 			intfc->SetLoadCallback(detail::load_all);
 			intfc->SetRevertCallback(detail::revert_all);
 
-			DEBUG("DKU_XS: Registered serializables\nplugin handle {}\nplugin hash {}", key, hash);
+			__DEBUG("DKU_XS: Registered serializables\nplugin handle {}\nplugin hash {}", key, hash);
 			DKU_X_REPORT();
 		}
 	}  // DKUtil::serialization::api
