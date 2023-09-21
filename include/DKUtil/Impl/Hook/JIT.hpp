@@ -46,7 +46,6 @@ namespace DKUtil::Hook
 		const std::string_view _name;
 	};
 
-
 	namespace JIT
 	{
 		using patch_descriptor = std::pair<std::span<OpCode>, std::span<OpCode>>;
@@ -64,7 +63,7 @@ namespace DKUtil::Hook
 			static std::unordered_map<Register, patch_block> Patches;
 			constexpr auto                                   Block = std::bit_width(std::to_underlying(Register::ALL)) * 0x2;
 
-			dku_assert(a_regs.none(Register::NONE), 
+			dku_assert(a_regs.none(Register::NONE),
 				"DKU_H: Cannot make patch for Register::NONE");
 
 			auto& [buf, end] = Patches[a_regs.get()];
@@ -124,7 +123,6 @@ namespace DKUtil::Hook
 		inline void MakeNonVolatilePatch(model::enumeration<Assembly::SIMD> a_regs)
 		{
 			static std::unordered_map<Assembly::SIMD, patch_block> Patches;
-
 		}
-	} // namespace DKUtil::Hook::JIT
+	}  // namespace DKUtil::Hook::JIT
 }  // namespace DKUtil::Hook

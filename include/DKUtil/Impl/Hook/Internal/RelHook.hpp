@@ -13,7 +13,7 @@ namespace DKUtil::Hook
 			const std::uintptr_t a_callsite,
 			const std::uintptr_t a_tramPtr,
 			const std::uintptr_t a_dstAddr,
-			const std::uint8_t a_opSize) noexcept :
+			const std::uint8_t   a_opSize) noexcept :
 			HookHandle(a_callsite, a_tramPtr),
 			OpSeqSize(a_opSize),
 			OriginalFunc(GetDisp(a_callsite)),
@@ -62,7 +62,7 @@ namespace DKUtil::Hook
 	 */
 	template <std::size_t N, bool RETN>
 	inline auto AddRelHook(
-		std::uintptr_t a_src, 
+		std::uintptr_t a_src,
 		std::uintptr_t a_dst)  // noexcept
 	{
 		static_assert(N == 5 || N == 6, "unsupported instruction size");
