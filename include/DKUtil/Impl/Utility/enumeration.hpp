@@ -50,11 +50,11 @@ namespace DKUtil::model
 
 		constexpr enumeration() noexcept = default;
 		constexpr enumeration(const enumeration& a_rhs) noexcept :
-			_impl(a_rhs._impl), _reflection(a_rhs._reflection)
+			_impl(a_rhs._impl)
 		{}
 		constexpr enumeration(enumeration&&) noexcept = default;
 
-		template <class U2>  // NOLINTNEXTLINE(google-explicit-constructor)
+		template <class U2> 
 		constexpr enumeration(enumeration<enum_type, U2> a_rhs) noexcept :
 			_impl(static_cast<underlying_type>(a_rhs.get()))
 		{}
@@ -276,8 +276,8 @@ namespace DKUtil::model
 			_reflection.isCached = true;
 		}
 
-		Reflection      _reflection{ false, true };
-		underlying_type _impl{ 0 };
+		inline static Reflection _reflection{ false, true };
+		underlying_type          _impl{ 0 };
 	};
 
 	// deduction
