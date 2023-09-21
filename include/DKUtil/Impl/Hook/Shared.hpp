@@ -111,7 +111,7 @@ namespace DKUtil
 				success = ::VirtualProtect(AsPointer(a_dst), a_size, oldProtect, std::addressof(oldProtect));
 			}
 
-			dku_assert(success != FALSE, 
+			dku_assert(success != FALSE,
 				"DKU_H: Failed to write data, error code {}\n"
 				"at   : {:X}\ndata : {:X}\nsize : {}\nalloc: {}",
 				success, AsAddress(a_dst), AsAddress(a_data), a_size, a_requestAlloc);

@@ -150,7 +150,7 @@ namespace DKUtil::Hook::Assembly
 		constexpr _PushR64(model::enumeration<Register> reg = Register::RAX)
 		{
 			if constexpr (POP) {
-				Push += reg.any(Register::RF)? 0x1 : 0x8;
+				Push += reg.any(Register::RF) ? 0x1 : 0x8;
 			}
 
 			const auto rm = std::bit_width(reg.underlying()) + (reg.any(Register::RF) ? 0x42 : -0x2);

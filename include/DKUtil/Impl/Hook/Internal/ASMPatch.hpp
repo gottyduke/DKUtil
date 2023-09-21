@@ -36,8 +36,8 @@ namespace DKUtil::Hook
 			__DEBUG("DKU_H: Disabled ASM patch @ {:X}", TramEntry);
 		}
 
-		const offset_pair Offset;
-		const std::size_t PatchSize;
+		const offset_pair   Offset;
+		const std::size_t   PatchSize;
 		std::vector<OpCode> OldBytes{};
 		std::vector<OpCode> PatchBuf{};
 	};

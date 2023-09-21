@@ -134,8 +134,8 @@ namespace DKUtil::Hook
 	 */
 	template <std::size_t N, typename F>
 	inline auto write_branch(
-		std::uintptr_t a_src, 
-		F a_dst) noexcept
+		std::uintptr_t a_src,
+		F              a_dst) noexcept
 	{
 		auto handle = write_branch_ex<N>(a_src, a_dst);
 		handle->Enable();
@@ -152,8 +152,8 @@ namespace DKUtil::Hook
 	template <std::size_t N = 5, typename F>
 		requires(model::concepts::dku_memory<F>)
 	inline auto write_call(
-		std::uintptr_t a_src, 
-		F a_dst) noexcept
+		std::uintptr_t a_src,
+		F              a_dst) noexcept
 	{
 		auto handle = AddRelHook<N, true>(a_src, unrestricted_cast<std::uintptr_t>(a_dst));
 		handle->Enable();
