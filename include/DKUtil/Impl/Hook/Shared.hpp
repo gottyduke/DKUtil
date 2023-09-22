@@ -9,11 +9,7 @@
 #define AsAddress(PTR) std::bit_cast<std::uintptr_t>(PTR)
 #define AsPointer(ADDR) std::bit_cast<void*>(ADDR)
 #define AsRawAddr(ADDR) dku::Hook::GetRawAddress(AsAddress(ADDR))
-
-#define NO_PATCH   \
-	{              \
-		nullptr, 0 \
-	}
+#define AsMemCpy(DST, SRC) *std::bit_cast<decltype(SRC)*>(DST) = SRC
 
 #define ASM_MINIMUM_SKIP 2
 #define CAVE_MINIMUM_BYTES 0x5
@@ -39,17 +35,10 @@ namespace DKUtil
 
 	namespace Hook
 	{
-		using REX = std::uint8_t;
-		using ModRM = std::uint8_t;
-		using SIndex = std::uint8_t;
+		using namespace Alias;
 
 		using unpacked_data = std::pair<const void*, std::size_t>;
 		using offset_pair = std::pair<std::ptrdiff_t, std::ptrdiff_t>;
-
-		template <typename data_t>
-		concept dku_h_pod_t =
-			std::is_integral_v<data_t> ||
-			(std::is_standard_layout_v<data_t> && std::is_trivial_v<data_t>);
 
 		enum class HookFlag : std::uint32_t
 		{
@@ -67,8 +56,6 @@ namespace DKUtil
 			const void*       Data;
 			const std::size_t Size;
 		};
-
-		using namespace Alias;
 
 		// COMPAT
 #include "Shared_Compat.hpp"
@@ -118,7 +105,7 @@ namespace DKUtil
 		}
 
 		// imm
-		inline void WriteImm(const model::concepts::dku_memory auto a_dst, const dku_h_pod_t auto& a_data, bool a_requestAlloc = false) noexcept
+		inline void WriteImm(const model::concepts::dku_memory auto a_dst, const model::concepts::dku_trivial auto a_data, bool a_requestAlloc = false) noexcept
 		{
 			return WriteData(a_dst, std::addressof(a_data), sizeof(a_data), a_requestAlloc);
 		}

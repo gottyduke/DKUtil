@@ -102,29 +102,26 @@ namespace DKUtil::Hook
 
 		auto handle = std::make_unique<CaveHookHandle>(a_address, tramPtr, a_offset);
 
-		std::ptrdiff_t disp = handle->TramPtr - handle->CavePtr - asmDetour.size();
+		std::ptrdiff_t disp = handle->TramPtr - handle->CavePtr - sizeof(asmDetour);
 		assert_trampoline_range(disp);
 
 		asmDetour.Disp = static_cast<Disp32>(disp);
-		std::memcpy(handle->CaveBuf.data(), asmDetour.data(), asmDetour.size());
+		AsMemCpy(handle->CaveBuf.data(), asmDetour);
 
 		if (a_flag.any(HookFlag::kRestoreBeforeProlog)) {
-			WriteData(handle->TramPtr, handle->OldBytes.data(), handle->CaveSize, true);
-			handle->TramPtr += handle->CaveSize;
+			handle->Write(handle->OldBytes.data(), handle->CaveSize);
 			asmBranch.Disp -= static_cast<Disp32>(handle->CaveSize);
 
 			a_flag.reset(HookFlag::kRestoreBeforeProlog);
 		}
 
 		if (a_prolog.first && a_prolog.second) {
-			WriteData(handle->TramPtr, a_prolog.first, a_prolog.second, true);
-			handle->TramPtr += a_prolog.second;
+			handle->Write(a_prolog.first, a_prolog.second);
 			asmBranch.Disp -= static_cast<Disp32>(a_prolog.second);
 		}
 
 		if (a_flag.any(HookFlag::kRestoreAfterProlog)) {
-			WriteData(handle->TramPtr, handle->OldBytes.data(), handle->CaveSize, true);
-			handle->TramPtr += handle->CaveSize;
+			handle->Write(handle->OldBytes.data(), handle->CaveSize);
 			asmBranch.Disp -= static_cast<Disp32>(handle->CaveSize);
 
 			a_flag.reset(HookFlag::kRestoreBeforeEpilog, HookFlag::kRestoreAfterEpilog);
@@ -134,45 +131,37 @@ namespace DKUtil::Hook
 		asmSub.Size = ASM_STACK_ALLOC_SIZE;
 		asmAdd.Size = ASM_STACK_ALLOC_SIZE;
 
-		WriteData(handle->TramPtr, asmSub.data(), asmSub.size(), true);
-		handle->TramPtr += asmSub.size();
-		asmBranch.Disp -= static_cast<Disp32>(asmSub.size());
+		handle->Write(asmSub);
+		asmBranch.Disp -= static_cast<Disp32>(sizeof(asmSub));
 
 		// write call
 		asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
-		asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
-		WriteData(handle->TramPtr, asmBranch.data(), asmBranch.size(), true);
-		handle->TramPtr += asmBranch.size();
+		asmBranch.Disp -= static_cast<Disp32>(sizeof(asmBranch));
+		handle->Write(asmBranch);
 
 		// dealloc stack space
-		WriteData(handle->TramPtr, asmAdd.data(), asmAdd.size(), true);
-		handle->TramPtr += asmAdd.size();
+		handle->Write(asmAdd);
 
 		if (a_flag.any(HookFlag::kRestoreBeforeEpilog)) {
-			WriteData(handle->TramPtr, handle->OldBytes.data(), handle->CaveSize, true);
-			handle->TramPtr += handle->CaveSize;
-
+			handle->Write(handle->OldBytes.data(), handle->CaveSize);
 			a_flag.reset(HookFlag::kRestoreAfterEpilog);
 		}
 
 		if (a_epilog.first && a_epilog.second) {
-			WriteData(handle->TramPtr, a_epilog.first, a_epilog.second, true);
-			handle->TramPtr += a_epilog.second;
+			handle->Write(a_epilog.first, a_epilog.second);
 		}
 
 		if (a_flag.any(HookFlag::kRestoreAfterEpilog)) {
-			WriteData(handle->TramPtr, handle->OldBytes.data(), handle->CaveSize, true);
-			handle->TramPtr += handle->CaveSize;
+			handle->Write(handle->OldBytes.data(), handle->CaveSize);
 		}
 
 		if (a_flag.any(HookFlag::kSkipNOP)) {
-			asmReturn.Disp = static_cast<Disp32>(handle->Address + handle->Offset.second - handle->TramPtr - asmReturn.size());
+			asmReturn.Disp = static_cast<Disp32>(handle->Address + handle->Offset.second - handle->TramPtr - sizeof(asmReturn));
 		} else {
-			asmReturn.Disp = static_cast<Disp32>(handle->CavePtr + asmDetour.size() - handle->TramPtr - asmReturn.size());
+			asmReturn.Disp = static_cast<Disp32>(handle->CavePtr + sizeof(asmDetour) - handle->TramPtr - sizeof(asmReturn));
 		}
 
-		WriteData(handle->TramPtr, asmReturn.data(), asmReturn.size(), true);
-		handle->TramPtr += asmReturn.size();
+		handle->Write(asmReturn);
 
 		return std::move(handle);
 	}

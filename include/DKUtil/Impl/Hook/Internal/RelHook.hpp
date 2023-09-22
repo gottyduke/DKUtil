@@ -66,7 +66,7 @@ namespace DKUtil::Hook
 		std::uintptr_t a_dst)  // noexcept
 	{
 		static_assert(N == 5 || N == 6, "unsupported instruction size");
-		using DetourAsm = std::conditional_t<N == 5, BranchRel<RETN>, BranchRip<RETN>>;
+		using DetourAsm = std::conditional_t<N == 5, _BranchNear<RETN>, _BranchIndirect<RETN>>;
 
 		auto tramPtr = TRAM_ALLOC(0);
 
@@ -89,16 +89,15 @@ namespace DKUtil::Hook
 		assert_trampoline_range(disp);
 
 		asmDetour.Disp = static_cast<Disp32>(disp);
-		std::memcpy(handle->Detour.data(), asmDetour.data(), asmDetour.size());
+		AsMemCpy(handle->Detour.data(), asmDetour);
 
 		if constexpr (N == 5) {
 			// branch
 			JmpRip asmBranch;
 			asmBranch.Disp -= static_cast<Disp32>(sizeof(Imm64));
-			asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
+			asmBranch.Disp -= static_cast<Disp32>(sizeof(asmBranch));
 
-			WriteData(tramPtr, asmBranch.data(), asmBranch.size(), true);
-			tramPtr += asmBranch.size();
+			handle->Write(asmBranch);
 		}
 
 		return std::move(handle);

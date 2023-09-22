@@ -65,13 +65,11 @@ namespace DKUtil::Hook
 
 			auto handle = std::make_unique<VMTHookHandle>(*std::bit_cast<std::uintptr_t*>(a_vtbl), tramPtr, a_index);
 
-			WriteData(tramPtr, a_patch.first, a_patch.second, true);
-			tramPtr += a_patch.second;
+			handle->Write(a_patch.first, a_patch.second);
 			asmBranch.Disp -= static_cast<Disp32>(a_patch.second);
 
-			asmBranch.Disp -= static_cast<Disp32>(asmBranch.size());
-			WriteData(tramPtr, asmBranch.data(), asmBranch.size(), true);
-			tramPtr += asmBranch.size();
+			asmBranch.Disp -= static_cast<Disp32>(sizeof(asmBranch));
+			handle->Write(asmBranch);
 
 			return std::move(handle);
 		} else {
