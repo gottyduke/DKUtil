@@ -130,8 +130,9 @@ namespace DKUtil::Alias
 	using CaveHandle = DKUtil::Hook::CaveHookHandle;
 	using VMTHandle = DKUtil::Hook::VMTHookHandle;
 	using IATHandle = DKUtil::Hook::IATHookHandle;
-
+	
 	using Reg = DKUtil::Hook::Assembly::Register;
+	using Xmm = DKUtil::Hook::Assembly::SIMD;
 	template <class... Rules>
 	using Pattern = DKUtil::Hook::Assembly::Pattern::PatternMatcher<Rules...>;
 
