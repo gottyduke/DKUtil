@@ -207,11 +207,6 @@ namespace DKUtil::model
 		// bitflag enum, base 2 shift, l->m
 		[[nodiscard]] constexpr auto flag_range(enum_type a_begin, enum_type a_end) noexcept
 		{
-#ifndef DKU_SLIM
-			build_cache();
-			dku_assert(is_flag(),
-				"flag_range() iterator called but enum is value_type!\nEnum name: {}\nEnum type: {}", enum_name(), type_name());
-#endif
 			dku_assert(a_begin != a_end,
 				"Range iterator mandates different elements AND operable step value to construct a valid range!");
 
