@@ -45,7 +45,7 @@ namespace DKUtil::Hook
 		const std::uint8_t     _argsCount;
 		const std::string_view _name;
 	};
-	
+
 	using namespace Assembly;
 
 #pragma pack(push, 1)
@@ -241,7 +241,7 @@ namespace DKUtil::Hook
 		VEX2   V = { 0xC5, Aligned ? 0xF9 : 0xFA };
 		OpCode Op = 0x7F;
 		ModRM  Rm = 0x44;   // 1 0 100 // explicit offset encoding
-		SIndex Sib = 0x24; // 0 1 0 // rsp
+		SIndex Sib = 0x24;  // 0 1 0 // rsp
 	};
 	using MovDquRsp = _V_MovDq_Rsp_Ex<false>;
 	static_assert(sizeof(MovDquRsp) == 0x5);
@@ -253,7 +253,7 @@ namespace DKUtil::Hook
 	namespace JIT
 	{
 		/* This namespace contains util functions used internally to generate patches */
-		 
+
 		using patch_descriptor = std::pair<unpacked_data, unpacked_data>;
 		using patch_block = std::pair<std::vector<OpCode>, std::size_t>;
 
