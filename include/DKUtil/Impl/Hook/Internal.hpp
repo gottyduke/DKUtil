@@ -22,6 +22,21 @@ namespace DKUtil::Hook
 			return dynamic_cast<derived_t*>(this);
 		}
 
+		// write directly to internal trampoline ptr
+		template <typename T>
+			requires(!std::is_pointer_v<T>)
+		void Write(T a_in) noexcept
+		{
+			WriteData(TramPtr, std::addressof(a_in), sizeof(a_in), true);
+			TramPtr += sizeof(a_in);
+		}
+
+		void Write(const void* a_src, std::size_t a_size) noexcept
+		{
+			WriteData(TramPtr, a_src, a_size, true);
+			TramPtr += a_size;
+		}
+
 		const std::uintptr_t Address;
 		const std::uintptr_t TramEntry;
 		std::uintptr_t       TramPtr{ 0x0 };

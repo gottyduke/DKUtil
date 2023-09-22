@@ -71,31 +71,29 @@ namespace DKUtil::Hook
 			handle->TramPtr = TRAM_ALLOC(0);
 			__DEBUG("DKU_H: ASM patch trampoline entry -> {:X}", handle->TramPtr);
 
-			std::ptrdiff_t disp = handle->TramPtr - handle->TramEntry - asmDetour.size();
+			std::ptrdiff_t disp = handle->TramPtr - handle->TramEntry - sizeof(asmDetour);
 			assert_trampoline_range(disp);
 
 			asmDetour.Disp = static_cast<Disp32>(disp);
-			std::memcpy(handle->PatchBuf.data(), asmDetour.data(), asmDetour.size());
+			AsMemCpy(handle->PatchBuf.data(), asmDetour);
 
-			WriteData(handle->TramPtr, a_patch.first, a_patch.second, true);
-			handle->TramPtr += a_patch.second;
+			handle->Write(a_patch.first, a_patch.second);
 
 			if (a_forward) {
-				asmReturn.Disp = static_cast<Disp32>(handle->TramEntry + handle->PatchSize - handle->TramPtr - asmReturn.size());
+				asmReturn.Disp = static_cast<Disp32>(handle->TramEntry + handle->PatchSize - handle->TramPtr - sizeof(asmReturn));
 			} else {
-				asmReturn.Disp = static_cast<Disp32>(handle->TramEntry + a_patch.second - handle->TramPtr - asmReturn.size());
+				asmReturn.Disp = static_cast<Disp32>(handle->TramEntry + a_patch.second - handle->TramPtr - sizeof(asmReturn));
 			}
 
-			WriteData(handle->TramPtr, asmReturn.data(), asmReturn.size(), true);
+			handle->Write(asmReturn);
 		} else {
 			std::memcpy(handle->PatchBuf.data(), a_patch.first, a_patch.second);
 
 			if (a_forward && handle->PatchSize > (a_patch.second * ASM_MINIMUM_SKIP + sizeof(JmpRel))) {
 				JmpRel asmForward;
 
-				asmForward.Disp = static_cast<Disp32>(handle->TramEntry + handle->PatchSize - handle->TramEntry - a_patch.second - asmForward.size());
-				std::memcpy(handle->PatchBuf.data() + a_patch.second, asmForward.data(), asmForward.size());
-
+				asmForward.Disp = static_cast<Disp32>(handle->TramEntry + handle->PatchSize - handle->TramEntry - a_patch.second - sizeof(asmForward));
+				AsMemCpy(handle->PatchBuf.data() + a_patch.second, asmForward);
 				__DEBUG("DKU_H: ASM patch forwarded");
 			}
 		}
