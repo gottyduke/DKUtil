@@ -9,6 +9,13 @@
 			DKUtil::Hook::GetFuncArgsCount(FUNC), \
 			#FUNC                                 \
 	}
+#define RT_INFO(FUNC, NAME)                     \
+	DKUtil::Hook::FuncInfo                      \
+	{                                           \
+		reinterpret_cast<std::uintptr_t>(FUNC), \
+			0,                                  \
+			NAME                                \
+	}
 
 namespace DKUtil::Hook
 {
@@ -254,7 +261,7 @@ namespace DKUtil::Hook
 	{
 		/* This namespace contains util functions used internally to generate patches */
 
-		using patch_descriptor = std::pair<unpacked_data, unpacked_data>;
+		using patch_descriptor = std::pair<Patch, Patch>;
 		using patch_block = std::pair<std::vector<OpCode>, std::size_t>;
 
 		/* @brief Allocates a block of memory and generates non volatile patch
@@ -266,8 +273,9 @@ namespace DKUtil::Hook
 		{
 			static std::unordered_map<Register, patch_block> Patches;
 
-			dku_assert(a_regs.none(Register::NONE),
-				"DKU_H: Cannot make patch for Register::NONE");
+			if (a_regs.any(Register::NONE)) {
+				return {};
+			}
 
 			auto& [buf, end] = Patches[a_regs.get()];
 
@@ -340,14 +348,15 @@ namespace DKUtil::Hook
 		{
 			static std::unordered_map<SIMD, patch_block> Patches;
 
-			dku_assert(a_simds.none(SIMD::NONE),
-				"DKU_H: Cannot make patch for SIMD::NONE");
+			if (a_simds.any(SIMD::NONE)) {
+				return {};
+			}
 
 			auto& [buf, end] = Patches[a_simds.get()];
 
 			if (buf.empty() || !end) {
 				// size
-				std::size_t bufSize{ sizeof(SubRspEx) * 2 };
+				std::size_t bufSize{ sizeof(SubRspEx) };
 #if defined(DKU_H_JIT_MAX_SIZE_BUFFER)
 				constexpr auto Block = std::bit_width(std::to_underlying(SIMD::ALL)) * sizeof(MovDquRsp);
 				bufSize += Block * 2;
@@ -360,8 +369,8 @@ namespace DKUtil::Hook
 					}
 				}
 
-				bufSize += (count >= 8 ? (count * 0x5 * 2) : count);
-				bufSize++;
+				bufSize += count >= 8 ? count * 0x4 : count;
+				bufSize *= 2;
 #endif
 				buf.resize(bufSize, INT3);
 				end = sizeof(SubRspEx);
