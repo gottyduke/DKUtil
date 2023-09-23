@@ -172,8 +172,8 @@ namespace DKUtil::Hook
 	template <std::size_t N = 5, typename F>
 		requires(model::concepts::dku_memory<F>)
 	inline auto write_call_ex(
-		std::uintptr_t a_src,
-		F a_dst,
+		std::uintptr_t        a_src,
+		F                     a_dst,
 		enumeration<Register> a_regs = { Register::NONE },
 		enumeration<SIMD>     a_simd = { SIMD::NONE }) noexcept
 	{
