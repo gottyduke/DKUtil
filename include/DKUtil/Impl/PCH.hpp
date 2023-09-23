@@ -155,6 +155,7 @@ namespace dku = DKUtil;
 	{                           \
 		if (!((cond))) {        \
 			FATAL(__VA_ARGS__); \
+			std::unreachable(); \
 		}                       \
 	}
 
@@ -162,5 +163,6 @@ namespace dku = DKUtil;
 	{                                        \
 		if constexpr (!((constexpr_cond))) { \
 			FATAL(__VA_ARGS__);              \
+			std::unreachable();			     \
 		}                                    \
 	}
