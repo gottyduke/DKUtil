@@ -125,7 +125,7 @@ inline const unpacked_data RuntimePatch(
 #	include "F4SE/API.h"
 #	define TRAMPOLINE F4SE::GetTrampoline()
 #	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
-#elif defined(SFSEAPI)
+#elif defined(SFSEAPI) && !defined(PLUGIN_MODE)
 #	include "SFSE/API.h"
 #	define TRAMPOLINE SFSE::GetTrampoline()
 #	define TRAM_ALLOC(SIZE) AsAddress((TRAMPOLINE).allocate((SIZE)))
@@ -134,5 +134,5 @@ namespace Trampoline
 {
 	extern inline void* Allocate(std::size_t a_size);
 }
-#	define TRAM_ALLOC(SIZE) Trampoline::Allocate(SIZE)
+#	define TRAM_ALLOC(SIZE) AsAddress(Trampoline::Allocate(SIZE))
 #endif
