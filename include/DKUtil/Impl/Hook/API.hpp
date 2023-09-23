@@ -137,7 +137,7 @@ namespace DKUtil::Hook
 		std::uintptr_t a_src,
 		F              a_dst) noexcept
 	{
-		auto handle = write_branch_ex<N>(a_src, a_dst);
+		auto handle = AddRelHook<N, false>(a_src, unrestricted_cast<std::uintptr_t>(a_dst));
 		handle->Enable();
 		return std::move(*handle.get());
 	}
@@ -158,5 +158,24 @@ namespace DKUtil::Hook
 		auto handle = AddRelHook<N, true>(a_src, unrestricted_cast<std::uintptr_t>(a_dst));
 		handle->Enable();
 		return std::move(*handle.get());
+	}
+
+	/* @brief Relocate a callsite with target hook function
+	 * @brief This API preserves registers and sse registers across non-volatile call boundaries
+	 * @param <N> : Length of source instruction
+	 * @param a_src : Address of call instruction
+	 * @param a_dst : Destination function
+	 * @param a_regs : Regular registers to preserve as non volatile
+	 * @param a_simd : SSE registers to preserve as non volatile
+	 * @returns Transitive RelHookHandle that can be converted to F
+	 */
+	template <std::size_t N = 5, typename F>
+		requires(model::concepts::dku_memory<F>)
+	inline auto write_call_ex(
+		std::uintptr_t a_src,
+		F a_dst,
+		enumeration<Register> a_regs = { Register::NONE },
+		enumeration<SIMD>     a_simd = { SIMD::NONE }) noexcept
+	{
 	}
 }  // namespace DKUtil::Hook
