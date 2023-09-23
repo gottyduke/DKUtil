@@ -53,18 +53,10 @@ namespace DKUtil
 
 		struct Patch
 		{
-			constexpr Patch(unpacked_data a_data) noexcept :
-				Data(a_data.first), Size(a_data.second)
-			{}
-
-			template <typename T>
-				requires(std::is_pointer_v<T>)
-			constexpr Patch(const T a_data, std::size_t a_size) noexcept :
-				Data(a_data), Size(a_size)
-			{}
-
-			const void*       Data;
-			const std::size_t Size;
+			constexpr ~Patch() noexcept
+			{
+				Free();
+			}
 
 			constexpr operator std::span<OpCode>() const noexcept
 			{
@@ -75,6 +67,48 @@ namespace DKUtil
 			{
 				return std::make_pair(Data, Size);
 			}
+
+			// append a patch in new memory, current data is reallocated
+			Patch& Append(Patch a_rhs) noexcept
+			{
+				std::size_t total = Size + a_rhs.Size;
+				if (!total) {
+					return *this;
+				}
+
+				auto* buf = new OpCode[total]();
+
+				if (Data && Size) {
+					std::memcpy(buf, Data, Size);
+				}
+
+				if (a_rhs.Data && a_rhs.Size) {
+					std::memcpy(buf + Size, a_rhs.Data, a_rhs.Size);
+				}
+
+				Free();
+				a_rhs.Free();
+
+				Data = buf;
+				Size = total;
+				Managed = true;
+
+				return *this;
+			}
+
+			constexpr void Free() noexcept
+			{
+				if (Managed && Data) {
+					delete[] std::bit_cast<OpCode*>(Data);
+					Data = nullptr;
+					Size = 0;
+					Managed = false;
+				}
+			}
+
+			const void* Data{ nullptr };
+			std::size_t Size{ 0 };
+			bool        Managed = false;
 		};
 
 		// COMPAT
@@ -301,11 +335,10 @@ namespace DKUtil
 			return std::bit_cast<T>(dst);
 		}
 
-		inline Disp32 ReDisp(const model::concepts::dku_memory auto a_src, const Disp32 a_srcOffset, const model::concepts::dku_memory auto a_dst, const Disp32 a_dstOffset)
+		inline Disp32 ReDisp(const model::concepts::dku_memory auto a_src, const model::concepts::dku_memory auto a_dst, const Disp32 a_dstOffset)
 		{
-			Disp32* disp = std::bit_cast<Disp32*>(a_src + a_srcOffset);
-			Disp32* newDisp = std::bit_cast<Disp32*>(a_dst + a_dstOffset);
-			*newDisp = a_src + *disp - a_dst;
+			auto* newDisp = adjust_pointer<Disp32>(a_dst, a_dstOffset);
+			*newDisp = GetDisp(a_src) - a_dst;
 
 			return *newDisp;
 		}
@@ -448,6 +481,7 @@ namespace DKUtil
 
 			if (!func.contains(a_addr)) {
 				auto*       prev = std::bit_cast<OpCode*>(a_addr);
+				prev = prev - (AsAddress(prev) % 0x8);
 				std::size_t walked = 0;
 				while (walked++ < maxWalkableOpSeq) {
 					if (*--prev == 0xCC && *--prev == 0xCC) {
