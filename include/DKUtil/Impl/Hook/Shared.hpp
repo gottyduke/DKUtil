@@ -9,7 +9,7 @@
 #define AsAddress(PTR) std::bit_cast<std::uintptr_t>(PTR)
 #define AsPointer(ADDR) std::bit_cast<void*>(ADDR)
 #define AsRawAddr(ADDR) dku::Hook::GetRawAddress(AsAddress(ADDR))
-#define AsMemCpy(DST, SRC) *std::bit_cast<decltype(SRC)*>(DST) = SRC
+#define AsMemCpy(DST, SRC) *std::bit_cast<std::remove_cvref_t<decltype(SRC)>*>(DST) = SRC
 
 #define ASM_MINIMUM_SKIP 2
 #define CAVE_MINIMUM_BYTES 0x5
@@ -53,8 +53,28 @@ namespace DKUtil
 
 		struct Patch
 		{
+			constexpr Patch(unpacked_data a_data) noexcept :
+				Data(a_data.first), Size(a_data.second)
+			{}
+
+			template <typename T>
+				requires(std::is_pointer_v<T>)
+			constexpr Patch(const T a_data, std::size_t a_size) noexcept :
+				Data(a_data), Size(a_size)
+			{}
+
 			const void*       Data;
 			const std::size_t Size;
+
+			constexpr operator std::span<OpCode>() const noexcept
+			{
+				return std::span<OpCode>{ std::bit_cast<OpCode*>(Data), Size };
+			}
+
+			constexpr operator unpacked_data() const noexcept
+			{
+				return std::make_pair(Data, Size);
+			}
 		};
 
 		// COMPAT
