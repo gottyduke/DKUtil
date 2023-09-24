@@ -333,7 +333,7 @@ namespace Test::Hook
 		TestDispHelpers();
 		TestJIT();
 
-		dku::Hook::write_call_ex<6>(0, 0,
+		dku::Hook::write_call_ex<6>(0, Run,
 			{ Register::RAX, Register::RCX, Register::RDX, Register::RBX });
 	}
 }

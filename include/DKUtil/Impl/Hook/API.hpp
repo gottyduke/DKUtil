@@ -17,12 +17,12 @@ namespace DKUtil::Hook
 	 * @returns ASMPatchHandle
 	 */
 	inline auto AddASMPatch(
-		const dku_memory auto       a_address,
+		const std::uintptr_t        a_address,
 		const offset_pair           a_offset,
 		const Xbyak::CodeGenerator* a_xbyak,
 		const bool                  a_forward = true) noexcept
 	{
-		return AddASMPatch(AsAddress(a_address), a_offset, std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()), a_forward);
+		return AddASMPatch(a_address, a_offset, std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()), a_forward);
 	}
 
 	/* @brief Apply assembly patch in the body of execution
@@ -33,12 +33,12 @@ namespace DKUtil::Hook
 	 * @returns ASMPatchHandle
 	 */
 	inline auto AddASMPatch(
-		const dku_memory auto a_address,
-		const offset_pair     a_offset,
-		const Patch*          a_patch,
-		const bool            a_forward = true) noexcept
+		const std::uintptr_t a_address,
+		const offset_pair    a_offset,
+		const Patch*         a_patch,
+		const bool           a_forward = true) noexcept
 	{
-		return AddASMPatch(AsAddress(a_address), a_offset, std::make_pair(a_patch->Data, a_patch->Size), a_forward);
+		return AddASMPatch(a_address, a_offset, std::make_pair(a_patch->Data, a_patch->Size), a_forward);
 	}
 
 	/* @brief Branch to hook function in the body of execution from target function.
@@ -51,7 +51,7 @@ namespace DKUtil::Hook
 	 * @returns CaveHookHandle
 	 */
 	inline auto AddCaveHook(
-		const dku_memory auto        a_address,
+		const std::uintptr_t         a_address,
 		const offset_pair            a_offset,
 		const FuncInfo               a_funcInfo,
 		const Xbyak::CodeGenerator*  a_prolog,
@@ -59,7 +59,7 @@ namespace DKUtil::Hook
 		model::enumeration<HookFlag> a_flag = HookFlag::kSkipNOP) noexcept
 	{
 		return AddCaveHook(
-			AsAddress(a_address), a_offset, a_funcInfo,
+			a_address, a_offset, a_funcInfo,
 			a_prolog ? std::make_pair(a_prolog->getCode(), a_prolog->getSize()) : std::make_pair(nullptr, 0),
 			a_epilog ? std::make_pair(a_epilog->getCode(), a_epilog->getSize()) : std::make_pair(nullptr, 0),
 			a_flag);
@@ -75,7 +75,7 @@ namespace DKUtil::Hook
 	 * @returns CaveHookHandle
 	 */
 	inline auto AddCaveHook(
-		const dku_memory auto        a_address,
+		const std::uintptr_t         a_address,
 		const offset_pair            a_offset,
 		const FuncInfo               a_funcInfo,
 		const Patch*                 a_prolog,
@@ -83,28 +83,28 @@ namespace DKUtil::Hook
 		model::enumeration<HookFlag> a_flag = HookFlag::kSkipNOP) noexcept
 	{
 		return AddCaveHook(
-			AsAddress(a_address), a_offset, a_funcInfo,
+			a_address, a_offset, a_funcInfo,
 			a_prolog ? std::make_pair(a_prolog->Data, a_prolog->Size) : std::make_pair(nullptr, 0),
 			a_epilog ? std::make_pair(a_epilog->Data, a_epilog->Size) : std::make_pair(nullptr, 0),
 			a_flag);
 	}
 
 	inline auto AddVMTHook(
-		const dku_memory auto       a_vtbl,
+		void*                       a_vtbl,
 		const std::uint16_t         a_index,
 		const FuncInfo              a_funcInfo,
 		const Xbyak::CodeGenerator* a_xbyak) noexcept
 	{
-		return AddVMTHook(AsPointer(a_vtbl), a_index, a_funcInfo, std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()));
+		return AddVMTHook(a_vtbl, a_index, a_funcInfo, std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()));
 	}
 
 	inline auto AddVMTHook(
-		const dku_memory auto a_vtbl,
-		const std::uint16_t   a_index,
-		const FuncInfo        a_funcInfo,
-		const Patch*          a_patch) noexcept
+		void*               a_vtbl,
+		const std::uint16_t a_index,
+		const FuncInfo      a_funcInfo,
+		const Patch*        a_patch) noexcept
 	{
-		return AddVMTHook(AsPointer(a_vtbl), a_index, a_funcInfo, std::make_pair(a_patch->Data, a_patch->Size));
+		return AddVMTHook(a_vtbl, a_index, a_funcInfo, std::make_pair(a_patch->Data, a_patch->Size));
 	}
 
 	inline auto AddIATHook(
@@ -137,10 +137,10 @@ namespace DKUtil::Hook
 	template <std::size_t N, typename F>
 		requires(dku_memory<F>)
 	inline auto write_branch(
-		dku_memory auto a_src,
-		F               a_dst) noexcept
+		const std::uintptr_t a_src,
+		F                    a_dst) noexcept
 	{
-		auto handle = AddRelHook<N, false>(AsAddress(a_src), unrestricted_cast<std::uintptr_t>(a_dst));
+		auto handle = AddRelHook<N, false>(a_src, unrestricted_cast<std::uintptr_t>(a_dst));
 		handle->Enable();
 		return std::move(*handle.get());
 	}
@@ -155,10 +155,10 @@ namespace DKUtil::Hook
 	template <std::size_t N = 5, typename F>
 		requires(dku_memory<F>)
 	inline auto write_call(
-		const dku_memory auto a_src,
-		F                     a_dst) noexcept
+		const std::uintptr_t a_src,
+		F                    a_dst) noexcept
 	{
-		auto handle = AddRelHook<N, true>(AsAddress(a_src), unrestricted_cast<std::uintptr_t>(a_dst));
+		auto handle = AddRelHook<N, true>(a_src, unrestricted_cast<std::uintptr_t>(a_dst));
 		handle->Enable();
 		return std::move(*handle.get());
 	}
@@ -173,9 +173,8 @@ namespace DKUtil::Hook
 	 * @returns F, the CaveHookHandle is discarded
 	 */
 	template <std::size_t N = 5, typename F>
-		requires(dku_memory<F>)
 	inline auto write_call_ex(
-		const dku_memory auto a_src,
+		const std::uintptr_t  a_src,
 		F                     a_dst,
 		enumeration<Register> a_regs = { Register::NONE },
 		enumeration<SIMD>     a_simd = { SIMD::NONE }) noexcept
@@ -197,7 +196,7 @@ namespace DKUtil::Hook
 		}
 
 		auto handle = AddCaveHook(
-			AsAddress(a_src),
+			a_src,
 			{ 0, N },
 			RT_INFO(a_dst, fmt::format("write_call_ex<{}>", N)),
 			&prolog1,
