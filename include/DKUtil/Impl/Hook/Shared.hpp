@@ -87,13 +87,24 @@ namespace DKUtil
 				}
 
 				Free();
-				a_rhs.Free();
+				// don't free the copy
+				a_rhs.Managed = false;
 
 				Data = buf;
 				Size = total;
 				Managed = true;
 
 				return *this;
+			}
+
+			Patch& Append(Xbyak::CodeGenerator& a_rhs) noexcept
+			{
+				return Append({ a_rhs.getCode(), a_rhs.getSize(), false });
+			}
+
+			Patch& Append(unpacked_data a_rhs) noexcept
+			{
+				return Append({ a_rhs.first, a_rhs.second, false });
 			}
 
 			constexpr void Free() noexcept
