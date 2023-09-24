@@ -85,7 +85,11 @@
 
 #endif
 
-#ifndef DKU_DISABLE_INTERNAL_LOGGING
+#ifdef NDEBUG
+#	define DKU_L_DISABLE_INTERNAL_DEBUGGING
+#endif
+
+#ifndef DKU_L_DISABLE_INTERNAL_DEBUGGING
 
 #	define __INFO(...) INFO(__VA_ARGS__)
 #	define __DEBUG(...) DEBUG(__VA_ARGS__)
@@ -94,7 +98,7 @@
 
 #else
 
-#	define __TRACE(...) void(0)
+#	define __INFO(...) void(0)
 #	define __DEBUG(...) void(0)
 #	define __TRACE(...) void(0)
 #	define __WARN(...) void(0)
