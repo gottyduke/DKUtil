@@ -53,9 +53,29 @@ namespace DKUtil
 
 		struct Patch
 		{
+			constexpr Patch(const void* a_data = nullptr, std::size_t a_size = 0, bool a_managed = false) noexcept :
+				Data(a_data), Size(a_size), Managed(a_managed)
+			{}
+
 			constexpr ~Patch() noexcept
 			{
 				Free();
+			}
+
+			// owning copy
+			constexpr Patch(Patch& a_rhs) noexcept :
+				Data(a_rhs.Data), Size(a_rhs.Size), Managed(a_rhs.Managed)
+			{
+				if (Managed) {
+					a_rhs.Managed = false;
+				}
+			}
+
+			// owning move
+			constexpr Patch(Patch&& a_rhs) noexcept :
+				Data(a_rhs.Data), Size(a_rhs.Size), Managed(a_rhs.Managed)
+			{
+				a_rhs.Managed = false;
 			}
 
 			constexpr operator std::span<OpCode>() const noexcept
@@ -87,8 +107,6 @@ namespace DKUtil
 				}
 
 				Free();
-				// don't free the copy
-				a_rhs.Managed = false;
 
 				Data = buf;
 				Size = total;
