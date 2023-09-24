@@ -366,8 +366,8 @@ namespace DKUtil
 
 		inline Disp32 ReDisp(const model::concepts::dku_memory auto a_src, const model::concepts::dku_memory auto a_dst, const Disp32 a_dstOffset)
 		{
-			auto* newDisp = adjust_pointer<Disp32>(a_dst, a_dstOffset);
-			*newDisp = GetDisp(a_src) - a_dst;
+			auto* newDisp = adjust_pointer<Disp32>(std::bit_cast<OpCode*>(a_dst), a_dstOffset);
+			*newDisp = GetDisp(a_src) - AsAddress(a_dst);
 
 			return *newDisp;
 		}
