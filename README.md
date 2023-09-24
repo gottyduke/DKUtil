@@ -21,8 +21,9 @@ Some utilitarian headers to help with x64 native plugin development
     - [asm patch](https://github.com/gottyduke/DKUtil/wiki/2.4-Hook:-ASM-Patch)
     - [cave hook](https://github.com/gottyduke/DKUtil/wiki/2.5-Hook:-Cave-Hook)
     - [virtual method table swap](https://github.com/gottyduke/DKUtil/wiki/2.6-Hook:-VTable-Swap)
-    - import address table swap
+    - [import address table swap](https://github.com/gottyduke/DKUtil/wiki/2.7-Hook:-IAT-Hook)
     - [simple function hook (write_call/write_branch)](https://github.com/gottyduke/DKUtil/wiki/2.2-Hook:-Relocation-Hook)
+    - [non-volatile call (LTO enabled hooks)](https://github.com/gottyduke/DKUtil/wiki/2.8-Hook:-LTO-Enabled-Hook)
     - various usefully gathered utils
 + [Logger](https://github.com/gottyduke/DKUtil/wiki/3.-Logger)
     - logging macros
