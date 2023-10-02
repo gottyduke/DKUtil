@@ -59,8 +59,8 @@ namespace DKUtil::serialization
 		struct Header
 		{
 			key_type     name;
-			hash_type    hash;
-			version_type version;
+			hash_type    hash{ 0 };
+			version_type version{ 0 };
 			std::string  typeInfo;
 		};
 

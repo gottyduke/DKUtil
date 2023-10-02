@@ -13,7 +13,7 @@ namespace DKUtil::Hook
 			const std::uintptr_t a_callsite,
 			const std::uintptr_t a_tramPtr,
 			const std::uintptr_t a_dstAddr,
-			const std::uint8_t   a_opSize) noexcept :
+			const std::size_t    a_opSize) noexcept :
 			HookHandle(a_callsite, a_tramPtr),
 			OpSeqSize(a_opSize),
 			OriginalFunc(GetDisp(a_callsite)),
@@ -46,7 +46,7 @@ namespace DKUtil::Hook
 			return std::bit_cast<F>(OriginalFunc);
 		}
 
-		const std::uint8_t  OpSeqSize;
+		const std::size_t   OpSeqSize;
 		const Imm64         OriginalFunc;
 		Imm64               Destination;
 		std::vector<OpCode> OldBytes{};

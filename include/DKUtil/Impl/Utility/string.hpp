@@ -235,4 +235,44 @@ namespace DKUtil::string
 	{
 		return a_str = a_str | std::views::transform([](auto& c) { return c = std::tolower(c); }) | std::ranges::to<std::string>();
 	}
+
+	[[nodiscard]] inline auto utf8_to_utf16(std::string_view a_in) noexcept -> std::optional<std::wstring>
+	{
+		const auto cvt = [&](wchar_t* a_dst, std::size_t a_length) {
+			return ::MultiByteToWideChar(
+				CP_UTF8, 0, a_in.data(), static_cast<int>(a_in.length()), a_dst, static_cast<int>(a_length));
+		};
+
+		const auto len = cvt(nullptr, 0);
+		if (len == 0) {
+			return std::nullopt;
+		}
+
+		std::wstring out(len, '\0');
+		if (cvt(out.data(), out.length()) == 0) {
+			return std::nullopt;
+		}
+
+		return out;
+	}
+
+	[[nodiscard]] inline auto utf16_to_utf8(std::wstring_view a_in) noexcept -> std::optional<std::string>
+	{
+		const auto cvt = [&](char* a_dst, std::size_t a_length) {
+			return ::WideCharToMultiByte(
+				CP_UTF8, 0, a_in.data(), static_cast<int>(a_in.length()), a_dst, static_cast<int>(a_length), nullptr, nullptr);
+		};
+
+		const auto len = cvt(nullptr, 0);
+		if (len == 0) {
+			return std::nullopt;
+		}
+
+		std::string out(len, '\0');
+		if (cvt(out.data(), out.length()) == 0) {
+			return std::nullopt;
+		}
+
+		return out;
+	}
 }  // namespace DKUtil::string
