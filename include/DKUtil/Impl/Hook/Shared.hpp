@@ -140,122 +140,6 @@ namespace DKUtil
 			bool        Managed = false;
 		};
 
-		// COMPAT
-#include "Shared_Compat.hpp"
-
-		inline std::string_view GetProcessName(HMODULE a_handle = 0) noexcept
-		{
-			static std::string fileName(MAX_PATH + 1, ' ');
-			auto               res = ::GetModuleBaseNameA(GetCurrentProcess(), a_handle, fileName.data(), MAX_PATH + 1);
-			if (res == 0) {
-				fileName = "[ProcessHost]";
-				res = 13;
-			}
-
-			return { fileName.c_str(), res };
-		}
-
-		inline std::string_view GetProcessPath(HMODULE a_handle = 0) noexcept
-		{
-			static std::string fileName(MAX_PATH + 1, ' ');
-			auto               res = ::GetModuleFileNameA(a_handle, fileName.data(), MAX_PATH + 1);
-			if (res == 0) {
-				fileName = "[ProcessHost]";
-				res = 13;
-			}
-
-			return { fileName.c_str(), res };
-		}
-
-		inline void WriteData(const model::concepts::dku_memory auto a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = false) noexcept
-		{
-			if (a_requestAlloc) {
-				void(TRAM_ALLOC(a_size));
-			}
-
-			DWORD oldProtect;
-
-			auto success = ::VirtualProtect(AsPointer(a_dst), a_size, PAGE_EXECUTE_READWRITE, std::addressof(oldProtect));
-			if (success != FALSE) {
-				std::memcpy(AsPointer(a_dst), a_data, a_size);
-				success = ::VirtualProtect(AsPointer(a_dst), a_size, oldProtect, std::addressof(oldProtect));
-			}
-
-			dku_assert(success != FALSE,
-				"DKU_H: Failed to write data, error code {}\n"
-				"at   : {:X}\ndata : {:X}\nsize : {}\nalloc: {}",
-				success, AsAddress(a_dst), AsAddress(a_data), a_size, a_requestAlloc);
-		}
-
-		// imm
-		inline void WriteImm(const model::concepts::dku_memory auto a_dst, const model::concepts::dku_trivial auto a_data, bool a_requestAlloc = false) noexcept
-		{
-			return WriteData(a_dst, std::addressof(a_data), sizeof(a_data), a_requestAlloc);
-		}
-
-		// pair patch
-		inline void WritePatch(const model::concepts::dku_memory auto a_dst, const unpacked_data a_patch, bool a_requestAlloc = false) noexcept
-		{
-			return WriteData(a_dst, a_patch.first, a_patch.second, a_requestAlloc);
-		}
-
-		// xbyak patch
-		inline void WritePatch(const model::concepts::dku_memory auto a_dst, const Xbyak::CodeGenerator* a_patch, bool a_requestAlloc = false) noexcept
-		{
-			return WriteData(a_dst, a_patch->getCode(), a_patch->getSize(), a_requestAlloc);
-		}
-
-		// struct patch
-		inline void WritePatch(const model::concepts::dku_memory auto a_dst, const Hook::Patch* a_patch, bool a_requestAlloc = false) noexcept
-		{
-			return WriteData(a_dst, a_patch->Data, a_patch->Size, a_requestAlloc);
-		}
-
-		// util func
-		inline constexpr std::uintptr_t TblToAbs(const model::concepts::dku_memory auto a_base, const std::uint16_t a_index, const std::size_t a_size = sizeof(Imm64)) noexcept
-		{
-			return AsAddress(a_base + a_index * a_size);
-		}
-
-		template <class To, class From>
-		[[nodiscard]] To unrestricted_cast(From a_from) noexcept
-		{
-			if constexpr (std::is_same_v<
-							  std::remove_cv_t<From>,
-							  std::remove_cv_t<To>>) {
-				return To{ a_from };
-
-				// From != To
-			} else if constexpr (std::is_reference_v<From>) {
-				return unrestricted_cast<To>(std::addressof(a_from));
-
-				// From: NOT reference
-			} else if constexpr (std::is_reference_v<To>) {
-				return *unrestricted_cast<
-					std::add_pointer_t<
-						std::remove_reference_t<To>>>(a_from);
-
-				// To: NOT reference
-			} else if constexpr (std::is_pointer_v<From> &&
-								 std::is_pointer_v<To>) {
-				return static_cast<To>(
-					const_cast<void*>(
-						static_cast<const volatile void*>(a_from)));
-			} else if constexpr ((std::is_pointer_v<From> && std::is_integral_v<To>) ||
-								 (std::is_integral_v<From> && std::is_pointer_v<To>)) {
-				return std::bit_cast<To>(a_from);
-			} else {
-				union
-				{
-					std::remove_cv_t<std::remove_reference_t<From>> from;
-					std::remove_cv_t<std::remove_reference_t<To>>   to;
-				};
-
-				from = std::forward<From>(a_from);
-				return to;
-			}
-		}
-
 		template <typename T = void, typename U>
 		[[nodiscard]] inline constexpr auto adjust_pointer(U* a_ptr, std::ptrdiff_t a_adjust) noexcept
 		{
@@ -380,6 +264,58 @@ namespace DKUtil
 			dku_assert((min <= a_disp && a_disp <= max), "DKU_H: displacement is out of range for trampoline relocation!");
 		}
 
+		[[nodiscard]] inline std::vector<std::uint32_t> GetFileVersion(std::string_view a_filename)
+		{
+			std::vector<std::uint32_t> version(4);
+			std::uint32_t              dummy{ 0 };
+			std::vector<char>          buf(::GetFileVersionInfoSizeA(a_filename.data(), std::bit_cast<LPDWORD>(std::addressof(dummy))));
+			if (buf.empty()) {
+				return version;
+			}
+
+			if (!::GetFileVersionInfoA(a_filename.data(), 0, static_cast<std::uint32_t>(buf.size()), buf.data())) {
+				return version;
+			}
+
+			void*         verBuf{ nullptr };
+			std::uint32_t verLen{ 0 };
+			if (!::VerQueryValueA(buf.data(), "\\StringFileInfo\\040904B0\\ProductVersion", std::addressof(verBuf), std::addressof(verLen))) {
+				return version;
+			}
+
+			std::istringstream ss(std::string(static_cast<const char*>(verBuf), verLen));
+			std::string        token;
+			for (std::size_t i = 0; i < 4 && std::getline(ss, token, '.'); ++i) {
+				version[i] = static_cast<std::uint32_t>(std::stoi(token));
+			}
+
+			return version;
+		}
+
+		inline std::string_view GetProcessName(HMODULE a_handle = 0) noexcept
+		{
+			static std::string fileName(MAX_PATH + 1, ' ');
+			auto               res = ::GetModuleBaseNameA(GetCurrentProcess(), a_handle, fileName.data(), MAX_PATH + 1);
+			if (res == 0) {
+				fileName = "[ProcessHost]";
+				res = 13;
+			}
+
+			return { fileName.c_str(), res };
+		}
+
+		inline std::string_view GetProcessPath(HMODULE a_handle = 0) noexcept
+		{
+			static std::string fileName(MAX_PATH + 1, ' ');
+			auto               res = ::GetModuleFileNameA(a_handle, fileName.data(), MAX_PATH + 1);
+			if (res == 0) {
+				fileName = "[ProcessHost]";
+				res = 13;
+			}
+
+			return { fileName.c_str(), res };
+		}
+
 		class Module
 		{
 		public:
@@ -418,6 +354,8 @@ namespace DKUtil
 						}
 					}
 				}
+
+				_version = GetFileVersion(GetProcessPath(std::bit_cast<HMODULE>(a_base)));
 			}
 			explicit Module(std::string_view a_filePath)
 			{
@@ -435,6 +373,21 @@ namespace DKUtil
 			{
 				auto& [sec, addr, size] = _sections[std::to_underlying(a_section)];
 				return std::make_pair(addr, size);
+			}
+
+			[[nodiscard]] constexpr auto version() const noexcept { return _version; }
+			[[nodiscard]] const auto     version_string(std::string_view a_delim = "-"sv)
+			{
+				return fmt::format("{}{}{}{}{}{}{}", _version[0], a_delim, _version[1], a_delim, _version[2], a_delim, _version[3]);
+			}
+
+			[[nodiscard]] constexpr auto version_number() const noexcept
+			{
+				return static_cast<std::uint32_t>(
+					(_version[0] & 0x0FF) << 24u |
+					(_version[1] & 0x0FF) << 16u |
+					(_version[2] & 0xFFF) << 4u |
+					(_version[3] & 0x00F) << 0u);
 			}
 
 			[[nodiscard]] static Module& get(const model::concepts::dku_memory auto a_address) noexcept
@@ -461,7 +414,100 @@ namespace DKUtil
 			::IMAGE_NT_HEADERS64*                                             _ntHeader;
 			::IMAGE_SECTION_HEADER*                                           _sectionHeader;
 			std::array<SectionDescriptor, std::to_underlying(Section::total)> _sections;
+			std::vector<std::uint32_t>                                        _version;
 		};
+
+		// COMPAT
+#include "Shared_Compat.hpp"
+
+		inline void WriteData(const model::concepts::dku_memory auto a_dst, const void* a_data, const std::size_t a_size, bool a_requestAlloc = false) noexcept
+		{
+			if (a_requestAlloc) {
+				void(TRAM_ALLOC(a_size));
+			}
+
+			DWORD oldProtect;
+
+			auto success = ::VirtualProtect(AsPointer(a_dst), a_size, PAGE_EXECUTE_READWRITE, std::addressof(oldProtect));
+			if (success != FALSE) {
+				std::memcpy(AsPointer(a_dst), a_data, a_size);
+				success = ::VirtualProtect(AsPointer(a_dst), a_size, oldProtect, std::addressof(oldProtect));
+			}
+
+			dku_assert(success != FALSE,
+				"DKU_H: Failed to write data, error code {}\n"
+				"at   : {:X}\ndata : {:X}\nsize : {}\nalloc: {}",
+				success, AsAddress(a_dst), AsAddress(a_data), a_size, a_requestAlloc);
+		}
+
+		// imm
+		inline void WriteImm(const model::concepts::dku_memory auto a_dst, const model::concepts::dku_trivial auto a_data, bool a_requestAlloc = false) noexcept
+		{
+			return WriteData(a_dst, std::addressof(a_data), sizeof(a_data), a_requestAlloc);
+		}
+
+		// pair patch
+		inline void WritePatch(const model::concepts::dku_memory auto a_dst, const unpacked_data a_patch, bool a_requestAlloc = false) noexcept
+		{
+			return WriteData(a_dst, a_patch.first, a_patch.second, a_requestAlloc);
+		}
+
+		// xbyak patch
+		inline void WritePatch(const model::concepts::dku_memory auto a_dst, const Xbyak::CodeGenerator* a_patch, bool a_requestAlloc = false) noexcept
+		{
+			return WriteData(a_dst, a_patch->getCode(), a_patch->getSize(), a_requestAlloc);
+		}
+
+		// struct patch
+		inline void WritePatch(const model::concepts::dku_memory auto a_dst, const Hook::Patch* a_patch, bool a_requestAlloc = false) noexcept
+		{
+			return WriteData(a_dst, a_patch->Data, a_patch->Size, a_requestAlloc);
+		}
+
+		// util func
+		inline constexpr std::uintptr_t TblToAbs(const model::concepts::dku_memory auto a_base, const std::uint16_t a_index, const std::size_t a_size = sizeof(Imm64)) noexcept
+		{
+			return AsAddress(a_base + a_index * a_size);
+		}
+
+		template <class To, class From>
+		[[nodiscard]] To unrestricted_cast(From a_from) noexcept
+		{
+			if constexpr (std::is_same_v<
+							  std::remove_cv_t<From>,
+							  std::remove_cv_t<To>>) {
+				return To{ a_from };
+
+				// From != To
+			} else if constexpr (std::is_reference_v<From>) {
+				return unrestricted_cast<To>(std::addressof(a_from));
+
+				// From: NOT reference
+			} else if constexpr (std::is_reference_v<To>) {
+				return *unrestricted_cast<
+					std::add_pointer_t<
+						std::remove_reference_t<To>>>(a_from);
+
+				// To: NOT reference
+			} else if constexpr (std::is_pointer_v<From> &&
+								 std::is_pointer_v<To>) {
+				return static_cast<To>(
+					const_cast<void*>(
+						static_cast<const volatile void*>(a_from)));
+			} else if constexpr ((std::is_pointer_v<From> && std::is_integral_v<To>) ||
+								 (std::is_integral_v<From> && std::is_pointer_v<To>)) {
+				return std::bit_cast<To>(a_from);
+			} else {
+				union
+				{
+					std::remove_cv_t<std::remove_reference_t<From>> from;
+					std::remove_cv_t<std::remove_reference_t<To>>   to;
+				};
+
+				from = std::forward<From>(a_from);
+				return to;
+			}
+		}
 
 		[[nodiscard]] inline void* GetImportAddress(std::string_view a_moduleName, std::string_view a_libraryName, std::string_view a_importName) noexcept
 		{
@@ -509,7 +555,7 @@ namespace DKUtil
 			constexpr auto                                            maxWalkableOpSeq = static_cast<size_t>(1) << 12;
 
 			if (!func.contains(a_addr)) {
-				auto*       prev = std::bit_cast<OpCode*>(a_addr);
+				auto* prev = std::bit_cast<OpCode*>(a_addr);
 				prev = prev - (AsAddress(prev) % 0x8);
 				std::size_t walked = 0;
 				while (walked++ < maxWalkableOpSeq) {
