@@ -1,11 +1,11 @@
 #pragma once
+#pragma comment(lib, "Version.lib")
 
 #include "DKUtil/Impl/pch.hpp"
 #include "DKUtil/Logger.hpp"
 #include "DKUtil/Utility.hpp"
 
 #include <xbyak/xbyak.h>
-
 #define AsAddress(PTR) std::bit_cast<std::uintptr_t>(PTR)
 #define AsPointer(ADDR) std::bit_cast<void*>(ADDR)
 #define AsRawAddr(ADDR) dku::Hook::GetRawAddress(AsAddress(ADDR))
