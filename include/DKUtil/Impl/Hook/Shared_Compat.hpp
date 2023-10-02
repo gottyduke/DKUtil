@@ -320,34 +320,20 @@ namespace database
 	inline static std::span<mapping_t>                                    Id2offset{};
 	inline static Platform                                                CurrentPlatform = Platform::kUnknown;
 	inline constexpr auto                                                 LookUpDir = "Data\\SFSE\\Plugins"sv;
-	inline constexpr std::array<std::pair<std::string_view, Platform>, 2> VendorModule{
-		std::make_pair("steam_api64"sv, Platform::kSteam),
-		std::make_pair("XGameRuntime"sv, Platform::kMsStore),
-	};
 
 	inline std::string AddresslibFilename()
 	{
 		const auto version = Module::get().version_string();
 		// address lib files are in { runtimeDirectory + "Data\\SFSE\\Plugins" }
-		auto file = std::filesystem::current_path();
+		auto file = std::filesystem::path(GetProcessPath()).parent_path();
 
 		file /= fmt::format("{}\\versionlib-{}", LookUpDir, version);
 
-		CurrentPlatform = Platform::kUnknown;
-		for (auto& [vendor, registered] : VendorModule) {
-			if (::GetModuleHandleA(vendor.data())) {
-				CurrentPlatform = registered;
-				break;
-			}
-		}
-
-		dku_assert(CurrentPlatform != Platform::kUnknown,
-			"DKU_H: Failed to identify game runtime platform,"
-			"This means the address library is incompatible for this platform."sv);
+		CurrentPlatform = ::GetModuleHandleA("steam_api64") ? Platform::kSteam : Platform::kMsStore;
 
 		// steam version omits the suffix
 		if (CurrentPlatform != Platform::kSteam) {
-			file /= fmt::format("-{}", std::to_underlying(CurrentPlatform));
+			file += fmt::format("-{}", std::to_underlying(CurrentPlatform));
 		}
 		file += ".bin";
 
@@ -510,11 +496,9 @@ namespace database
 				"an appropriate version or platform. \nIf one is not available, "
 				"then it is likely that address library has not yet added support "
 				"for this version of the game or this platform.\n"
-				"Current version: {}\n"
-				"Current vendor module: {}"sv,
+				"Current version: {}\n"sv,
 				filename,
-				Module::get().version_string(),
-				VendorModule[std::to_underlying(CurrentPlatform)].first);
+				Module::get().version_string());
 			return false;
 		}
 		return true;
