@@ -32,7 +32,6 @@ endif()
 # dependencies
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
-find_package(tomlplusplus CONFIG REQUIRED)
 find_package(xbyak CONFIG REQUIRED)
 
 # header only library
@@ -125,7 +124,6 @@ source_group(
 add_subdirectory($ENV{CommonLibSSEPath} CommonLibSSE)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
-find_package(tomlplusplus CONFIG REQUIRED)
 find_package(xbyak CONFIG REQUIRED)
 
 # runtime
