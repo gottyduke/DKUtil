@@ -169,7 +169,6 @@ target_link_libraries(
 		CommonLibSSE::CommonLibSSE
 		nlohmann_json::nlohmann_json
 		spdlog::spdlog
-		tomlplusplus::tomlplusplus
 		xbyak::xbyak
 )
 

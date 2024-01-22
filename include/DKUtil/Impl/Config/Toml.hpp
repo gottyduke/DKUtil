@@ -3,7 +3,7 @@
 #include "data.hpp"
 
 #define TOML_EXCEPTIONS 0
-#include "toml++/toml.h"
+#include "external/toml.hpp"
 
 namespace DKUtil::Config::detail
 {
