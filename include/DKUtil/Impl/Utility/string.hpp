@@ -191,30 +191,40 @@ namespace DKUtil::string
 		}
 	}
 
-	[[nodiscard]] inline constexpr std::vector<std::string> split(const std::string_view a_str, const std::convertible_to<std::string_view> auto&... a_deliminators) noexcept
+	[[nodiscard]] inline constexpr std::string replace_all(std::string_view a_str, const std::string_view a_pattern, const std::string_view a_replace = {}) noexcept
+	{
+		return replace_nth_occurrence(a_str, 0, a_pattern, a_replace);
+	}
+
+	[[nodiscard]] inline constexpr std::vector<std::string> split(const std::string_view a_str, const std::convertible_to<std::string_view> auto&... a_delimiters) noexcept
 	{
 		std::vector<std::string> list;
-		std::string_view         chunk{};
-		std::size_t              p{ 0 }, n{ 0 };
+		std::string_view         chunk{ a_str };
+		std::size_t              p{ 0 };
 
 		const auto slide_split = [&](std::string_view delim) {
-			if (auto pos = chunk.rfind(delim); pos != std::string_view::npos) {
-				p = n;
-				if (pos) {
+			if (chunk.empty()) {
+				return;
+			}
+			if (auto pos = chunk.find(delim); pos != std::string_view::npos) {
+				if (pos != 0) {
 					list.emplace_back(chunk.substr(0, pos));
-					return;
 				}
+				chunk.remove_prefix(pos + delim.length());
+				p = 0;
 			}
 		};
 
-		while (n < a_str.length()) {
-			chunk = a_str.substr(p, n - p);
-			(slide_split(a_deliminators), ...);
-			++n;
-		}
-
-		if (n == a_str.length()) {
-			list.emplace_back(a_str.substr(p, n - p + 1));
+		while (!chunk.empty()) {
+			(slide_split(a_delimiters), ...);
+			if (p < chunk.length()) {
+				++p;
+			} else {
+				if (!chunk.empty()) {
+					list.emplace_back(chunk);
+				}
+				break;
+			}
 		}
 
 		return list;
