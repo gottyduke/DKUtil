@@ -285,4 +285,11 @@ namespace DKUtil::string
 
 		return out;
 	}
+
+	inline constexpr void set_char_buffer(std::string_view a_src, std::span<char> a_dst) noexcept
+	{
+		dku_assert(a_src.size() < a_dst.size());
+		std::ranges::fill(a_dst, '\0');
+		std::ranges::copy(a_src, a_dst.begin());
+	}
 }  // namespace DKUtil::string
