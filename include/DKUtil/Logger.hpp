@@ -102,6 +102,8 @@
 #	define __DEBUG(...) void(0)
 #	define __TRACE(...) void(0)
 #	define __WARN(...) void(0)
+#	define ERROR(...) void(0)
+#	define FATAL(...) void(0)
 
 #endif
 
