@@ -48,13 +48,13 @@
 	}
 
 #define __SHORTF__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
-#define __REPORT(DO_EXIT, PROMPT, ...)                                                   \
-	{                                                                                    \
-		__LOG(critical, __VA_ARGS__);                                                    \
-		const auto src = std::source_location::current();                                \
-		const auto fmt = fmt::format(DKUtil::Logger::detail::prompt::PROMPT,             \
-			src.file_name(), src.line(), src.function_name(), fmt::format(__VA_ARGS__)); \
-		DKUtil::Logger::detail::report_error(DO_EXIT, fmt);                              \
+#define __REPORT(DO_EXIT, PROMPT, ...)                                              \
+	{                                                                               \
+		__LOG(critical, __VA_ARGS__);                                               \
+		const auto src = std::source_location::current();                           \
+		const auto fmt = fmt::format(DKUtil::Logger::detail::prompt::PROMPT,        \
+			__SHORTF__, src.line(), src.function_name(), fmt::format(__VA_ARGS__)); \
+		DKUtil::Logger::detail::report_error(DO_EXIT, fmt);                         \
 	}
 #define INFO(...) __LOG(info, __VA_ARGS__)
 #define DEBUG(...) __LOG(debug, __VA_ARGS__)
