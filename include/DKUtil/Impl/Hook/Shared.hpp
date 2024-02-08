@@ -551,22 +551,28 @@ namespace DKUtil
 
 		[[nodiscard]] inline std::uintptr_t GetFuncPrologAddr(std::uintptr_t a_addr)
 		{
-			static std::unordered_map<std::uintptr_t, std::uintptr_t> func;
-			constexpr auto                                            maxWalkableOpSeq = static_cast<size_t>(1) << 12;
+			static std::unordered_map<std::uintptr_t, std::uintptr_t> cached;
+			constexpr auto                                            abiBoundary = 0x8;
+			constexpr auto                                            minPadding = 0x2;
+			constexpr auto                                            maxWalkable = static_cast<size_t>(1) << 12;
 
-			if (!func.contains(a_addr)) {
-				auto* prev = std::bit_cast<OpCode*>(a_addr);
-				prev = prev - (AsAddress(prev) % 0x8);
-				std::size_t walked = 0;
-				while (walked++ < maxWalkableOpSeq) {
-					if (*--prev == 0xCC && *--prev == 0xCC) {
-						func[a_addr] = AsAddress(prev + 0x2);
-						break;
-					}
+			auto it = cached.find(a_addr);
+			if (it != cached.end()) {
+				return it->second;
+			}
+
+			std::uintptr_t start = a_addr - (a_addr % abiBoundary);
+			std::uintptr_t end = start > maxWalkable ? start - maxWalkable : 0;
+
+			for (std::uintptr_t current = start; current >= end; current -= abiBoundary) {
+				auto epilogue = *adjust_pointer<std::uint16_t>(AsPointer(current), -minPadding);
+				if (epilogue == 0xCCCC || epilogue == 0xCCC3) {
+					cached[a_addr] = current;
+					break;
 				}
 			}
 
-			return func[a_addr];
+			return cached.try_emplace(a_addr, a_addr).first->second;
 		}
 
 		/*
