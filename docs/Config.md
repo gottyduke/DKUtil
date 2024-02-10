@@ -30,7 +30,7 @@ Double myDoubleData{ "MyDoubleKey", "General" }; // double
 Boolean myBoolData{ "MyBoolKey" }; // bool
 String myStringData{ "MyStringKey" }; // std::basic_string<char>
 ```
-> Section field is optional and will not stop DKUtil from accessing data, unnamed sections will be put under `Global`.
+> Section field is optional and unnamed sections will be put under `Global`. Section is ignored for JSON.
 
 ## Proxy
 The configuration system in DKUtil works as "proxy per file", each `Proxy` represents one specific configuration file and the subsequent `Load`, `Write`, and `Generate` calls.

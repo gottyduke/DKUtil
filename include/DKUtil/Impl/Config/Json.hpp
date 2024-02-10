@@ -26,11 +26,10 @@ namespace DKUtil::Config::detail
 				file.close();
 			}
 
-			for (auto& [key, value] : _manager) {
-				auto* data = value.first;
-				auto  raw = _json.find(key.data());
+			for (auto& [key, data] : _manager) {
+				auto raw = _json.find(key.first.data());
 				if (raw == _json.end()) {
-					ERROR("DKU_C: Parser#{}: Retrieving config failed!\nFile: {}\nKey: {}", _id, _filepath.c_str(), key);
+					ERROR("DKU_C: Parser#{}: Retrieving config failed!\nFile: {}\nKey: {}", _id, _filepath.c_str(), key.first);
 				}
 
 				switch (data->get_type()) {
@@ -93,38 +92,37 @@ namespace DKUtil::Config::detail
 		void Generate() noexcept override
 		{
 			_json.clear();
-			for (auto& [key, value] : _manager) {
-				auto* data = value.first;
+			for (auto& [key, data] : _manager) {
 				switch (data->get_type()) {
 				case DataType::kBoolean:
 					{
-						_json[key.data()] = data->As<bool>()->get_data();
+						_json[key.first.data()] = data->As<bool>()->get_data();
 						break;
 					}
 				case DataType::kDouble:
 					{
 						if (auto* raw = data->As<double>(); raw->is_collection()) {
-							_json[key.data()] = raw->get_collection();
+							_json[key.first.data()] = raw->get_collection();
 						} else {
-							_json[key.data()] = raw->get_data();
+							_json[key.first.data()] = raw->get_data();
 						}
 						break;
 					}
 				case DataType::kInteger:
 					{
 						if (auto* raw = data->As<std::int64_t>(); raw->is_collection()) {
-							_json[key.data()] = raw->get_collection();
+							_json[key.first.data()] = raw->get_collection();
 						} else {
-							_json[key.data()] = raw->get_data();
+							_json[key.first.data()] = raw->get_data();
 						}
 						break;
 					}
 				case DataType::kString:
 					{
 						if (auto* raw = data->As<std::basic_string<char>>(); raw->is_collection()) {
-							_json[key.data()] = raw->get_collection();
+							_json[key.first.data()] = raw->get_collection();
 						} else {
-							_json[key.data()] = raw->get_data();
+							_json[key.first.data()] = raw->get_data();
 						}
 						break;
 					}

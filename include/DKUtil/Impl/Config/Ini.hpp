@@ -32,10 +32,10 @@ namespace DKUtil::Config::detail
 						continue;
 					}
 
-					if (_manager.contains(key.pItem)) {
+					if (_manager.contains(std::make_pair(key.pItem, section.pItem))) {
 						std::string raw{ value };
 
-						auto& [data, section] = _manager.at(key.pItem);
+						auto& data = _manager.at(std::make_pair(key.pItem, section.pItem));
 						switch (data->get_type()) {
 						case DataType::kBoolean:
 							{
@@ -143,9 +143,8 @@ namespace DKUtil::Config::detail
 				_ini.Delete(section.pItem, nullptr);
 			}
 
-			for (auto& [key, value] : _manager) {
-				auto*       data = value.first;
-				auto        sanitized = value.second.empty() ? "Global"sv : value.second;
+			for (auto& [key, data] : _manager) {
+				auto        sanitized = key.second.empty() ? "Global"sv : key.second;
 				std::string raw{};
 				switch (data->get_type()) {
 				case DataType::kBoolean:
@@ -179,12 +178,12 @@ namespace DKUtil::Config::detail
 					continue;
 				}
 
-				auto rc = _ini.SetValue(sanitized.data(), key.data(), raw.data());
+				auto rc = _ini.SetValue(sanitized.data(), key.first.data(), raw.data());
 				if (rc == SI_FAIL) {
 					ERROR(
 						"DKU_C: Parser#{}: failed generating default value\n"
-						"File: {}\nKey: {}, Section: {}\Type: {}\nValue: {}",
-						_id, _filepath.data(), key, sanitized, dku::print_enum(data->get_type()), raw.data());
+						"File: {}\nKey: {}, Section: {}\nType: {}\nValue: {}",
+						_id, _filepath.data(), key.first, sanitized, dku::print_enum(data->get_type()), raw.data());
 				}
 			}
 
