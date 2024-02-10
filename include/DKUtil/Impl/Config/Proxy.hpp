@@ -123,14 +123,14 @@ namespace DKUtil::Config
 		}
 
 		template <
-			const double min = 1,
-			const double max = 0,
+			const double min = 1.,
+			const double max = 0.,
 			typename data_t>
 		constexpr void Bind(detail::AData<data_t>& a_data, const std::convertible_to<data_t> auto&... a_value) noexcept
 		{
 			static_assert(ConfigFileType != FileType::kSchema, "Schema parser cannot use regular data bindings!");
 
-			_manager.try_emplace(a_data.get_key(), std::make_pair(std::addressof(a_data), a_data.get_section()));
+			_manager.try_emplace(std::make_pair(a_data.get_key(), a_data.get_section()), std::addressof(a_data));
 			a_data.set_range({ min, max });
 			a_data.set_data({ static_cast<data_t>(a_value)... });
 		}

@@ -71,9 +71,20 @@ namespace DKUtil::Config
 
 	namespace detail
 	{
+		struct section_key_hash
+		{
+			size_t operator()(const std::pair<std::string_view, std::string_view>& key) const
+			{
+				// Hash combining algorithm taken from boost::hash_combine 
+				auto hash = std::hash<std::string_view>()(key.first);
+				hash ^= std::hash<std::string_view>()(key.second) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+				return hash;
+			}
+		};
+
 		class IData;
-		// key, <data*, section?>
-		using manager = std::unordered_map<std::string_view, std::pair<detail::IData*, std::string_view>>;
+		// <key, section?>, data*
+		using manager = std::unordered_map<std::pair<std::string_view, std::string_view>, detail::IData*, section_key_hash>;
 
 		inline static std::uint32_t _Count{ 0 };
 
