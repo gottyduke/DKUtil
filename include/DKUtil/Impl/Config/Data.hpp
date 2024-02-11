@@ -66,8 +66,8 @@ namespace DKUtil::Config::detail
 
 	public:
 		constexpr AData() noexcept = delete;
-		constexpr AData(const std::string& a_key, const std::string& a_section = "") :
-			IData(TYPE), _key(std::move(a_key)), _section(std::move(a_section))
+		constexpr AData(const std::string& a_key, const std::string& a_section = {}) :
+			IData(TYPE), _key(std::move(a_key)), _section(a_section.empty() ? "Global" : std::move(a_section))
 		{}
 
 		constexpr AData(const AData&) noexcept = delete;
@@ -133,7 +133,7 @@ namespace DKUtil::Config::detail
 			_collection.reset();
 
 			_isCollection = (a_list.size() > 1);
-			[[unlikely]] if (_isCollection) {
+			if (_isCollection) {
 				_collection = std::make_unique<collection>(a_list);
 			}
 
@@ -148,7 +148,7 @@ namespace DKUtil::Config::detail
 			_collection.reset();
 
 			_isCollection = (a_collection.size() > 1);
-			[[likely]] if (_isCollection) {
+			if (_isCollection) {
 				_collection = std::make_unique<collection>(std::move(a_collection));
 				_data = _collection->front();
 			}

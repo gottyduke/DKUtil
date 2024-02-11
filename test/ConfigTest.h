@@ -5,10 +5,10 @@ namespace Test::Config
 {
 	using namespace DKUtil::Alias;
 
-	static Integer iA{ "iAwesome" };
-	static String  sA{ "sAwesome" };
-	static Boolean bA{ "bAwesome" };
-	static Double  dA{ "dAwesome" };
+	static Integer iA{ "iAwesome", "Awesome" };
+	static String  sA{ "sAwesome", "Awesome" };
+	static Boolean bA{ "bAwesome", "Awesome" };
+	static Double  dA{ "dAwesome", "Awesome" };
 
 	void Run()
 	{
@@ -21,7 +21,7 @@ namespace Test::Config
 		MainToml.Bind(bA, true);
 		MainToml.Bind(dA, 114.514);
 
-		MainToml.Load();
+		MainIni.Load();
 		MainJson.Load();
 		MainToml.Load();
 
