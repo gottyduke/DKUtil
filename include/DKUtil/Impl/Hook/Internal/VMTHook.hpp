@@ -33,11 +33,17 @@ namespace DKUtil::Hook
 			__DEBUG("DKU_H: Disabled VMT hook");
 		}
 
+		template <typename F>
+		F GetOldFunction() noexcept
+		{
+			return std::bit_cast<F>(OldAddress);
+		}
+
 		const std::uintptr_t OldAddress;
 	};
 
 	/* Swaps a virtual method table function with target function
-	 * @param a_vtbl : Pointer to virtual method table
+	 * @param a_vtbl : Pointer to virtual method table (base address of class object)
 	 * @param a_index : Index of the virtual function in the virtual method table
 	 * @param a_funcInfo : FUNC_INFO or RT_INFO wrapped function
 	 * @param a_patch : Prolog patch before detouring to target function
