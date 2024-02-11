@@ -262,16 +262,17 @@ public:
     void MsgB() { INFO("Called MsgB"sv); } // 1
 };
 
-// target dummy vtbl
+// target dummy vtbl, it's implicitly at <class pointer + 0x0>
 Dummy* dummy = new Dummy();
 
-// target function signature
+// target function signature, first parameter is <this>
 using MsgFunc = std::add_pointer_t<void(Dummy*)>;
 MsgFunc oldMsgA;
 MsgFunc oldMsgB;
 
 // swap function
 void MsgC(Dummy* a_this) { 
+    INFO("Called MsgC"sv);
     // call original function
     oldMsgA(a_this);
     oldMsgB(a_this);
@@ -281,11 +282,12 @@ auto _Hook_MsgA = DKUtil::Hook::AddVMTHook(dummy, 0, FUNC_INFO(MsgC));
 auto _Hook_MsgB = DKUtil::Hook::AddVMTHook(dummy, 1, FUNC_INFO(MsgC));
 
 // save original function
-oldMsgA = reinterpret_cast<MsgFunc>(_Hook_MsgA->OldAddress);
-oldMsgB = reinterpret_cast<MsgFunc>(_Hook_MsgB->OldAddress);
+oldMsgA = _Hook_MsgA->GetOldFunction<MsgFunc>();
+oldMsgB = _Hook_MsgB->GetOldFunction<MsgFunc>();
 
 _Hook_MsgA->Enable();
 _Hook_MsgB->Enable();
+// now MsgA and MsgB will both be detoured to MsgC instead
 ```
 
 ---
