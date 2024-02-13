@@ -159,10 +159,12 @@ namespace DKUtil::Logger
 
 	inline void Init(const std::string_view a_name, const std::string_view a_version) noexcept
 	{
-		auto path = detail::docs_directory();
+		std::filesystem::path path{};
 #if defined(SKSEAPI)
+		path = detail::docs_directory();
 		path /= IS_VR ? LOG_PATH_VR : LOG_PATH;
 #elif defined(SFSEAPI)
+		path = detail::docs_directory();
 		path /= LOG_PATH;
 #elif defined(PLUGIN_MODE)
 		path = std::move(std::filesystem::current_path());
