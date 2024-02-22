@@ -292,28 +292,66 @@ namespace DKUtil
 			return version;
 		}
 
-		inline std::string_view GetProcessName(HMODULE a_handle = 0) noexcept
+		inline std::string GetModuleName(HMODULE a_handle = 0) noexcept
 		{
-			static std::string fileName(MAX_PATH + 1, ' ');
-			auto               res = ::GetModuleBaseNameA(GetCurrentProcess(), a_handle, fileName.data(), MAX_PATH + 1);
-			if (res == 0) {
-				fileName = "[ProcessHost]";
-				res = 13;
-			}
+			std::string fileName(MAX_PATH + 1, '\0');
+			fileName.resize(::GetModuleBaseNameA(GetCurrentProcess(), a_handle, fileName.data(), MAX_PATH));
 
-			return { fileName.c_str(), res };
+			return fileName;
 		}
 
-		inline std::string_view GetProcessPath(HMODULE a_handle = 0) noexcept
+		inline std::string GetModulePath(HMODULE a_handle = 0) noexcept
 		{
-			static std::string fileName(MAX_PATH + 1, ' ');
-			auto               res = ::GetModuleFileNameA(a_handle, fileName.data(), MAX_PATH + 1);
-			if (res == 0) {
-				fileName = "[ProcessHost]";
-				res = 13;
+			std::string filePath(MAX_PATH + 1, '\0');
+			filePath.resize(::GetModuleFileNameA(a_handle, filePath.data(), MAX_PATH));
+
+			return filePath;
+		}
+
+		inline std::string GetProcessName(DWORD a_process) noexcept
+		{
+			HANDLE hProcess = ::OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, a_process);
+			if (!hProcess) {
+				return {};
 			}
 
-			return { fileName.c_str(), res };
+			HMODULE hMod;
+			DWORD   cbNeeded;
+			if (::EnumProcessModules(hProcess, &hMod, sizeof(hMod), &cbNeeded) == 0) {
+				::CloseHandle(hProcess);
+				return {};
+			}
+
+			std::string modName(MAX_PATH + 1, '\0');
+			modName.resize(::GetModuleBaseNameA(hProcess, hMod, modName.data(), MAX_PATH));
+			if (modName.empty()) {
+				::CloseHandle(hProcess);
+			}
+
+			return modName;
+		}
+
+		inline std::string GetProcessPath(DWORD a_process) noexcept
+		{
+			HANDLE hProcess = ::OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, a_process);
+			if (!hProcess) {
+				return {};
+			}
+
+			HMODULE hMod;
+			DWORD   cbNeeded;
+			if (::EnumProcessModules(hProcess, &hMod, sizeof(hMod), &cbNeeded) == 0) {
+				::CloseHandle(hProcess);
+				return {};
+			}
+
+			std::string modPath(MAX_PATH + 1, '\0');
+			modPath.resize(::GetModuleFileNameExA(hProcess, hMod, modPath.data(), MAX_PATH));
+			if (modPath.empty()) {
+				::CloseHandle(hProcess);
+			}
+
+			return modPath;
 		}
 
 		class Module
@@ -355,7 +393,7 @@ namespace DKUtil
 					}
 				}
 
-				_version = GetFileVersion(GetProcessPath(std::bit_cast<HMODULE>(a_base)));
+				_version = GetFileVersion(GetModulePath(std::bit_cast<HMODULE>(a_base)));
 			}
 			explicit Module(std::string_view a_filePath)
 			{
@@ -404,7 +442,7 @@ namespace DKUtil
 
 			[[nodiscard]] static Module& get(std::string_view a_filePath = {}) noexcept
 			{
-				const auto base = AsAddress(::GetModuleHandleA(a_filePath.empty() ? GetProcessPath().data() : a_filePath.data()));
+				const auto base = AsAddress(::GetModuleHandleA(a_filePath.empty() ? GetModulePath().data() : a_filePath.data()));
 				return get(base);
 			}
 
