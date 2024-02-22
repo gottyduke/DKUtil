@@ -24,7 +24,7 @@ namespace DKUtil::Hook
 				"from : {}.{:X}\n"
 				"call : {:X}\n"
 				"to   : {}.{:X}",
-				OpSeqSize, GetProcessName(), Address, OriginalFunc, PROJECT_NAME, Destination);
+				OpSeqSize, GetModuleName(), Address, OriginalFunc, PROJECT_NAME, Destination);
 		}
 
 		void Enable() noexcept override

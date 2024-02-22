@@ -98,7 +98,7 @@ namespace DKUtil::Hook
 			"DKU_H: Detouring...\n"
 			"from : {}.{:X}\n"
 			"to   : {} @ {}.{:X}",
-			GetProcessName(), a_address + a_offset.first, a_funcInfo.name(), PROJECT_NAME, a_funcInfo.address());
+			GetModuleName(), a_address + a_offset.first, a_funcInfo.name(), PROJECT_NAME, a_funcInfo.address());
 
 		auto handle = std::make_unique<CaveHookHandle>(a_address, tramPtr, a_offset);
 
