@@ -30,10 +30,10 @@
 #define DKU_L_VERSION_MINOR 2
 #define DKU_L_VERSION_REVISION 2
 
-#ifndef PROJECT_NAME
+#if !defined(PROJECT_NAME)
 #	define PROJECT_NAME Plugin::NAME.data()
 #endif
-#ifdef DKU_CONSOLE
+#if defined(DKU_CONSOLE)
 #	include <spdlog/sinks/stdout_color_sinks.h>
 #else
 #	include <spdlog/sinks/basic_file_sink.h>
@@ -41,32 +41,31 @@
 
 #include <spdlog/spdlog.h>
 
-#define __LOG(LEVEL, ...)                                                                       \
+#define __LOG(LEVEL, fmt, ...)                                                                  \
 	{                                                                                           \
 		const auto src = DKUtil::Logger::detail::make_current(std::source_location::current()); \
-		spdlog::log(src, spdlog::level::LEVEL, __VA_ARGS__);                                    \
+		spdlog::log(src, spdlog::level::LEVEL, fmt __VA_OPT__(, ) __VA_ARGS__);                 \
 	}
-
-#define __SHORTF__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
-#define __REPORT(DO_EXIT, PROMPT, ...)                                              \
-	{                                                                               \
-		__LOG(critical, __VA_ARGS__);                                               \
-		const auto src = std::source_location::current();                           \
-		const auto fmt = fmt::format(DKUtil::Logger::detail::prompt::PROMPT,        \
-			__SHORTF__, src.line(), src.function_name(), fmt::format(__VA_ARGS__)); \
-		DKUtil::Logger::detail::report_error(DO_EXIT, fmt);                         \
+#define __REPORT(DO_EXIT, PROMPT, ...)                                       \
+	{                                                                        \
+		__LOG(critical, __VA_ARGS__);                                        \
+		const auto src = std::source_location::current();                    \
+		const auto fmt = fmt::format(DKUtil::Logger::detail::prompt::PROMPT, \
+			DKUtil::Logger::detail::short_file(__FILE__),                    \
+			src.line(), src.function_name(), fmt::format(__VA_ARGS__));      \
+		DKUtil::Logger::detail::report_error(DO_EXIT, fmt);                  \
 	}
-#define INFO(...) __LOG(info, __VA_ARGS__)
-#define DEBUG(...) __LOG(debug, __VA_ARGS__)
-#define TRACE(...) __LOG(trace, __VA_ARGS__)
-#define WARN(...) __LOG(warn, __VA_ARGS__)
-#define ERROR(...) __REPORT(false, error, __VA_ARGS__)
-#define FATAL(...) __REPORT(true, fatal, __VA_ARGS__)
+#define INFO(fmt, ...) __LOG(info, fmt __VA_OPT__(, ) __VA_ARGS__)
+#define DEBUG(fmt, ...) __LOG(debug, fmt __VA_OPT__(, ) __VA_ARGS__)
+#define TRACE(fmt, ...) __LOG(trace, fmt __VA_OPT__(, ) __VA_ARGS__)
+#define WARN(fmt, ...) __LOG(warn, fmt __VA_OPT__(, ) __VA_ARGS__)
+#define ERROR(fmt, ...) __REPORT(false, error, fmt __VA_OPT__(, ) __VA_ARGS__)
+#define FATAL(fmt, ...) __REPORT(true, fatal, fmt __VA_OPT__(, ) __VA_ARGS__)
 
 #define ENABLE_DEBUG DKUtil::Logger::SetLevel(spdlog::level::debug);
 #define DISABLE_DEBUG DKUtil::Logger::SetLevel(spdlog::level::info);
 
-#ifndef LOG_PATH
+#if !defined(LOG_PATH)
 
 #	if defined(F4SEAPI)
 #		define LOG_PATH "My Games\\Fallout4\\F4SE"sv
@@ -85,11 +84,11 @@
 
 #endif
 
-#ifdef NDEBUG
+#if defined(NDEBUG)
 #	define DKU_L_DISABLE_INTERNAL_DEBUGGING
 #endif
 
-#ifndef DKU_L_DISABLE_INTERNAL_DEBUGGING
+#if !defined(DKU_L_DISABLE_INTERNAL_DEBUGGING)
 
 #	define __INFO(...) INFO(__VA_ARGS__)
 #	define __DEBUG(...) DEBUG(__VA_ARGS__)
@@ -155,6 +154,17 @@ namespace DKUtil::Logger
 
 			::TerminateProcess(::GetCurrentProcess(), 'FAIL');
 		}
+		
+		inline constexpr const char* short_file(const char* path)
+		{
+			const char* file = path;
+			while (*path) {
+				if (*path++ == '\\') {
+					file = path;
+				}
+			}
+			return file;
+		}
 	}  // namespace detail
 
 	inline void Init(const std::string_view a_name, const std::string_view a_version) noexcept
@@ -173,13 +183,13 @@ namespace DKUtil::Logger
 		path /= a_name;
 		path += ".log"sv;
 
-#ifdef DKU_CONSOLE
+#if defined(DKU_CONSOLE)
 		auto sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 #else
 		auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path.string(), true);
 #endif
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 		sink->set_pattern("[%i][%l](%s:%#) %v"s);
 #else
 		sink->set_pattern("[%D %T][%l](%s:%#) %v"s);
@@ -187,7 +197,7 @@ namespace DKUtil::Logger
 
 		auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 		log->set_level(spdlog::level::trace);
 #else
 		log->set_level(spdlog::level::info);
