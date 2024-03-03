@@ -12,7 +12,7 @@ param (
 $ErrorActionPreference = "Stop"
 
 $Folder = $PSScriptRoot | Split-Path -Leaf
-$SourceExt = @('.asm', '.c', '.cc', '.cpp', '.cxx', '.def', '.h', '.hpp', '.hxx', 'inc', '.inl', '.ixx')
+$SourceExt = @('.asm', '.c', '.cc', '.cpp', '.cxx', '.def', '.h', '.hpp', '.hxx', 'inc', '.inl', '.ixx', '.lua')
 $ConfigExt = @('.ini', '.json', '.toml', '.xml')
 $DocsExt = @('.md')
 

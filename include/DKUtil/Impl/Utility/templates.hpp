@@ -250,6 +250,8 @@ namespace DKUtil::model
 	template <class EF>
 	scope_exit(EF) -> scope_exit<EF>;
 
+#pragma region MACRO_EXPANSION
+
 #define PARAMS_MACRO_1(macro) macro(1)
 #define PARAMS_MACRO_2(macro) PARAMS_MACRO_1(macro), macro(2)
 #define PARAMS_MACRO_3(macro) PARAMS_MACRO_2(macro), macro(3)
@@ -259,6 +261,16 @@ namespace DKUtil::model
 #define PARAMS_MACRO_7(macro) PARAMS_MACRO_6(macro), macro(7)
 #define PARAMS_MACRO_8(macro) PARAMS_MACRO_7(macro), macro(8)
 #define PARAMS_MACRO_9(macro) PARAMS_MACRO_8(macro), macro(9)
+#define PARAMS_MACRO_10(macro) PARAMS_MACRO_9(macro), macro(10)
+#define PARAMS_MACRO_11(macro) PARAMS_MACRO_10(macro), macro(11)
+#define PARAMS_MACRO_12(macro) PARAMS_MACRO_11(macro), macro(12)
+#define PARAMS_MACRO_13(macro) PARAMS_MACRO_12(macro), macro(13)
+#define PARAMS_MACRO_14(macro) PARAMS_MACRO_13(macro), macro(14)
+#define PARAMS_MACRO_15(macro) PARAMS_MACRO_14(macro), macro(15)
+#define PARAMS_MACRO_16(macro) PARAMS_MACRO_15(macro), macro(16)
+#define PARAMS_MACRO_17(macro) PARAMS_MACRO_16(macro), macro(17)
+#define PARAMS_MACRO_18(macro) PARAMS_MACRO_17(macro), macro(18)
+#define PARAMS_MACRO_19(macro) PARAMS_MACRO_18(macro), macro(19)
 #define PARGS_MACRO(n) p##n
 #define TARGS_MACRO(n) t##n
 #define IMPLICIT_PARAM(n) static_cast<std::remove_cvref_t<decltype(t##n)>>(p##n)
@@ -277,11 +289,23 @@ namespace DKUtil::model
 		return to_type{ macro(IMPLICIT_PARAM) };         \
 	} else
 
+#pragma endregion
+
 	template <typename T>
 	inline constexpr auto tuple_cast(T&& object) noexcept
 	{
 		using type = std::remove_cvref_t<T>;
 
+		MAKE_TUPLE_PARAM(19, PARAMS_MACRO_19)
+		MAKE_TUPLE_PARAM(18, PARAMS_MACRO_18)
+		MAKE_TUPLE_PARAM(17, PARAMS_MACRO_17)
+		MAKE_TUPLE_PARAM(16, PARAMS_MACRO_16)
+		MAKE_TUPLE_PARAM(15, PARAMS_MACRO_15)
+		MAKE_TUPLE_PARAM(14, PARAMS_MACRO_14)
+		MAKE_TUPLE_PARAM(13, PARAMS_MACRO_13)
+		MAKE_TUPLE_PARAM(12, PARAMS_MACRO_12)
+		MAKE_TUPLE_PARAM(11, PARAMS_MACRO_11)
+		MAKE_TUPLE_PARAM(10, PARAMS_MACRO_10)
 		MAKE_TUPLE_PARAM(9, PARAMS_MACRO_9)
 		MAKE_TUPLE_PARAM(8, PARAMS_MACRO_8)
 		MAKE_TUPLE_PARAM(7, PARAMS_MACRO_7)
@@ -305,6 +329,16 @@ namespace DKUtil::model
 		static_assert(number_of_bindables_v<to_type> == number_of_bindables_v<from_type>,
 			"number of bindables of <F> and <T> must equal.");
 
+		MAKE_STRUCT_PARAM(19, PARAMS_MACRO_19)
+		MAKE_STRUCT_PARAM(18, PARAMS_MACRO_18)
+		MAKE_STRUCT_PARAM(17, PARAMS_MACRO_17)
+		MAKE_STRUCT_PARAM(16, PARAMS_MACRO_16)
+		MAKE_STRUCT_PARAM(15, PARAMS_MACRO_15)
+		MAKE_STRUCT_PARAM(14, PARAMS_MACRO_14)
+		MAKE_STRUCT_PARAM(13, PARAMS_MACRO_13)
+		MAKE_STRUCT_PARAM(12, PARAMS_MACRO_12)
+		MAKE_STRUCT_PARAM(11, PARAMS_MACRO_11)
+		MAKE_STRUCT_PARAM(10, PARAMS_MACRO_10)
 		MAKE_STRUCT_PARAM(9, PARAMS_MACRO_9)
 		MAKE_STRUCT_PARAM(8, PARAMS_MACRO_8)
 		MAKE_STRUCT_PARAM(7, PARAMS_MACRO_7)
@@ -327,9 +361,9 @@ namespace DKUtil::model
 		return object | std::ranges::to<std::vector<type>>();
 	}
 
-	template <typename T, typename F>
-		requires(concepts::dku_ranges<T> && concepts::dku_ranges<F>)
-	inline constexpr auto range_cast(F&& object) noexcept
+	template <typename T, typename R>
+		requires(concepts::dku_ranges<T> && concepts::dku_ranges<R>)
+	inline constexpr auto range_cast(R&& object) noexcept
 	{
 		using to_type = std::remove_cvref_t<T>;
 		if constexpr (requires { object | std::ranges::to<to_type>(); }) {

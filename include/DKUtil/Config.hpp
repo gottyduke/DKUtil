@@ -1,6 +1,9 @@
 #pragma once
 
 /*
+ * 1.2.0
+ * Added Schema parser;
+ * 
  * 1.1.6
  * SFSE integration;
  * 
@@ -39,15 +42,15 @@
  */
 
 #define DKU_C_VERSION_MAJOR 1
-#define DKU_C_VERSION_MINOR 1
-#define DKU_C_VERSION_REVISION 6
+#define DKU_C_VERSION_MINOR 2
+#define DKU_C_VERSION_REVISION 0
 
 #pragma warning(push)
 #pragma warning(disable: 4244)
 
 #include "Impl/pch.hpp"
 
-#ifndef CONFIG_ENTRY
+#if !defined(CONFIG_ENTRY)
 
 #	if defined(F4SEAPI)
 #		define CONFIG_ENTRY "Data\\F4SE\\Plugins\\"
@@ -76,6 +79,37 @@ namespace DKUtil
 #include "Impl/Config/toml.hpp"
 
 #include "Impl/Config/proxy.hpp"
+
+namespace DKUtil::Config
+{
+	/* @brief Parse a string into user defined struct
+	 * @brief e.g. CustomData d = ParseSchemaString<CustomData>(line, delim...)
+	 * @brief This API is an alias of global schema parser for ease of use
+	 * @param a_str : non-empty formatted schema string
+	 * @param a_delimiters : one or multiple string delimiters used to make segments
+	 * @returns user defined struct
+	 */
+	template <typename SchemaData>
+		requires(model::concepts::dku_aggregate<SchemaData>)
+	inline static SchemaData ParseSchemaString(std::string a_str, const std::convertible_to<std::string_view> auto&... a_delimiters) noexcept
+	{
+		return detail::Schema::ParseString<SchemaData>(a_str, std::forward<decltype(a_delimiters)>(a_delimiters)...);
+	}
+
+	/* @brief Parse a string to user defined series of segments
+	 * @brief e.g. auto [a, b, c, d] = ParseSchemaString<int, bool, bool, std::string>(line, delim...)
+	 * @brief This API is an alias of global schema parser for ease of use
+	 * @param a_str : non-empty formatted schema string
+	 * @param a_delimiters : one or multiple string delimiters used to make segments
+	 * @returns std::tuple of user defined segments
+	 */
+	template <typename... SchemaSegment>
+		requires(sizeof...(SchemaSegment) > 1)
+	inline static std::tuple<SchemaSegment...> ParseSchemaString(std::string a_str, const std::convertible_to<std::string_view> auto&... a_delimiters) noexcept
+	{
+		return detail::Schema::ParseString<std::tuple<SchemaSegment...>>(a_str, std::forward<decltype(a_delimiters)>(a_delimiters)...);
+	}
+}  // namespace DKUtil::Config
 
 namespace DKUtil::Alias
 {

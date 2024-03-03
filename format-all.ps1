@@ -12,8 +12,8 @@ if (!(Test-Path $CF -PathType Leaf)) {
     Exit
 }
 
-$headers = Get-ChildItem "$PSScriptRoot\include" -Recurse -File -ErrorAction SilentlyContinue 
-$src = Get-ChildItem "$PSScriptRoot\src" -Recurse -File -ErrorAction SilentlyContinue 
+$headers = Get-ChildItem "$PSScriptRoot\include" -Recurse -File -ErrorAction SilentlyContinue | ? { $_.DirectoryName -inotmatch "external" }
+$src = Get-ChildItem "$PSScriptRoot\test" -Recurse -File -ErrorAction SilentlyContinue | ? { $_.DirectoryName -inotmatch "configs" }
 
 foreach ($file in $headers) {
     $file.BaseName
