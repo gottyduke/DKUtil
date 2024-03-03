@@ -30,7 +30,7 @@ namespace DKUtil::Config::detail
 			}
 
 			_lines = string::split(_content, "\n");
-			INFO("content [{}]", _content);
+			
 			__DEBUG("DKU_C: Parser#{}: sSchema loading finished", _id);
 		}
 
@@ -78,7 +78,7 @@ namespace DKUtil::Config::detail
 			if (a_str.empty()) {
 				return {};
 			}
-			INFO("parsing [{}]", a_str);
+			
 			segments segs = string::split(a_str, std::forward<decltype(a_delimiters)>(a_delimiters)...);
 			std::ranges::reverse(segs);
 
