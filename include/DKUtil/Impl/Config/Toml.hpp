@@ -16,7 +16,7 @@ namespace DKUtil::Config::detail
 		{
 			auto result = a_data ? toml::parse(a_data) : toml::parse_file(_filepath);
 			if (!result) {
-				ERROR("DKU_C: Parser#{}: Parsing failed!\nFile: {}\nDesc: {}", _id, *result.error().source().path.get(), result.error().description());
+				FATAL("DKU_C: Parser#{}: Parsing failed!\nFile: {}\nDesc: {}", _id, *result.error().source().path.get(), result.error().description());
 			}
 
 			_toml = std::move(result).table();

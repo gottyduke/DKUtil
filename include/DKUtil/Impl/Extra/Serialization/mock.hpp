@@ -3,7 +3,7 @@
 #include "exception.hpp"
 #include "shared.hpp"
 
-#ifdef DKU_X_MOCK
+#if defined(DKU_X_MOCK)
 #	include <fmt/color.h>
 
 #	define DKU_X_WRITE(D, L, T) mock::write(D, L)

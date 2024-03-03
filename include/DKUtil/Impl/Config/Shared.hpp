@@ -9,13 +9,16 @@ namespace DKUtil::Config
 	inline auto GetPath(const std::string_view a_file) noexcept
 	{
 		std::filesystem::path dir{ CONFIG_ENTRY };
-		std::filesystem::path file{ a_file.data() };
+		if (dir.is_relative() || dir.empty()) {
+			dir = std::filesystem::current_path() / dir;
+		}
 
-		if (!dir.empty()) {
+		std::filesystem::path file{ a_file.data() };
+		if (!a_file.empty() && file.is_relative()) {
 			file = dir / file;
 		}
 
-		return std::move(file.string());
+		return file.string();
 	}
 
 	template <bool RECURSIVE = false>
@@ -63,19 +66,13 @@ namespace DKUtil::Config
 		return files;
 	}
 
-	// clang-format off
-	// DEPRECATED
-	[[deprecated("Use template instantiation of GetAllFiles<RECURSIVE[true|false]>() instead")]]
-	inline constexpr std::vector<std::string> GetAllFiles(std::string_view a_path = {}, std::string_view a_ext = {}, std::string_view a_prefix = {}, std::string_view a_suffix = {}, const bool a_recursive = false) noexcept { return {}; }
-	// clang-format on
-
 	namespace detail
 	{
 		struct section_key_hash
 		{
 			size_t operator()(const std::pair<std::string_view, std::string_view>& key) const
 			{
-				// Hash combining algorithm taken from boost::hash_combine 
+				// Hash combining algorithm taken from boost::hash_combine
 				auto hash = std::hash<std::string_view>()(key.first);
 				hash ^= std::hash<std::string_view>()(key.second) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
 				return hash;
@@ -92,7 +89,7 @@ namespace DKUtil::Config
 		{
 		public:
 			explicit IParser(std::string_view a_file, const std::uint32_t a_id, manager& a_manager) :
-				_filename(a_file), _filepath(GetPath(a_file)), _id(a_id), _manager(a_manager)
+				_filename(Logger::detail::short_file(a_file.data())), _filepath(GetPath(a_file)), _id(a_id), _manager(a_manager)
 			{}
 
 			constexpr IParser() = delete;

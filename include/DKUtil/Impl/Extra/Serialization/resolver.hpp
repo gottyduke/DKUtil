@@ -10,7 +10,7 @@ namespace DKUtil::serialization
 	{
 		namespace detail
 		{
-#ifdef DKU_X_MOCK
+#if defined(DKU_X_MOCK)
 			inline static std::unordered_map<key_type, std::uint32_t> ResolvedLayoutMap = {};
 #	define DKU_X_ENTER_LAYOUT(t) __INFO("\t{:->{}}"##t, "", ++detail::ResolvedLayoutMap[a_res.header.name])
 #	define DKU_X_LEAVE_LAYOUT() --detail::ResolvedLayoutMap[a_res.header.name]
@@ -21,7 +21,7 @@ namespace DKUtil::serialization
 #	define DKU_X_CLEAR_LAYOUT()
 #endif
 
-#ifndef DKU_X_BUFFER_SIZE
+#if !defined(DKU_X_BUFFER_SIZE)
 #	define DKU_X_BUFFER_SIZE 0x200
 #endif
 

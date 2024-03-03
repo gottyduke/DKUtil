@@ -16,7 +16,7 @@ namespace DKUtil::Config::detail
 			_ini.SetUnicode();
 			auto result = a_data ? _ini.LoadData(a_data) : _ini.LoadFile(_filepath.c_str());
 			if (result < 0) {
-				ERROR("DKU_C: Parser#{}: Loading failed! -> {}\n{}", _id, _filepath.c_str(), err_getmsg());
+				FATAL("DKU_C: Parser#{}: Loading failed! -> {}\n{}", _id, _filepath.c_str(), err_getmsg());
 			}
 
 			CSimpleIniA::TNamesDepend sections;
@@ -118,7 +118,7 @@ namespace DKUtil::Config::detail
 
 			auto sr = _ini.Save(_content);
 			if (sr < 0) {
-				ERROR("DKU_C: Parser#{}: Saving data failed!\n{}", _id, err_getmsg());
+				ERROR("DKU_C: Parser#{}: Saving data failed!\nFile: {}\n{}", _id, _filepath, err_getmsg());
 			}
 
 			__DEBUG("DKU_C: Parser#{}: Parsing finished", _id);
@@ -128,7 +128,7 @@ namespace DKUtil::Config::detail
 		{
 			auto result = a_filePath.empty() ? _ini.SaveFile(_filepath.c_str()) : _ini.SaveFile(a_filePath.data());
 			if (result < 0) {
-				ERROR("DKU_C: Parser#{}: Writing file failed!\n{}", _id, err_getmsg());
+				ERROR("DKU_C: Parser#{}: Writing file failed!\nFile: {}\n{}", _id, _filepath, err_getmsg());
 			}
 
 			__DEBUG("DKU_C: Parser#{}: Writing finished", _id);

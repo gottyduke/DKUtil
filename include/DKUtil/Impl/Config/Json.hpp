@@ -19,7 +19,7 @@ namespace DKUtil::Config::detail
 			} else {
 				std::basic_ifstream<char> file{ _filepath };
 				if (!file.is_open()) {
-					ERROR("DKU_C: Parser#{}: Loading failed! -> {}", _id, _filepath.c_str());
+					FATAL("DKU_C: Parser#{}: Loading failed! -> {}", _id, _filepath.c_str());
 				}
 
 				file >> _json;

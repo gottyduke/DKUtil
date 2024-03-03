@@ -41,7 +41,8 @@ inline offset_pair RuntimeOffset(
 		}
 	default:
 		{
-			ERROR("DKU_H: Runtime offset failed to relocate for unknown runtime!");
+			FATAL("DKU_H: Runtime offset failed to relocate for unknown runtime!");
+			std::unreachable();
 		}
 	}
 }
@@ -66,7 +67,8 @@ inline auto RuntimePatch(
 		}
 	default:
 		{
-			ERROR("DKU_H: Runtime patch failed to relocate for unknown runtime!");
+			FATAL("DKU_H: Runtime patch failed to relocate for unknown runtime!");
+			return (const Xbyak::CodeGenerator*)nullptr;
 		}
 	}
 }
@@ -117,7 +119,8 @@ inline const unpacked_data RuntimePatch(
 		}
 	default:
 		{
-			ERROR("DKU_H: Runtime patch failed to relocate for unknown runtime!");
+			FATAL("DKU_H: Runtime patch failed to relocate for unknown runtime!");
+			return {};
 		}
 	}
 }
@@ -316,10 +319,10 @@ namespace database
 		std::ifstream stream;
 	};
 
-	inline static memory_map                                              Mmap{};
-	inline static std::span<mapping_t>                                    Id2offset{};
-	inline static Platform                                                CurrentPlatform = Platform::kUnknown;
-	inline constexpr auto                                                 LookUpDir = "Data\\SFSE\\Plugins"sv;
+	inline static memory_map           Mmap{};
+	inline static std::span<mapping_t> Id2offset{};
+	inline static Platform             CurrentPlatform = Platform::kUnknown;
+	inline constexpr auto              LookUpDir = "Data\\SFSE\\Plugins"sv;
 
 	inline std::string AddresslibFilename()
 	{
