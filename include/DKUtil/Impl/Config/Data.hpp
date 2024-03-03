@@ -95,13 +95,13 @@ namespace DKUtil::Config::detail
 		[[nodiscard]] constexpr auto             is_collection() const noexcept { return _isCollection; }
 
 		[[nodiscard]] constexpr const auto get_data() const noexcept { return _data; }
-		[[nodiscard]] constexpr auto&      get_collection() noexcept
+		[[nodiscard]] constexpr const auto get_collection() const noexcept
 		{
 			if (_isCollection) {
 				return *_collection;
 			} else {
-				FATAL(".get_collection is called on config value {} while it holds singular data!\n\nCheck .is_collection before accessing collcetion!", _key);
-				std::unreachable();
+				// force singular data into size-1 collection
+				return collection{ _data };
 			}
 		}
 		[[nodiscard]] constexpr auto get_size() const noexcept { return _isCollection ? _collection->size() : 0; }
