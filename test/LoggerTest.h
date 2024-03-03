@@ -9,7 +9,7 @@ namespace Test::Logger
 
 	void Run()
 	{
-		INFO("This is info message:");
+		INFO("This is info message: {:X}", 0x124);
 	}
 
 	void RunError()

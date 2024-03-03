@@ -1,6 +1,9 @@
 #pragma once
 
 /*
+ * 1.2.4
+ * Fixed some macros;
+ * 
  * 1.2.3
  * Preceded ERROR logging macro;
  * Added FATAL logging macro;
@@ -28,7 +31,7 @@
 
 #define DKU_L_VERSION_MAJOR 1
 #define DKU_L_VERSION_MINOR 2
-#define DKU_L_VERSION_REVISION 2
+#define DKU_L_VERSION_REVISION 4
 
 #if !defined(PROJECT_NAME)
 #	define PROJECT_NAME Plugin::NAME.data()

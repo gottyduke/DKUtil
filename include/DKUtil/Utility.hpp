@@ -1,6 +1,9 @@
 #pragma once
 
 /*
+ * 1.0.1
+ * Extended PARG_MACRO expansion to 19;
+ * 
  * 1.0.0
  * Adaptation of file structural changes;
  * 
@@ -8,7 +11,7 @@
 
 #define DKU_U_VERSION_MAJOR 1
 #define DKU_U_VERSION_MINOR 0
-#define DKU_U_VERSION_REVISION 0
+#define DKU_U_VERSION_REVISION 1
 
 #include "Impl/pch.hpp"
 #include "Logger.hpp"

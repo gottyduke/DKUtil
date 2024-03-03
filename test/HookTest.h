@@ -222,7 +222,7 @@ namespace Test::Hook
 		Impl::FallbackDistanceHook::InstallHook();
 	}
 
-#define PACK_BIG_ENDIAN(lo1, lo2, hi1, hi2) ((((lo1)&0xFF) << 0) | (((lo2)&0xFF) << 8) | (((hi1)&0xFF) << 16) | ((hi2)&0xFF) << 24)
+#define PACK_BIG_ENDIAN(lo1, lo2, hi1, hi2) ((((lo1) & 0xFF) << 0) | (((lo2) & 0xFF) << 8) | (((hi1) & 0xFF) << 16) | ((hi2) & 0xFF) << 24)
 	void TestDispHelpers()
 	{
 		// clang-format off
@@ -239,7 +239,7 @@ namespace Test::Hook
 
 		auto offset = sizeof(asmBuf) - sizeof(Disp32);
 		auto packed = PACK_BIG_ENDIAN(asmBuf[offset + 0], asmBuf[offset + 1], asmBuf[offset + 2], asmBuf[offset + 3]);
-		dku_assert(packed == disp, 
+		dku_assert(packed == disp,
 			"incorrect");
 	}
 
@@ -259,8 +259,8 @@ namespace Test::Hook
 				"prolog incorrect");
 			dku_assert(std::ranges::equal(epilog_view, expected_epilog),
 				"epilog incorrect");
-		}  
-		
+		}
+
 		// 2) regular registers partial
 		{
 			// the preserve order is ascending, so actual patch is RBX, RDI
@@ -293,7 +293,7 @@ namespace Test::Hook
 			dku_assert(std::ranges::equal(epilog_view, expected_epilog),
 				"epilog incorrect");
 		}
-		
+
 		// 4) sse registers partial
 		{
 			auto [prolog, epilog] = dku::Hook::JIT::MakeNonVolatilePatch({ SIMD::XMM0, SIMD::XMM7, SIMD::XMM10 });
