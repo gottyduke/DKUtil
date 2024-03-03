@@ -82,37 +82,6 @@ namespace DKUtil::string
 		return a_char == nullptr || a_char[0] == '\0';
 	}
 
-	[[nodiscard]] inline constexpr bool is_only_digit(std::string_view a_str) noexcept
-	{
-		return std::ranges::all_of(a_str, [](char c) {
-			return std::isdigit(static_cast<unsigned char>(c));
-		});
-	}
-
-	[[nodiscard]] inline constexpr bool is_only_hex(std::string_view a_str) noexcept
-	{
-		if (a_str.compare(0, 2, "0x") == 0 || a_str.compare(0, 2, "0X") == 0) {
-			return a_str.size() > 2 && std::all_of(a_str.begin() + 2, a_str.end(), [](char c) {
-				return std::isxdigit(static_cast<unsigned char>(c));
-			});
-		}
-		return false;
-	}
-
-	[[nodiscard]] inline constexpr bool is_only_letter(std::string_view a_str) noexcept
-	{
-		return std::ranges::all_of(a_str, [](char c) {
-			return std::isalpha(static_cast<unsigned char>(c));
-		});
-	}
-
-	[[nodiscard]] inline constexpr bool is_only_space(std::string_view a_str) noexcept
-	{
-		return std::ranges::all_of(a_str, [](char c) {
-			return std::isspace(static_cast<unsigned char>(c));
-		});
-	}
-
 	static inline constexpr auto icmp = [](char ch1, char ch2) -> bool {
 		return std::toupper(static_cast<unsigned char>(ch1)) == std::toupper(static_cast<unsigned char>(ch2));
 	};
@@ -137,20 +106,35 @@ namespace DKUtil::string
 		return std::ranges::starts_with(a_full | std::views::reverse, a_pattern | std::views::reverse, icmp);
 	}
 
-	template <class T>
-	[[nodiscard]] inline T lexical_cast(const std::string& a_str, bool a_hex = false) noexcept
+	[[nodiscard]] inline constexpr bool is_only_digit(std::string_view a_str) noexcept
 	{
-		if constexpr (std::is_floating_point_v<T>) {
-			return static_cast<T>(std::stof(a_str));
-		} else if constexpr (std::is_signed_v<T>) {
-			return static_cast<T>(std::stoi(a_str));
-		} else if constexpr (sizeof(T) == sizeof(std::uint64_t)) {
-			return static_cast<T>(std::stoull(a_str));
-		} else if (a_hex) {
-			return static_cast<T>(std::stoul(a_str, nullptr, 16));
-		} else {
-			return static_cast<T>(std::stoul(a_str));
+		return std::ranges::all_of(a_str, [](char c) {
+			return std::isdigit(static_cast<unsigned char>(c));
+		});
+	}
+
+	[[nodiscard]] inline constexpr bool is_only_hex(std::string_view a_str) noexcept
+	{
+		if (istarts_with(a_str, "0x")) {
+			return a_str.size() > 2 && std::all_of(a_str.begin() + 2, a_str.end(), [](char c) {
+				return std::isxdigit(static_cast<unsigned char>(c));
+			});
 		}
+		return false;
+	}
+
+	[[nodiscard]] inline constexpr bool is_only_letter(std::string_view a_str) noexcept
+	{
+		return std::ranges::all_of(a_str, [](char c) {
+			return std::isalpha(static_cast<unsigned char>(c));
+		});
+	}
+
+	[[nodiscard]] inline constexpr bool is_only_space(std::string_view a_str) noexcept
+	{
+		return std::ranges::all_of(a_str, [](char c) {
+			return std::isspace(static_cast<unsigned char>(c));
+		});
 	}
 
 	[[nodiscard]] inline std::string remove_non_alphanumeric(std::string a_str) noexcept
@@ -291,5 +275,37 @@ namespace DKUtil::string
 		dku_assert(a_src.size() < a_dst.size(), "dst size less than src size");
 		std::ranges::fill(a_dst, '\0');
 		std::ranges::copy(a_src, a_dst.begin());
+	}
+
+	template <class T>
+	[[nodiscard]] inline T lexical_cast(const std::string& a_str, bool a_hex = false)
+	{
+		if constexpr (std::is_same_v<std::string, T> || std::is_same_v<std::string_view, T>) {
+			return { a_str };
+		} else if constexpr (std::is_same_v<std::wstring, T>) {
+			return utf8_to_utf16(a_str).value_or(L""s);
+		} else if constexpr (std::is_same_v<const char*, T>) {
+			// does not guarantee lifetime
+			return a_str.data();
+		} else if constexpr (std::is_same_v<bool, T>) {
+			auto trim = trim_copy(a_str);
+			if (is_only_letter(trim)) {
+				return iequals(trim, "true");
+			} else if (is_only_digit(trim)) {
+				return static_cast<bool>(lexical_cast<int>(trim, a_hex));
+			}
+		} else if constexpr (std::is_floating_point_v<T>) {
+			return static_cast<T>(std::stof(a_str));
+		} else if constexpr (std::is_signed_v<T>) {
+			return static_cast<T>(std::stoi(a_str));
+		} else if constexpr (sizeof(T) == sizeof(std::uint64_t)) {
+			return static_cast<T>(std::stoull(a_str));
+		} else if (a_hex) {
+			return static_cast<T>(std::stoul(a_str, nullptr, 16));
+		} else {
+			return static_cast<T>(std::stoul(a_str));
+		}
+
+		return {};
 	}
 }  // namespace DKUtil::string
