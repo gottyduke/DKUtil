@@ -6,11 +6,12 @@
 An all purpose configuration library for x64 native plugin projects, supports `ini`, `json` and `toml` file types out of box. No more handling these settings on our own, use simplied API from this library!
 
 ## Config Path
-By default the config file lookup directory is in current process path.  
-This can be manually overriden by defining a relative `CONFIG_PATH` before including.
+By default the config file lookup directory starts in the current working path.  
+This can be manually overriden by defining a relative `CONFIG_ENTRY` before including.
 ```cpp
-#define CONFIG_PATH "configs\\"
+#define CONFIG_ENTRY "configs\\"
 #include "DKUtil/Config.hpp"
+// this translates to "process_cwd/configs/"
 ```
 > For SKSE, SFSE, and F4SE plugin projects, their paths are automatically provided.
 
@@ -21,7 +22,7 @@ The data can be accessed by prepending the asterisk symbol `*` as if it were a p
 
 If the data is initialized as a collection, the pointer to its members can be accessed by `[]` operator with proper index. It will return the first element if the data itself is not a collection, or the last element if the index is out of bound.  
 
-To declare configuration data, initialize them with key field.
+To declare configuration data, initialize them with key field and section field.
 ```cpp
 using namespace DKUtil::Alias; // type alias
 
@@ -35,7 +36,7 @@ String myStringData{ "MyStringKey" }; // std::basic_string<char>
 ## Proxy
 The configuration system in DKUtil works as "proxy per file", each `Proxy` represents one specific configuration file and the subsequent `Load`, `Write`, and `Generate` calls.
 
-`Proxy` can be compile time and/or runtime determined for the given file. If the file name and type is already known at the compile time, use `COMPILE_PROXY` macro to get the corresponding parser for such file type. If the file name is runtime generated, use `RUNTIME_PROXY` macro for file type/name that is unknown at the compile time.  
+`Proxy` can be compile time and/or runtime determined for the given file. If the file name and type is already ensured at the compile time, use `COMPILE_PROXY` macro to get the corresponding parser for such file type. If the file name is runtime generated, such as file iterator from a directory, use `RUNTIME_PROXY` macro for file type/name that is unknown at the compile time.  
 ```cpp
 #include "DKUtil/Config.hpp"
 
@@ -89,7 +90,7 @@ public:
             MainConfig.Bind(myStringArrayData, "First", "Second", "Third"); // string array
             MainConfig.Bind(myBoolData, true); // bool, no bool array support
             MainConfig.Bind(myDoubleData, 3.14154); // double
-            // or optionally, you can bind with minimal/maximal range
+            // OR you can bind with minimal/maximal range
             MainConfig.Bind<0, 3.3>(myDoubleData, 3.14154); // double with range of 0 ~ 3.3
         });
 
@@ -100,7 +101,7 @@ public:
         // traverse the array
         for (auto& place : myStringArrayData.get_collection()) {
             INFO(place);
-        } // Frust Sedoncst LastButNotLeast
+        }
     }
 
 private:

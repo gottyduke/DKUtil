@@ -2,11 +2,14 @@
 
 Some utilitarian headers to help with x64 native plugin development
 
+# Documentation
+See [wiki here!](https://github.com/gottyduke/DKUtil/wiki)
+
 # Implementations
-[![Config](https://img.shields.io/badge/Config-1.1.6-R.svg)](https://github.com/gottyduke/DKUtil/wiki/1.-Config)
-[![Hook](https://img.shields.io/badge/Hook-2.6.4-R.svg)](https://github.com/gottyduke/DKUtil/wiki/2.0-Hook:-Memory-Editing)
-[![Logger](https://img.shields.io/badge/Logger-1.2.3-R.svg)](https://github.com/gottyduke/DKUtil/wiki/3.-Logger)
-[![Utility](https://img.shields.io/badge/Utility-untracked-R.svg)](https://github.com/gottyduke/DKUtil/wiki/4.0-Utility:-enumeration)
+[![Config](https://img.shields.io/badge/Config-1.2.0-R.svg)](https://github.com/gottyduke/DKUtil/wiki/1.-Config)
+[![Hook](https://img.shields.io/badge/Hook-2.6.5-R.svg)](https://github.com/gottyduke/DKUtil/wiki/2.0-Hook:-Memory-Editing)
+[![Logger](https://img.shields.io/badge/Logger-1.2.4-R.svg)](https://github.com/gottyduke/DKUtil/wiki/3.-Logger)
+[![Utility](https://img.shields.io/badge/Utility-1.0.1-R.svg)](https://github.com/gottyduke/DKUtil/wiki/4.0-Utility:-enumeration)
 [![Extra(For SKSE)](https://img.shields.io/badge/Extra-1.0.0-R.svg)](https://github.com/gottyduke/DKUtil/wiki/5-Extra:-serializable(SKSE))  
 
 + [Config](https://github.com/gottyduke/DKUtil/wiki/1.-Config)
@@ -14,8 +17,8 @@ Some utilitarian headers to help with x64 native plugin development
     - `ini`, `toml`, `json` file support
     - `bool`, `int64_t`, `double`, `string` type support
     - built in array support
-    - multiple file loads
-    - generate default file
+    - multiple file loads & generate default file
+    - custom formatted string parser to c++ structure
 + [Hook](https://github.com/gottyduke/DKUtil/wiki/2.0-Hook:-Memory-Editing)
     - [pattern scanner](https://github.com/gottyduke/DKUtil/wiki/2.1-Hook:-Address-Fetching) 
     - [asm patch](https://github.com/gottyduke/DKUtil/wiki/2.4-Hook:-ASM-Patch)
