@@ -225,6 +225,14 @@ add_custom_command(
 		COMMENT 
 			"Updating project :))"
 )
+else()
+add_custom_command(
+	TARGET 
+		${PROJECT_NAME} 
+	POST_BUILD
+		COMMAND 
+			${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/test/configs" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$(ConfigurationName)"
+)
 endif()
 
 # called via !Rebuild.ps1
