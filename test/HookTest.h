@@ -311,7 +311,6 @@ namespace Test::Hook
 		}
 
 		// 5) combine patch
-
 		{
 			auto [prolog1, epilog1] = dku::Hook::JIT::MakeNonVolatilePatch({ Register::RBX, Register::RDI });
 			auto [prolog2, epilog2] = dku::Hook::JIT::MakeNonVolatilePatch({ SIMD::XMM0, SIMD::XMM7, SIMD::XMM10 });

@@ -280,30 +280,25 @@ namespace DKUtil::string
 	template <class T>
 	[[nodiscard]] inline T lexical_cast(const std::string& a_str, bool a_hex = false)
 	{
+		auto trim = trim_copy(a_str);
 		if constexpr (std::is_same_v<std::string, T> || std::is_same_v<std::string_view, T>) {
 			return { a_str };
 		} else if constexpr (std::is_same_v<std::wstring, T>) {
-			return utf8_to_utf16(a_str).value_or(L""s);
-		} else if constexpr (std::is_same_v<const char*, T>) {
-			// does not guarantee lifetime
-			return a_str.data();
+			return utf8_to_utf16(trim).value_or(L""s);
 		} else if constexpr (std::is_same_v<bool, T>) {
-			auto trim = trim_copy(a_str);
 			if (is_only_letter(trim)) {
 				return iequals(trim, "true");
 			} else if (is_only_digit(trim)) {
 				return static_cast<bool>(lexical_cast<int>(trim, a_hex));
 			}
 		} else if constexpr (std::is_floating_point_v<T>) {
-			return static_cast<T>(std::stof(a_str));
+			return static_cast<T>(std::stof(trim));
 		} else if constexpr (std::is_signed_v<T>) {
-			return static_cast<T>(std::stoi(a_str));
+			return static_cast<T>(std::stoi(trim));
 		} else if constexpr (sizeof(T) == sizeof(std::uint64_t)) {
-			return static_cast<T>(std::stoull(a_str));
-		} else if (a_hex) {
-			return static_cast<T>(std::stoul(a_str, nullptr, 16));
+			return static_cast<T>(std::stoull(trim, nullptr, a_hex ? 16 : 10));
 		} else {
-			return static_cast<T>(std::stoul(a_str));
+			return static_cast<T>(std::stoul(trim, nullptr, a_hex ? 16 : 10));
 		}
 
 		return {};

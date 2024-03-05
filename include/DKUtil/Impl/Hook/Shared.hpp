@@ -89,7 +89,7 @@ namespace DKUtil
 			}
 
 			// append a patch in new memory, current data is reallocated
-			Patch& Append(Patch a_rhs) noexcept
+			Patch& Append(Patch a_rhs)
 			{
 				std::size_t total = Size + a_rhs.Size;
 				if (!total) {
@@ -137,7 +137,7 @@ namespace DKUtil
 
 			const void* Data{ nullptr };
 			std::size_t Size{ 0 };
-			bool        Managed = false;
+			bool        Managed{ false };
 		};
 
 		template <typename T = void, typename U>

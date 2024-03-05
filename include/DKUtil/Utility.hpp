@@ -40,6 +40,9 @@ namespace DKUtil
 	template <class Derived>
 	using Singleton = model::Singleton<Derived>;
 
+	template <class EF>
+	using scope_exit = model::scope_exit<EF>;
+
 	template <class Enum, class Underlying = std::underlying_type_t<Enum>>
 	using enumeration = model::enumeration<Enum, Underlying>;
 

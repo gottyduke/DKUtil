@@ -183,7 +183,7 @@ namespace DKUtil::Config::detail
 			auto  on_exit = model::scope_exit([&] { a_segments.pop_back(); });
 
 			try {
-				a_value = string::lexical_cast<T>(segment, string::icontains(segment, "0x"));
+				a_value = string::lexical_cast<T>(segment, string::is_only_hex(string::trim_copy(a_segments)));
 			} catch (const std::exception& e) {
 				auto what = fmt::format("exception at {} : {}\n", segment, e.what());
 
