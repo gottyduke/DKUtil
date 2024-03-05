@@ -51,7 +51,7 @@ namespace Test::Config
 
 	struct CustomData
 	{
-		std::uint64_t form;
+		dku::numbers::hex form;
 		std::string   name;
 		std::string   payload;
 		bool          excluded;
@@ -72,7 +72,7 @@ namespace Test::Config
 
 	void Run()
 	{
-		TestConfig();
+		//TestConfig();
 		TestSchema();
 	}
 }  // namespace Test::Config

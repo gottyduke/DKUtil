@@ -276,15 +276,26 @@ namespace DKUtil::string
 		std::ranges::fill(a_dst, '\0');
 		std::ranges::copy(a_src, a_dst.begin());
 	}
+}  // namespace DKUtil::string
 
+// forward
+namespace DKUtil::numbers
+{
+	class hex;
+}  // namespace DKUtil::numbers
+
+namespace DKUtil::string
+{
 	template <class T>
 	[[nodiscard]] inline T lexical_cast(const std::string& a_str, bool a_hex = false)
 	{
 		auto trim = trim_copy(a_str);
-		if constexpr (std::is_same_v<std::string, T> || std::is_same_v<std::string_view, T>) {
+		if constexpr (std::is_same_v<std::string, T> ||
+					  std::is_same_v<std::string_view, T> ||
+					  std::is_same_v<numbers::hex, T>) {
 			return { a_str };
 		} else if constexpr (std::is_same_v<std::wstring, T>) {
-			return utf8_to_utf16(trim).value_or(L""s);
+			return utf8_to_utf16(a_str).value_or(L""s);
 		} else if constexpr (std::is_same_v<bool, T>) {
 			if (is_only_letter(trim)) {
 				return iequals(trim, "true");

@@ -33,9 +33,11 @@
 #define DKU_L_VERSION_MINOR 2
 #define DKU_L_VERSION_REVISION 4
 
+// fixme: decouple PROJECT_NAME requirement
 #if !defined(PROJECT_NAME)
 #	define PROJECT_NAME Plugin::NAME.data()
 #endif
+
 #if defined(DKU_CONSOLE)
 #	include <spdlog/sinks/stdout_color_sinks.h>
 #else

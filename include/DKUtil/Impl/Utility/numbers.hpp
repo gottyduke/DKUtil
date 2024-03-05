@@ -112,3 +112,81 @@ namespace DKUtil::numbers
 		return static_cast<std::size_t>(1 << 30) * a_quantity;
 	}
 }  // namespace DKUtil::numbers
+
+#include "string.hpp"
+
+namespace DKUtil::numbers
+{
+	// a hex number
+	class hex
+	{
+	public:
+		using numeric_base_t = std::uint64_t;
+
+		// 1)
+		constexpr hex() noexcept = default;
+
+		// 2)
+		hex(numeric_base_t a_val) noexcept :
+			_base(a_val)
+		{}
+
+		// 3)
+		hex(const char* a_str) noexcept
+		{
+			auto trim = string::trim_copy(a_str);
+			int  pos{ string::istarts_with(trim, "0x") ? 2 : 0 };
+			if (std::all_of(trim.begin() + pos, trim.end(), [](char c) {
+					return std::isxdigit(static_cast<unsigned char>(c));
+				})) {
+				_base = std::stoull(trim, nullptr, 16);
+			}
+		}
+
+		// 4)
+		hex(std::string a_str) noexcept :
+			hex(a_str.data())
+		{}
+
+		// 5)
+		hex(std::string_view a_str) noexcept :
+			hex(a_str.data())
+		{}
+
+		constexpr operator numeric_base_t() const noexcept
+		{
+			return _base;
+		}
+
+		constexpr auto number() const noexcept 
+		{ 
+			return _base; 
+		}
+
+		const auto string(std::string_view a_prefix = "0x"sv) const noexcept 
+		{ 
+			return fmt::format("{}{:x}", a_prefix, _base); 
+		}
+
+	private:
+		numeric_base_t _base{ 0 };
+	};
+}  // namespace DKUtil::numbers
+
+#if defined(FMT_API)
+template <>
+struct fmt::formatter<DKUtil::numbers::hex>
+{
+	template <typename ParseContext>
+	constexpr auto parse(ParseContext& a_ctx)
+	{
+		return a_ctx.begin();
+	}
+
+	template <typename FormatContext>
+	constexpr auto format(DKUtil::numbers::hex const& a_hex, FormatContext& a_ctx)
+	{
+		return fmt::format_to(a_ctx.out(), "0x{:x}", a_hex.number());
+	}
+};
+#endif
