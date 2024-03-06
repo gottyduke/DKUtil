@@ -1,7 +1,4 @@
-<h1 align="center">DKUtil::Extra</h1>
-<a href="/docs/Config.md">Config</a> | <a href="/docs/Hook.md">Hook</a> | <a href="/docs/Logger.md">Logger</a> | <a href="/docs/Utility.md">Utility</a> | <a href="/docs/Extra.md">Extra</a></p>
-
-[Extra Source](/include/DKUtil/Extra.hpp)
+# DKUtil::Extra
 
 On expanding small additions that requires `CommonLibSSE` to function.
 + `CONSOLE` logging macro but for in-game console.
@@ -103,4 +100,3 @@ myDataMap.add_resolver(CustomCallback);
 Tweak the preprocessor definitions a bit, define `DKU_X_MOCK` will redirect all read/write calls to its internal buffer for testing, and generate a flattened layout map of the data type it's operating on.  
 
 ---
-<a href="/docs/Config.md">Config</a> | <a href="/docs/Hook.md">Hook</a> | <a href="/docs/Logger.md">Logger</a> | <a href="/docs/Utility.md">Utility</a> | <a href="/docs/Extra.md">Extra</a></p>

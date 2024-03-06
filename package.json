@@ -1,0 +1,8 @@
+{
+    "type": "module",
+    "scripts": {
+        "docs:build": "vitepress build docs",
+        "docs:preview": "vitepress preview docs",
+        "docs:rebuild": "vitepress build docs && vitepress preview docs"
+    }
+}

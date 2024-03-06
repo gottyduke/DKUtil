@@ -1,36 +1,36 @@
 <h1 align="center">DKUtil</h1>
 
-Some utilitarian headers to help with x64 native plugin development
+Some utility headers to help with x64 native plugin development
 
 # Documentation
-See [wiki here!](https://github.com/gottyduke/DKUtil/wiki)
+See [wiki here!](https://gottyduke.github.io/DKUtil/)
 
 # Implementations
-[![Config](https://img.shields.io/badge/Config-1.2.0-R.svg)](https://github.com/gottyduke/DKUtil/wiki/1.-Config)
-[![Hook](https://img.shields.io/badge/Hook-2.6.5-R.svg)](https://github.com/gottyduke/DKUtil/wiki/2.0-Hook:-Memory-Editing)
-[![Logger](https://img.shields.io/badge/Logger-1.2.4-R.svg)](https://github.com/gottyduke/DKUtil/wiki/3.-Logger)
-[![Utility](https://img.shields.io/badge/Utility-1.0.1-R.svg)](https://github.com/gottyduke/DKUtil/wiki/4.0-Utility:-enumeration)
-[![Extra(For SKSE)](https://img.shields.io/badge/Extra-1.0.0-R.svg)](https://github.com/gottyduke/DKUtil/wiki/5-Extra:-serializable(SKSE))  
+![Config](https://img.shields.io/badge/Config-1.2.0-R.svg)
+![Hook](https://img.shields.io/badge/Hook-2.6.5-R.svg)
+![Logger](https://img.shields.io/badge/Logger-1.2.4-R.svg)
+![Utility](https://img.shields.io/badge/Utility-1.0.1-R.svg)
+![Extra(For SKSE)](https://img.shields.io/badge/Extra-1.0.0-R.svg))  
 
-+ [Config](https://github.com/gottyduke/DKUtil/wiki/1.-Config)
++ Config
     - abstracted and contained config layer
     - `ini`, `toml`, `json` file support
     - `bool`, `int64_t`, `double`, `string` type support
     - built in array support
     - multiple file loads & generate default file
     - custom formatted string parser to c++ structure
-+ [Hook](https://github.com/gottyduke/DKUtil/wiki/2.0-Hook:-Memory-Editing)
-    - [pattern scanner](https://github.com/gottyduke/DKUtil/wiki/2.1-Hook:-Address-Fetching) 
-    - [asm patch](https://github.com/gottyduke/DKUtil/wiki/2.4-Hook:-ASM-Patch)
-    - [cave hook](https://github.com/gottyduke/DKUtil/wiki/2.5-Hook:-Cave-Hook)
-    - [virtual method table swap](https://github.com/gottyduke/DKUtil/wiki/2.6-Hook:-VTable-Swap)
-    - [import address table swap](https://github.com/gottyduke/DKUtil/wiki/2.7-Hook:-IAT-Hook)
-    - [simple function hook (write_call/write_branch)](https://github.com/gottyduke/DKUtil/wiki/2.2-Hook:-Relocation-Hook)
-    - [non-volatile call (LTO enabled hooks)](https://github.com/gottyduke/DKUtil/wiki/2.8-Hook:-LTO-Enabled-Hook)
++ Hook
+    - pattern scanner
+    - asm patch
+    - cave hook
+    - virtual method table swap
+    - import address table swap
+    - simple function hook (write_call/write_branch)
+    - non-volatile call (LTO enabled hooks)
     - various usefully gathered utils
-+ [Logger](https://github.com/gottyduke/DKUtil/wiki/3.-Logger)
++ Logge
     - logging macros
-+ [Utility](https://github.com/gottyduke/DKUtil/wiki/4.0-Utility:-enumeration)
++ Utility
     + function
         + `consteval` helper functions retrieving the argument count of a function.
     + model
@@ -47,81 +47,9 @@ See [wiki here!](https://github.com/gottyduke/DKUtil/wiki)
         + `to_wstring` method
         + `concat` compile time string concatenation.
         + various string related functions using `std::ranges`
-+ [Extra(For SKSE)](https://github.com/gottyduke/DKUtil/wiki/5-Extra:-serializable(SKSE))  
++ Extra(For SKSE)
     + `CONSOLE` logging macro but for in-game console.
     + `serializable` painless, all-in-one serialization solution for SKSE plugins.(Planned to move to general support instead of strict SKSE)
 
-# Consumption
-
-## Requirement
-+ [CMake](https://cmake.org)
-+ [vcpkg](https://github.com/microsoft/vcpkg/releases)
-+ `/std:c++23` or `/std:latest`
-    + Config
-        + [tomlplusplus](https://github.com/marzer/tomlplusplus)
-        + [SimpleIni](https://github.com/brofield/simpleini)
-        + [nlohmann-json](https://github.com/nlohmann/json)
-    + Hook
-        + [xbyak](https://github.com/herumi/xbyak)
-    + Logger
-        + [spdlog](https://github.com/gabime/spdlog)
-    + Extra(For SKSE)
-        + [CommonLibSSE](https://github.com/Ryan-rsm-McKenzie/CommonLibSSE)
-
-> All dependencies should be handled by vcpkg.
-
-
-## Installation
-Clone a copy of `DKUtil` onto your local environment, in your target project's `CMakeLists.txt`, add:  
-
-```CMake
-add_subdirectory("Path/To/Local/Copy/Of/DKUtil" DKUtil)
-
-target_link_libraries(
-	"YOUR PROJECT NAME"
-	INTERFACE
-		DKUtil::DKUtil
-)
-```
 ---
-Or using `git submodule`, within your target project's root directory, add:
-
-```PS
-git submodule add https://github.com/gottyduke/DKUtil.git extern/DKUtil
-git submodule update -f --init
-```
-And in your target project's `CMakeLists.txt`, add:
-```CMake
-# dependency macros
-macro(find_dependency_path DEPENDENCY FILE)
-	# searches extern for dependencies and if not checks the environment variable
-	if(NOT ${DEPENDENCY} STREQUAL "")
-		# Check extern
-		message(
-			STATUS
-			"Searching for ${DEPENDENCY} using file ${FILE}"
-		)
-		find_path("${DEPENDENCY}Path"
-			${FILE}
-			PATHS "extern/${DEPENDENCY}")
-
-		if("${${DEPENDENCY}Path}" STREQUAL "${DEPENDENCY}Path-NOTFOUND")
-			# Check path
-			message(
-				STATUS
-				"Getting environment for ${DEPENDENCY}Path: $ENV{${DEPENDENCY}Path}"
-			)
-			set("${DEPENDENCY}Path" "$ENV{${DEPENDENCY}Path}")
-		endif()
-
-		message(
-			STATUS
-			"Found ${DEPENDENCY} in ${${DEPENDENCY}Path}; adding"
-		)
-		add_subdirectory("${${DEPENDENCY}Path}" ${DEPENDENCY})
-	endif()
-endmacro()
-
-# dependencies
-find_dependency_path(DKUtil include/DKUtil/Logger.hpp)
-```
+<p align="center">MIT License, 2020-present DK</p>

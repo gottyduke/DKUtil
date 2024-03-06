@@ -1,7 +1,4 @@
 <h1 align="center">DKUtil::Utility</h1>
-<a href="/docs/Config.md">Config</a> | <a href="/docs/Hook.md">Hook</a> | <a href="/docs/Logger.md">Logger</a> | <a href="/docs/Utility.md">Utility</a> | <a href="/docs/Extra.md">Extra</a></p>
-
-[Utility Source](/include/DKUtil/Utility.hpp)
 
 Some helper functions used within other DKUtil headers.
 + function
@@ -112,4 +109,3 @@ static_assert(dku::model::concepts::dku_trivial_ranges<decltype(av)>);
 + static_string
 
 ---
-<a href="/docs/Config.md">Config</a> | <a href="/docs/Hook.md">Hook</a> | <a href="/docs/Logger.md">Logger</a> | <a href="/docs/Utility.md">Utility</a> | <a href="/docs/Extra.md">Extra</a></p>
