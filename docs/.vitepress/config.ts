@@ -66,7 +66,7 @@ function makeNavBar(): DefaultTheme.NavItem[] {
         {
             text: 'Logger',
             link: '/logger/setup',
-            activeMatch: '/Logger/'
+            activeMatch: '/logger/'
         },
         {
             text: 'Config',
