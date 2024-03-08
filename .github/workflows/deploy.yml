@@ -2,7 +2,7 @@ name: Deploy GH Pages
 
 on:
   push:
-    branches: main
+    branches: master
     paths:
       - "docs/**"
   workflow_dispatch:
@@ -24,7 +24,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
