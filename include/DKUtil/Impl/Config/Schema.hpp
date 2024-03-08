@@ -180,7 +180,7 @@ namespace DKUtil::Config::detail
 			}
 
 			auto& segment = a_segments.back();
-			auto  on_exit = model::scope_exit([&] { a_segments.pop_back(); });
+			SCOPE_EXIT({ a_segments.pop_back(); });
 
 			try {
 				a_value = string::lexical_cast<T>(segment, string::is_only_hex(string::trim_copy(segment)));

@@ -183,8 +183,6 @@ namespace DKUtil::model
 		constexpr ~Singleton() = default;
 	};
 
-	// ryan is really a wiz, I shamelessly copy
-	// https://github.com/Ryan-rsm-McKenzie/CommonLibSSE/blob/master/include/SKSE/Impl/PCH.h
 	template <class EF>                                        //
 		requires(std::invocable<std::remove_reference_t<EF>>)  //
 	class scope_exit
@@ -249,6 +247,8 @@ namespace DKUtil::model
 	// deduction
 	template <class EF>
 	scope_exit(EF) -> scope_exit<EF>;
+
+#define SCOPE_EXIT(EF) dku::model::scope_exit([&]() EF )
 
 #pragma region MACRO_EXPANSION
 
