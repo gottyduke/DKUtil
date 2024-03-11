@@ -4,29 +4,39 @@
 
 ## Pattern Scan
 
-To do a pattern scan, call:
+To do a pattern scan using KMP, given string pattern:
 
 ```cpp
-auto* addr = dku::Hook::Assembly::search_pattern<
-				  "40 57 " // each pattern is separated by whitespace " "
-				  "48 83 EC 30 "
-				  "48 8B 0D ?? ?? ?? ?? " // wildcard is ??
-				  "48 8B FA "
-				  "48 81 C1 D0 00 00 00 "
-				  "E8 ?? ?? ?? ?? "
-				  "48 8B C8 "
-				  "E8 ?? ?? ?? ??">();
-INFO("found address at {:X}", AsAddress(addr));
-
-// delayed match
-auto TestAlByte = dku::Hook::Assembly::make_pattern<"84 C0">();
-auto addr = 0x7FF712345678;
-if (TestAlByte.match(addr)) {}
+std::string pattern{ "40 57 48 83 EC 30 48 8B 0D ?? ?? ?? ??" };
 ```
 
-::: warning Planned Change
-This API has been planned for breaking changes.
-:::
+### Syntax
+
+```cpp
+void* search_pattern(
+	std::string_view pattern,
+	std::uintptr_t base = 0,
+	std::size_t size = 0
+);
+```
+
+### Parameter
+
++ `pattern` : string pattern to search, spacing is optional, each byte must be two characters.
++ `base` : address of memory block to search, defaults to module.textx.
++ `size` : size of memory block to search, defaults to module.textx.size.
+
+Returns `nullptr` if not found. Otherwise return the first match.
+
+### Linear Search
+
+To use pattern at compile time, use specialized template version:
+
+```cpp
+void* search_pattern<"40 57 48 83 EC 30 48 8B 0D ?? ?? ?? ??">(base = 0, size = 0);
+```
+
+This template version performs a linear search instead of default KMP. 
 
 ## Rip Addressing
 

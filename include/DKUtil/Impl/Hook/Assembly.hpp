@@ -83,7 +83,7 @@ namespace DKUtil::Hook::Assembly
 
 		namespace rules
 		{
-			[[nodiscard]] inline consteval std::byte hexachar_to_hexadec(char a_hi, char a_lo) noexcept
+			[[nodiscard]] inline constexpr std::byte hexachar_to_hexadec(char a_hi, char a_lo) noexcept
 			{
 				constexpr auto lut = []() noexcept {
 					std::array<std::uint8_t, std::numeric_limits<unsigned char>::max() + 1> a{};
@@ -202,19 +202,168 @@ namespace DKUtil::Hook::Assembly
 			static_assert((std::integral<Bytes> && ...), "all bytes must be an integral type");
 			return { static_cast<std::byte>(a_bytes)... };
 		}
+
+		inline constexpr std::byte WILDCARD{ 0x00 };
+
+		[[nodiscard]] inline std::string sanitize(std::string_view a_pattern)
+		{
+			std::string pattern = string::trim_copy(string::replace_all(a_pattern, "0x"));
+
+			auto report_sanitizer_problem = [&](std::size_t i, std::string_view err = {}) {
+				std::string_view prev{ pattern.data(), i };
+				std::string_view next{ pattern.data() + i + 1 };
+				FATAL("Can't sanitize pattern:\n{}\n{}{{{}}}{}", err, prev, pattern[i], next);
+			};
+
+			// 1) pattern can't begin with wildcards
+			if (characters::wildcard(pattern[0])) {
+				report_sanitizer_problem(0, "pattern can't begin with wildcards");
+			}
+
+			std::size_t digits{ 0 };
+			for (std::size_t i = 0; i < pattern.size(); ++i) {
+				char c = pattern[i];
+
+				if (!characters::hexadecimal(c) &&
+					!characters::whitespace(c) &&
+					!characters::wildcard(c)) {
+					// 2) xdigit only
+					report_sanitizer_problem(i, "invalid hex character");
+				}
+
+				digits = characters::whitespace(c) ? 0 : digits + 1;
+			}
+
+			// 3) must be 2 char per byte
+			if (digits % 2) {
+				report_sanitizer_problem(pattern.size() - 1, "each byte must be 2 characters");
+			}
+
+			return pattern;
+		}
+
+		struct ByteMatch
+		{
+			std::byte hex;
+			bool      wildcard;
+		};
+
+		[[nodiscard]] inline std::vector<ByteMatch> make_byte_matches(std::string_view a_pattern)
+		{
+			std::vector<Pattern::ByteMatch> bytes;
+
+			for (std::size_t i = 0; i < a_pattern.size(); ++i) {
+				switch (a_pattern[i]) {
+				case ' ':
+					break;
+				case '?':
+					bytes.emplace_back(Pattern::WILDCARD, true);
+					++i;
+					break;
+				default:
+					bytes.emplace_back(dku::string::lexical_cast<std::byte>({ a_pattern.data() + i, 2 }, true), false);
+					++i;
+					break;
+				}
+			}
+
+			return bytes;
+		}
 	}  // namespace detail
 
-	template <string::static_string S>
-	[[nodiscard]] inline constexpr auto make_pattern() noexcept
+	/** \brief Search a byte pattern in memory, kmp.
+	 * \param a_pattern : hex string pattern of bytes. Spacing is optional. e.g. "FF 15 ????????".
+	 * \param a_base : base address of memory block to search, default to module textx section.
+	 * \param a_size : size of memory block to search, default to module textx size.
+	 * \return void* : pointer of first match, nullptr if none found.
+	 */
+	[[nodiscard]] inline std::byte* search_pattern(
+		std::string_view a_pattern,
+		model::concepts::dku_memory auto a_base = 0,
+		std::size_t      a_size = 0)
 	{
-		return Pattern::do_make_pattern<S>();
+		std::uintptr_t base{ AsAddress(a_base) };
+
+		auto [textx, size] = Module::get().section(Module::Section::textx);
+
+		if (!base) {
+			base = textx;
+		}
+
+		if (!a_size) {
+			a_size = size;
+		}
+
+		auto* begin = static_cast<std::byte*>(AsPointer(base));
+		auto*  end = adjust_pointer(begin, a_size);
+		auto  bytes = Pattern::make_byte_matches(Pattern::sanitize(a_pattern));
+
+		constexpr std::size_t    NPOS = static_cast<std::size_t>(-1);
+		std::vector<std::size_t> prefix(bytes.size() + 1);
+		std::size_t              pos{ 1 };
+		std::size_t              cnd{ 0 };
+
+		prefix[0] = NPOS;
+
+		while (pos < bytes.size()) {
+			if (bytes[pos].wildcard ||
+				bytes[cnd].wildcard ||
+				bytes[pos].hex == bytes[cnd].hex) {
+				prefix[pos] = prefix[cnd];
+			} else {
+				prefix[pos] = cnd;
+				cnd = prefix[cnd];
+				while (cnd != NPOS &&
+					   !bytes[pos].wildcard &&
+					   !bytes[cnd].wildcard &&
+					   bytes[pos].hex != bytes[cnd].hex) {
+					cnd = prefix[cnd];
+				}
+			}
+			++pos;
+			++cnd;
+		}
+
+		prefix[pos] = cnd;
+
+		std::size_t    j{ 0 };
+		std::size_t    k{ 0 };
+		std::ptrdiff_t firstMatch{ -1 };
+
+		while (j < a_size) {
+			if (bytes[k].wildcard || bytes[k].hex == *adjust_pointer<std::byte>(begin, j)) {
+				++j;
+				++k;
+				if (k == bytes.size()) {
+					firstMatch = j - k;
+					break;
+				}
+			} else {
+				k = prefix[k];
+				if (k == NPOS) {
+					++j;
+					++k;
+				}
+			}
+		}
+
+		if (firstMatch == -1) {
+			return nullptr;
+		} else {
+			return adjust_pointer<std::byte>(begin, firstMatch);
+		}
 	}
 
+	/** \brief Search a byte pattern in memory, linear.
+	 * \brief To use pattern as argument, use search_pattern<T>(pattern) instead.
+	 * \param a_base : base address of memory block to search, default to module textx section.
+	 * \param a_size : size of memory block to search, default to module textx size.
+	 * \return void* : pointer of first match, nullptr if none found.
+	 */
 	template <Pattern::PatternMatcher P>
 	[[nodiscard]] inline void* search_pattern(std::uintptr_t a_base = 0, std::size_t a_size = 0) noexcept
 	{
-		auto& base = Module::get();
-		auto [textx, size] = base.section(dku::Hook::Module::Section::textx);
+		auto [textx, size] = Module::get().section(Hook::Module::Section::textx);
 
 		if (!a_base) {
 			a_base = textx;
@@ -226,7 +375,7 @@ namespace DKUtil::Hook::Assembly
 
 		const auto* begin = static_cast<std::byte*>(AsPointer(a_base));
 		const auto* end = adjust_pointer(begin, a_size);
-
+		
 		for (auto* mem = begin; mem != end; ++mem) {
 			if (P.match(AsAddress(mem))) {
 				return AsPointer(mem);
@@ -236,9 +385,15 @@ namespace DKUtil::Hook::Assembly
 		return nullptr;
 	}
 
+	/** \brief Search a byte pattern in memory, linear.
+	 * \brief To use pattern as argument, use search_pattern<T>(pattern) instead.
+	 * \param a_base : base address of memory block to search, default to module textx section.
+	 * \param a_size : size of memory block to search, default to module textx size.
+	 * \return void* : pointer of first match, nullptr if none found.
+	 */
 	template <string::static_string S>
 	[[nodiscard]] inline void* search_pattern(std::uintptr_t a_base = 0, std::size_t a_size = 0) noexcept
 	{
-		return search_pattern<make_pattern<S>()>(a_base, a_size);
+		return search_pattern<Pattern::do_make_pattern<S>()>();
 	}
 }  // namespace DKUtil::Hook::Assembly
