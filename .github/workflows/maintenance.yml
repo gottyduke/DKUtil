@@ -2,7 +2,7 @@ name: Maintenance
 
 on:
   push:
-    branches: main
+    branches: master
     paths:
       - "include/**"
   workflow_dispatch:
