@@ -143,7 +143,7 @@ namespace DKUtil
 		template <typename T = void, typename U>
 		[[nodiscard]] inline constexpr auto adjust_pointer(U* a_ptr, std::ptrdiff_t a_adjust) noexcept
 		{
-			auto addr = a_ptr ? std::bit_cast<std::uintptr_t>(a_ptr) + a_adjust : 0;
+			auto addr = a_ptr ? AsAddress(a_ptr) + a_adjust : 0;
 			if constexpr (std::is_const_v<U> && std::is_volatile_v<U>) {
 				return std::bit_cast<std::add_cv_t<T>*>(addr);
 			} else if constexpr (std::is_const_v<U>) {
@@ -169,13 +169,13 @@ namespace DKUtil
 			std::fill_n(begin, a_size, val);
 		}
 
-		/*
-		 * @brief Get the calculated address of the rip displacement in an assembly instruction
-		 * @brief Example : `FF 25 21 43 65 87` -> jmp qword ptr [rip + 0x87654321]
-		 * @brief Calculates and returns the actual address it branches to
-		 * @param T : Data type to read in at the calculated address
-		 * @param a_src : Address of the assembly instruction. This must be the beginning of the full instruction
-		 * @param a_opOffset : Optionally specify the offset where the displacement is, e.g. 1 for `E8 12 34 56 78`, 0 for auto
+		/**
+		 * \brief Get the calculated address of the rip displacement in an assembly instruction
+		 * \brief Example : `FF 25 21 43 65 87` -> jmp qword ptr [rip + 0x87654321]
+		 * \brief Calculates and returns the actual address it branches to
+		 * \param T : Data type to read in at the calculated address
+		 * \param a_src : Address of the assembly instruction. This must be the beginning of the full instruction
+		 * \param a_opOffset : Optionally specify the offset where the displacement is, e.g. 1 for `E8 12 34 56 78`, 0 for auto
 		 * @return Calculated address as T, std::uintptr_t by default
 		 */
 		template <typename T = std::uintptr_t>
@@ -613,8 +613,8 @@ namespace DKUtil
 			return cached.try_emplace(a_addr, a_addr).first->second;
 		}
 
-		/*
-		 * @brief Get RVA of a full address
+		/**
+		 * \brief Get RVA of a full address
 		 */
 		[[nodiscard]] inline std::uintptr_t GetRva(std::uintptr_t a_address)
 		{
@@ -627,8 +627,8 @@ namespace DKUtil
 			return a_address - base;
 		}
 
-		/*
-		 * @brief Get aslr disabled address from a full relocated address
+		/**
+		 * \brief Get aslr disabled address from a full relocated address
 		 */
 		[[nodiscard]] inline std::uintptr_t GetRawAddress(std::uintptr_t a_address)
 		{

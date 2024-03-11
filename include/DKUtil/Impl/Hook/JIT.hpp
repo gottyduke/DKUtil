@@ -259,15 +259,15 @@ namespace DKUtil::Hook
 
 	namespace JIT
 	{
-		/* This namespace contains util functions used internally to generate patches */
+		/** This namespace contains util functions used internally to generate patches */
 
 		using patch_descriptor = std::pair<Patch, Patch>;
 		using patch_block = std::pair<std::vector<OpCode>, std::size_t>;
 
-		/* @brief Allocates a block of memory and generates non volatile patch
-		 * @brief push/pop to preserve registers
-		 * @param a_regs : { reg1, reg2, reg3... } registers to preserve
-		 * @returns patch_descriptor : a pair of views of prolog and epilog of this patch
+		/** \brief Allocates a block of memory and generates non volatile patch
+		 * \brief push/pop to preserve registers
+		 * \param a_regs : { reg1, reg2, reg3... } registers to preserve
+		 * \return patch_descriptor : a pair of views of prolog and epilog of this patch
 		 */
 		inline patch_descriptor MakeNonVolatilePatch(enumeration<Register> a_regs)
 		{
@@ -339,10 +339,10 @@ namespace DKUtil::Hook
 			};
 		}
 
-		/* @brief Allocates a block of memory and generates non volatile patch
-		 * @brief push/pop to preserve SSE registers
-		 * @param a_regs : { simd1, simd2, simd3... } registers to preserve
-		 * @returns patch_descriptor : a pair of views of prolog and epilog of this patch
+		/** \brief Allocates a block of memory and generates non volatile patch
+		 * \brief push/pop to preserve SSE registers
+		 * \param a_regs : { simd1, simd2, simd3... } registers to preserve
+		 * \return patch_descriptor : a pair of views of prolog and epilog of this patch
 		 */
 		inline patch_descriptor MakeNonVolatilePatch(enumeration<SIMD> a_simds)
 		{

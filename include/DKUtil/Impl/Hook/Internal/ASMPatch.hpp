@@ -42,12 +42,12 @@ namespace DKUtil::Hook
 		std::vector<OpCode> PatchBuf{};
 	};
 
-	/* @brief Apply assembly patch in the body of execution
-	 * @param a_address : Memory address of the BEGINNING of target function
-	 * @param a_offset : Offset pairs for <beginning, end> of cave entry from the head of function
-	 * @param a_patch : Assembly patch
-	 * @param a_forward : Skip the rest of NOPs until next valid opcode
-	 * @returns ASMPatchHandle
+	/** \brief Apply assembly patch in the body of execution
+	 * \param a_address : Memory address of the BEGINNING of target function
+	 * \param a_offset : Offset pairs for <beginning, end> of cave entry from the head of function
+	 * \param a_patch : Assembly patch
+	 * \param a_forward : Skip the rest of NOPs until next valid opcode
+	 * \return ASMPatchHandle
 	 */
 	[[nodiscard]] inline auto AddASMPatch(
 		const std::uintptr_t a_address,

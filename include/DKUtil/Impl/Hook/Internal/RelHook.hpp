@@ -53,12 +53,12 @@ namespace DKUtil::Hook
 		std::vector<OpCode> Detour{};
 	};
 
-	/* @brief Relocate a call/jmp site with target hook function
-	 * @param <N> : Length of source instruction
-	 * @param <RETN> : Return or branch (call/jmp)
-	 * @param a_src : Address of call/jmp instruction
-	 * @param a_dst : Destination function
-	 * @returns RelHookHandle
+	/** \brief Relocate a call/jmp site with target hook function
+	 * \param <N> : Length of source instruction
+	 * \param <RETN> : Return or branch (call/jmp)
+	 * \param a_src : Address of call/jmp instruction
+	 * \param a_dst : Destination function
+	 * \return RelHookHandle
 	 */
 	template <std::size_t N, bool RETN>
 	inline auto AddRelHook(

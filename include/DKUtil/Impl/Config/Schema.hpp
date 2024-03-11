@@ -30,7 +30,7 @@ namespace DKUtil::Config::detail
 			}
 
 			_lines = string::split(_content, "\n");
-			
+
 			__DEBUG("DKU_C: Parser#{}: sSchema loading finished", _id);
 		}
 
@@ -62,12 +62,13 @@ namespace DKUtil::Config::detail
 			_policy = a_policy;
 		}
 
-		/* @brief Parse a string into user defined struct
-		 * @brief e.g. CustomData d = ParseString<CustomData>(line, delim...)
-		 * @brief This alias supports aggregate struct of a 19 members maximum
-		 * @param a_str : non-empty formatted schema string
-		 * @param a_delimiters : one or multiple string delimiters used to make segments
-		 * @returns user defined struct
+		/** 
+		 * \brief Parse a string into user defined struct
+		 * \brief e.g. CustomData d = ParseString<CustomData>(line, delim...)
+		 * \brief This alias supports aggregate struct of a 19 members maximum
+		 * \param a_str : non-empty formatted schema string
+		 * \param a_delimiters : one or multiple string delimiters used to make segments
+		 * \return user defined struct
 		 */
 		template <typename SchemaData>
 			requires(model::concepts::dku_aggregate<SchemaData>)
@@ -78,7 +79,7 @@ namespace DKUtil::Config::detail
 			if (a_str.empty()) {
 				return {};
 			}
-			
+
 			segments segs = string::split(a_str, std::forward<decltype(a_delimiters)>(a_delimiters)...);
 			std::ranges::reverse(segs);
 
@@ -90,12 +91,13 @@ namespace DKUtil::Config::detail
 			return model::struct_cast<SchemaData>(tv);
 		}
 
-		/* @brief Parse a string to user defined series of segments
-		 * @brief e.g. auto [a, b, c, d] = ParseString<int, bool, bool, std::string>(line, delim...)
-		 * @brief This alias supports aggregate struct of a 19 members maximum
-		 * @param a_str : non-empty formatted schema string
-		 * @param a_delimiters : one or multiple string delimiters used to make segments
-		 * @returns std::tuple of user defined segments
+		/** 
+		 * \brief Parse a string to user defined series of segments
+		 * \brief e.g. auto [a, b, c, d] = ParseString<int, bool, bool, std::string>(line, delim...)
+		 * \brief This alias supports aggregate struct of a 19 members maximum
+		 * \param a_str : non-empty formatted schema string
+		 * \param a_delimiters : one or multiple string delimiters used to make segments
+		 * \return std::tuple of user defined segments
 		 */
 		template <typename... SchemaSegment>
 			requires(sizeof...(SchemaSegment) > 1)
@@ -104,12 +106,13 @@ namespace DKUtil::Config::detail
 			return ParseString<std::tuple<SchemaSegment...>>(a_str, std::forward<decltype(a_delimiters)>(a_delimiters)...);
 		}
 
-		/* @brief Parse specific line from internal buffered content
-		 * @brief e.g. CustomData d = ParseLine<CustomData>(ln, delim...).value_or({})
-		 * @brief This alias supports aggregate struct of a 19 members maximum
-		 * @param a_ln : line number
-		 * @param a_delimiters : one or multiple string delimiters used to make segments
-		 * @returns std::optional<tuple> of user defined segments, null if no lines left to parse
+		/** 
+		 * \brief Parse specific line from internal buffered content
+		 * \brief e.g. CustomData d = ParseLine<CustomData>(ln, delim...).value_or({})
+		 * \brief This alias supports aggregate struct of a 19 members maximum
+		 * \param a_ln : line number
+		 * \param a_delimiters : one or multiple string delimiters used to make segments
+		 * \return std::optional<tuple> of user defined segments, null if no lines left to parse
 		 */
 		template <typename SchemaData>
 			requires(model::concepts::dku_aggregate<SchemaData>)
@@ -123,12 +126,13 @@ namespace DKUtil::Config::detail
 			return ParseString<SchemaData>(_lines[a_ln], std::forward<decltype(a_delimiters)>(a_delimiters)...);
 		}
 
-		/* @brief Parse specific line from internal buffered content
-		 * @brief e.g. auto [a, b, c, d] = ParseLine<int, bool, bool, std::string>(delim...).value()
-		 * @brief This alias supports aggregate struct of a 19 members maximum
-		 * @param a_ln : line number
-		 * @param a_delimiters : one or multiple string delimiters used to make segments
-		 * @returns std::optional<tuple> of user defined segments, null if no line to parse
+		/**
+		 * \brief Parse specific line from internal buffered content
+		 * \brief e.g. auto [a, b, c, d] = ParseLine<int, bool, bool, std::string>(delim...).value()
+		 * \brief This alias supports aggregate struct of a 19 members maximum
+		 * \param a_ln : line number
+		 * \param a_delimiters : one or multiple string delimiters used to make segments
+		 * \return std::optional<tuple> of user defined segments, null if no line to parse
 		 */
 		template <typename... SchemaSegment>
 			requires(sizeof...(SchemaSegment) > 1)
@@ -138,11 +142,12 @@ namespace DKUtil::Config::detail
 			return ParseLine<std::tuple<SchemaSegment...>>(a_ln, std::forward<decltype(a_delimiters)>(a_delimiters)...);
 		}
 
-		/* @brief Parse next line from internal buffered content
-		 * @brief e.g. CustomData d = ParseNextLine<CustomData>(delim...).value_or({})
-		 * @brief This alias supports aggregate struct of a 19 members maximum
-		 * @param a_delimiters : one or multiple string delimiters used to make segments
-		 * @returns std::optional<tuple> of user defined segments, null if no lines left to parse
+		/**
+		 * \brief Parse next line from internal buffered content
+		 * \brief e.g. CustomData d = ParseNextLine<CustomData>(delim...).value_or({})
+		 * \brief This alias supports aggregate struct of a 19 members maximum
+		 * \param a_delimiters : one or multiple string delimiters used to make segments
+		 * \return std::optional<tuple> of user defined segments, null if no lines left to parse
 		 */
 		template <typename SchemaData>
 			requires(model::concepts::dku_aggregate<SchemaData>)
@@ -152,11 +157,12 @@ namespace DKUtil::Config::detail
 			return ParseLine<SchemaData>(_pos++, std::forward<decltype(a_delimiters)>(a_delimiters)...);
 		}
 
-		/* @brief Parse next line from internal buffered content
-		 * @brief e.g. auto [a, b, c, d] = ParseNextLine<int, bool, bool, std::string>(delim...).value()
-		 * @brief This alias supports aggregate struct of a 19 members maximum
-		 * @param a_delimiters : one or multiple string delimiters used to make segments
-		 * @returns std::optional<tuple> of user defined segments, null if no lines left to parse
+		/** 
+		 * \brief Parse next line from internal buffered content.
+		 * \brief This alias supports aggregate struct of a 19 members maximum.  
+		 * \brief auto [a, b, c, d] = ParseNextLine<int, bool, bool, std::string>(delim...).value()
+		 * \param a_delimiters : one or multiple string delimiters used to make segments.
+		 * \return std::optional<tuple> of user defined segments, null if no lines left to parse.
 		 */
 		template <typename... SchemaSegment>
 			requires(sizeof...(SchemaSegment) > 1)

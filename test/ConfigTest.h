@@ -52,9 +52,9 @@ namespace Test::Config
 	struct CustomData
 	{
 		dku::numbers::hex form;
-		std::string   name;
-		std::string   payload;
-		bool          excluded;
+		std::string       name;
+		std::string       payload;
+		bool              excluded;
 	};
 
 	void TestSchema()

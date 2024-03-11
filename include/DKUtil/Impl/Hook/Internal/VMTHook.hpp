@@ -42,11 +42,11 @@ namespace DKUtil::Hook
 		const std::uintptr_t OldAddress;
 	};
 
-	/* Swaps a virtual method table function with target function
-	 * @param a_vtbl : Pointer to virtual method table (base address of class object)
-	 * @param a_index : Index of the virtual function in the virtual method table
-	 * @param a_funcInfo : FUNC_INFO or RT_INFO wrapped function
-	 * @param a_patch : Prolog patch before detouring to target function
+	/** Swaps a virtual method table function with target function
+	 * \param a_vtbl : Pointer to virtual method table (base address of class object)
+	 * \param a_index : Index of the virtual function in the virtual method table
+	 * \param a_funcInfo : FUNC_INFO or RT_INFO wrapped function
+	 * \param a_patch : Prolog patch before detouring to target function
 	 * @return VMTHookHandle
 	 */
 	[[nodiscard]] inline auto AddVMTHook(

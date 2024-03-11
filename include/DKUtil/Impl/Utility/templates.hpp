@@ -248,7 +248,7 @@ namespace DKUtil::model
 	template <class EF>
 	scope_exit(EF) -> scope_exit<EF>;
 
-#define SCOPE_EXIT(EF) dku::model::scope_exit([&]() EF )
+#define SCOPE_EXIT(EF) dku::model::scope_exit([&]() EF)
 
 #pragma region MACRO_EXPANSION
 

@@ -1,6 +1,6 @@
 #pragma once
 
-/*
+/**
  * 1.0.1
  * Extended PARG_MACRO expansion to 19;
  * 
@@ -16,7 +16,7 @@
 #include "Impl/pch.hpp"
 #include "Logger.hpp"
 
-/* Bunch of stuff taken from CommonLibSSE-Util */
+/** Bunch of stuff taken from CommonLibSSE-Util */
 
 namespace std::ranges::views
 {

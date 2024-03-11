@@ -158,14 +158,14 @@ namespace DKUtil::numbers
 			return _base;
 		}
 
-		constexpr auto number() const noexcept 
-		{ 
-			return _base; 
+		constexpr auto number() const noexcept
+		{
+			return _base;
 		}
 
-		const auto string(std::string_view a_prefix = "0x"sv) const noexcept 
-		{ 
-			return fmt::format("{}{:x}", a_prefix, _base); 
+		const auto string(std::string_view a_prefix = "0x"sv) const noexcept
+		{
+			return fmt::format("{}{:x}", a_prefix, _base);
 		}
 
 	private:

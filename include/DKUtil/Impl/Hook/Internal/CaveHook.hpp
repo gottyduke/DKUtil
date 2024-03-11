@@ -50,14 +50,14 @@ namespace DKUtil::Hook
 		std::vector<OpCode>  CaveBuf{};
 	};
 
-	/* @brief Branch to hook function in the body of execution from target function.
-	 * @param a_offset : Offset pairs for <beginning, end> of cave entry from the head of function
-	 * @param a_address : Memory address of the BEGINNING of target function
-	 * @param a_funcInfo : FUNC_INFO or RT_INFO wrapper of hook function
-	 * @param a_prolog : Prolog patch before detouring to hook function
-	 * @param a_epilog : Epilog patch after returning from hook function
-	 * @param a_flag : Specifies operation on cave hook
-	 * @returns CaveHookHandle
+	/** \brief Branch to hook function in the body of execution from target function.
+	 * \param a_offset : Offset pairs for <beginning, end> of cave entry from the head of function
+	 * \param a_address : Memory address of the BEGINNING of target function
+	 * \param a_funcInfo : FUNC_INFO or RT_INFO wrapper of hook function
+	 * \param a_prolog : Prolog patch before detouring to hook function
+	 * \param a_epilog : Epilog patch after returning from hook function
+	 * \param a_flag : Specifies operation on cave hook
+	 * \return CaveHookHandle
 	 */
 	[[nodiscard]] inline auto AddCaveHook(
 		const std::uintptr_t         a_address,

@@ -209,10 +209,24 @@ namespace Test::Hook
 		static_assert(rules::Wildcard::match(std::byte{ 0xEB }));
 		static_assert(rules::Wildcard::match(std::byte{ 0x90 }));
 
-		static_assert(assembly::make_pattern<"40 10 F2 ??">().match(
+		static_assert(pattern::do_make_pattern<"40 10 F2 ??">().match(
 			pattern::make_byte_array(0x40, 0x10, 0xF2, 0x41)));
-		static_assert(assembly::make_pattern<"B8 D0 ?? ?? D4 6E">().match(
+		static_assert(pattern::do_make_pattern<"B8 D0 ?? ?? D4 6E">().match(
 			pattern::make_byte_array(0xB8, 0xD0, 0x35, 0x2A, 0xD4, 0x6E)));
+
+		std::string s{ "B8 0xD0 0xF52A D4 6E ?? 0x13141592" };
+		auto        buf = pattern::make_byte_array(0xB8, 0xD0, 0xF5, 0x2A, 0xD4, 0x6E, 0x77, 0x13, 0x14, 0x15, 0x92);
+		std::string pat{ " F5 ?? D4" };
+
+		std::string san = pattern::sanitize(s);
+		auto        ms = pattern::make_byte_matches(san);
+		for (auto& m : ms) {
+			INFO("{:02X} {}", m.hex, m.wildcard);
+		}
+
+		auto* f = assembly::search_pattern(pat, buf.data(), buf.size());
+		dku_assert(f == &buf[2], 
+			"search incorrect");
 	}
 
 	void TestHooks()
@@ -329,8 +343,8 @@ namespace Test::Hook
 	{
 		//TestHooks();
 		TestPattern();
-		TestDispHelpers();
-		TestJIT();
+		//TestDispHelpers();
+		//TestJIT();
 
 		//dku::Hook::write_call_ex<6>(0, Run, { Register::RAX, Register::RCX, Register::RDX, Register::RBX });
 	}

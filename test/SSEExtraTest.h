@@ -12,20 +12,20 @@ namespace Test::Extra
 
 	void Run()
 	{
-		/**/
+		/***/
 		dku::serializable<std::map<RE::FormID, ActorDeathInfo>, "MapInfo"> actorDeathInfoMapSerial({
 			{ 0, { 11, "testA" } },
 			{ 1, { 22, "testB" } },
 			{ 2, { 33, "testC" } },
-		}); /**/
+		}); /***/
 		dku::serializable<ActorDeathInfo, "SingleInfo">                    actorDeathInfoSerial({ 1234, "test" });
 
-		/**
+		/***
 		dku::serializable<std::map<int, int>, "MapInfo"> actorDeathInfoMapSerial({
 			{ 0, 1 },
 			{ 1, 2 },
 			{ 2, 3 },
-		}); /**/
+		}); /***/
 
 		std::tuple<void*, std::string> testTuple(nullptr, "test");
 		std::pair<const int, int>      as = std::make_tuple(1, 2);

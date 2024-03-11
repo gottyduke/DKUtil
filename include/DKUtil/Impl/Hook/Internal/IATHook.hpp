@@ -40,11 +40,11 @@ namespace DKUtil::Hook
 		const std::uintptr_t OldAddress;
 	};
 
-	/* Swaps a import address table method with target function
-	 * @param a_moduleName : Name of the target module that import address table resides
-	 * @param a_methodName : Name of the target method to be swapped
-	 * @param a_funcInfo : FUNC_INFO or RT_INFO wrapped function
-	 * @param a_patch : Prolog patch before detouring to target function
+	/** Swaps a import address table method with target function
+	 * \param a_moduleName : Name of the target module that import address table resides
+	 * \param a_methodName : Name of the target method to be swapped
+	 * \param a_funcInfo : FUNC_INFO or RT_INFO wrapped function
+	 * \param a_patch : Prolog patch before detouring to target function
 	 * @return IATHookHandle
 	 */
 	[[nodiscard]] inline auto AddIATHook(

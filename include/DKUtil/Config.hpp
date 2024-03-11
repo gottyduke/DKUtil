@@ -1,6 +1,6 @@
 #pragma once
 
-/*
+/**
  * 1.2.0
  * Added Schema parser;
  * 
@@ -82,12 +82,12 @@ namespace DKUtil
 
 namespace DKUtil::Config
 {
-	/* @brief Parse a string into user defined struct
-	 * @brief e.g. CustomData d = ParseSchemaString<CustomData>(line, delim...)
-	 * @brief This API is an alias of global schema parser for ease of use
-	 * @param a_str : non-empty formatted schema string
-	 * @param a_delimiters : one or multiple string delimiters used to make segments
-	 * @returns user defined struct
+	/** \brief Parse a string into user defined struct
+	 * \brief e.g. CustomData d = ParseSchemaString<CustomData>(line, delim...)
+	 * \brief This API is an alias of global schema parser for ease of use
+	 * \param a_str : non-empty formatted schema string
+	 * \param a_delimiters : one or multiple string delimiters used to make segments
+	 * \return user defined struct
 	 */
 	template <typename SchemaData>
 		requires(model::concepts::dku_aggregate<SchemaData>)
@@ -96,12 +96,12 @@ namespace DKUtil::Config
 		return detail::Schema::ParseString<SchemaData>(a_str, std::forward<decltype(a_delimiters)>(a_delimiters)...);
 	}
 
-	/* @brief Parse a string to user defined series of segments
-	 * @brief e.g. auto [a, b, c, d] = ParseSchemaString<int, bool, bool, std::string>(line, delim...)
-	 * @brief This API is an alias of global schema parser for ease of use
-	 * @param a_str : non-empty formatted schema string
-	 * @param a_delimiters : one or multiple string delimiters used to make segments
-	 * @returns std::tuple of user defined segments
+	/** \brief Parse a string to user defined series of segments
+	 * \brief e.g. auto [a, b, c, d] = ParseSchemaString<int, bool, bool, std::string>(line, delim...)
+	 * \brief This API is an alias of global schema parser for ease of use
+	 * \param a_str : non-empty formatted schema string
+	 * \param a_delimiters : one or multiple string delimiters used to make segments
+	 * \return std::tuple of user defined segments
 	 */
 	template <typename... SchemaSegment>
 		requires(sizeof...(SchemaSegment) > 1)

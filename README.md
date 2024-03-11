@@ -7,10 +7,10 @@ See [wiki here!](https://gottyduke.github.io/DKUtil/)
 
 # Implementations
 ![Config](https://img.shields.io/badge/Config-1.2.0-R.svg)
-![Hook](https://img.shields.io/badge/Hook-2.6.5-R.svg)
-![Logger](https://img.shields.io/badge/Logger-1.2.4-R.svg)
+![Hook](https://img.shields.io/badge/Hook-2.6.6-R.svg)
+![Logger](https://img.shields.io/badge/Logger-1.2.5-R.svg)
 ![Utility](https://img.shields.io/badge/Utility-1.0.1-R.svg)
-![Extra(For SKSE)](https://img.shields.io/badge/Extra-1.0.0-R.svg))  
+![Extra(For SKSE)](https://img.shields.io/badge/Extra-1.0.0-R.svg)
 
 + Config
     - abstracted and contained config layer

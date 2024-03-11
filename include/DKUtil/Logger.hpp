@@ -1,6 +1,9 @@
 #pragma once
 
-/*
+/**
+ * 1.2.5
+ * Changed ERROR, FATAL predefined prompt texts to less verbose;
+ * 
  * 1.2.4
  * Fixed some macros;
  * 
@@ -46,26 +49,26 @@
 
 #include <spdlog/spdlog.h>
 
-#define __LOG(LEVEL, fmt, ...)                                                                  \
+#define __LOG(LEVEL, fmt_s, ...)                                                                \
 	{                                                                                           \
 		const auto src = DKUtil::Logger::detail::make_current(std::source_location::current()); \
-		spdlog::log(src, spdlog::level::LEVEL, fmt __VA_OPT__(, ) __VA_ARGS__);                 \
+		spdlog::log(src, spdlog::level::LEVEL, fmt_s __VA_OPT__(, ) __VA_ARGS__);               \
 	}
-#define __REPORT(DO_EXIT, PROMPT, ...)                                       \
-	{                                                                        \
-		__LOG(critical, __VA_ARGS__);                                        \
-		const auto src = std::source_location::current();                    \
-		const auto fmt = fmt::format(DKUtil::Logger::detail::prompt::PROMPT, \
-			DKUtil::Logger::detail::short_file(__FILE__),                    \
-			src.line(), src.function_name(), fmt::format(__VA_ARGS__));      \
-		DKUtil::Logger::detail::report_error(DO_EXIT, fmt);                  \
+#define __REPORT(DO_EXIT, PROMPT, ...)                                         \
+	{                                                                          \
+		__LOG(critical, __VA_ARGS__);                                          \
+		const auto src = std::source_location::current();                      \
+		const auto fmt_s = fmt::format(DKUtil::Logger::detail::prompt::PROMPT, \
+			DKUtil::Logger::detail::short_file(src.file_name()),               \
+			src.line(), src.function_name(), fmt::format(__VA_ARGS__));        \
+		DKUtil::Logger::detail::report_error(DO_EXIT, fmt_s);                  \
 	}
-#define INFO(fmt, ...) __LOG(info, fmt __VA_OPT__(, ) __VA_ARGS__)
-#define DEBUG(fmt, ...) __LOG(debug, fmt __VA_OPT__(, ) __VA_ARGS__)
-#define TRACE(fmt, ...) __LOG(trace, fmt __VA_OPT__(, ) __VA_ARGS__)
-#define WARN(fmt, ...) __LOG(warn, fmt __VA_OPT__(, ) __VA_ARGS__)
-#define ERROR(fmt, ...) __REPORT(false, error, fmt __VA_OPT__(, ) __VA_ARGS__)
-#define FATAL(fmt, ...) __REPORT(true, fatal, fmt __VA_OPT__(, ) __VA_ARGS__)
+#define INFO(fmt_s, ...) __LOG(info, fmt_s __VA_OPT__(, ) __VA_ARGS__)
+#define DEBUG(fmt_s, ...) __LOG(debug, fmt_s __VA_OPT__(, ) __VA_ARGS__)
+#define TRACE(fmt_s, ...) __LOG(trace, fmt_s __VA_OPT__(, ) __VA_ARGS__)
+#define WARN(fmt_s, ...) __LOG(warn, fmt_s __VA_OPT__(, ) __VA_ARGS__)
+#define ERROR(fmt_s, ...) __REPORT(false, error, fmt_s __VA_OPT__(, ) __VA_ARGS__)
+#define FATAL(fmt_s, ...) __REPORT(true, fatal, fmt_s __VA_OPT__(, ) __VA_ARGS__)
 
 #define ENABLE_DEBUG DKUtil::Logger::SetLevel(spdlog::level::debug);
 #define DISABLE_DEBUG DKUtil::Logger::SetLevel(spdlog::level::info);
@@ -122,12 +125,12 @@ namespace DKUtil::Logger
 		namespace prompt
 		{
 			inline constexpr auto error = FMT_STRING(
-				"Error occurred at code ->\n[{}:{}]\n\nCallsite ->\n{}\n\nDetail ->\n{}\n\n"
+				"Error occurred at code:\n[{}:{}] -> {}\n\nDetail:\n{}\n\n"
 				"Continuing may result in undesired behavior.\n"
-				"Exit game? (yes highly suggested)\n\n");
+				"Exit process? (yes highly suggested)\n\n");
 
 			inline constexpr auto fatal = FMT_STRING(
-				"Error occurred at code ->\n[{}:{}]\n\nCallsite ->\n{}\n\nDetail ->\n{}\n\n"
+				"Error occurred at code:\n[{}:{}] -> {}\n\nDetail:\n{}\n\n"
 				"Process cannot continue and will now exit.\n");
 		}  // namespace prompt
 
@@ -159,7 +162,7 @@ namespace DKUtil::Logger
 
 			::TerminateProcess(::GetCurrentProcess(), 'FAIL');
 		}
-		
+
 		inline constexpr const char* short_file(const char* path)
 		{
 			const char* file = path;

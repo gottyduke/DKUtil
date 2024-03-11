@@ -1,6 +1,9 @@
 #pragma once
 
-/* 
+/** 
+ * 2.6.6
+ * Added KMP version of search_pattern.
+ * 
  * 2.6.5
  * Added AssumeNonVolatile helper for preserving registers across call boundaries;
  *

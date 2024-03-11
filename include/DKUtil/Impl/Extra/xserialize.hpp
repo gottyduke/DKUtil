@@ -1,6 +1,6 @@
 #pragma once
 
-/*
+/**
 * 
  * 1.0.0
  * Basic serialization and deserialization;
