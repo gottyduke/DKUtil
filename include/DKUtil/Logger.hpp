@@ -178,7 +178,10 @@ namespace DKUtil::Logger
 	inline void Init(const std::string_view a_name, const std::string_view a_version) noexcept
 	{
 		std::filesystem::path path{};
-#if defined(SKSEAPI)
+#if defined(F4SEAPI)
+		path = detail::docs_directory();
+		path /= LOG_PATH;
+#elif defined(SKSEAPI)
 		path = detail::docs_directory();
 		path /= IS_VR ? LOG_PATH_VR : LOG_PATH;
 #elif defined(SFSEAPI)
