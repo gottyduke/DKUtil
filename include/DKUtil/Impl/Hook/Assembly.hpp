@@ -278,9 +278,9 @@ namespace DKUtil::Hook::Assembly
 	 * \return void* : pointer of first match, nullptr if none found.
 	 */
 	[[nodiscard]] inline std::byte* search_pattern(
-		std::string_view a_pattern,
+		std::string_view                 a_pattern,
 		model::concepts::dku_memory auto a_base = 0,
-		std::size_t      a_size = 0)
+		std::size_t                      a_size = 0)
 	{
 		std::uintptr_t base{ AsAddress(a_base) };
 
@@ -295,7 +295,7 @@ namespace DKUtil::Hook::Assembly
 		}
 
 		auto* begin = static_cast<std::byte*>(AsPointer(base));
-		auto*  end = adjust_pointer(begin, a_size);
+		auto* end = adjust_pointer(begin, a_size);
 		auto  bytes = Pattern::make_byte_matches(Pattern::sanitize(a_pattern));
 
 		constexpr std::size_t    NPOS = static_cast<std::size_t>(-1);
@@ -375,7 +375,7 @@ namespace DKUtil::Hook::Assembly
 
 		const auto* begin = static_cast<std::byte*>(AsPointer(a_base));
 		const auto* end = adjust_pointer(begin, a_size);
-		
+
 		for (auto* mem = begin; mem != end; ++mem) {
 			if (P.match(AsAddress(mem))) {
 				return AsPointer(mem);

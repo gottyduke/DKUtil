@@ -225,7 +225,7 @@ namespace Test::Hook
 		}
 
 		auto* f = assembly::search_pattern(pat, buf.data(), buf.size());
-		dku_assert(f == &buf[2], 
+		dku_assert(f == &buf[2],
 			"search incorrect");
 	}
 
@@ -236,7 +236,7 @@ namespace Test::Hook
 		Impl::FallbackDistanceHook::InstallHook();
 	}
 
-#define PACK_BIG_ENDIAN(lo1, lo2, hi1, hi2) ((((lo1) & 0xFF) << 0) | (((lo2) & 0xFF) << 8) | (((hi1) & 0xFF) << 16) | ((hi2) & 0xFF) << 24)
+#define PACK_BIG_ENDIAN(lo1, lo2, hi1, hi2) ((((lo1)&0xFF) << 0) | (((lo2)&0xFF) << 8) | (((hi1)&0xFF) << 16) | ((hi2)&0xFF) << 24)
 	void TestDispHelpers()
 	{
 		// clang-format off
