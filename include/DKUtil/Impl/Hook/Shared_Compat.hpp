@@ -328,7 +328,7 @@ namespace database
 	{
 		const auto version = Module::get().version_string();
 		// address lib files are in { runtimeDirectory + "Data\\SFSE\\Plugins" }
-		auto file = std::filesystem::path(GetProcessPath()).parent_path();
+		auto file = std::filesystem::path(GetModulePath()).parent_path();
 
 		file /= fmt::format("{}\\versionlib-{}", LookUpDir, version);
 
