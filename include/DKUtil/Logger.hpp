@@ -76,7 +76,11 @@
 #if !defined(LOG_PATH)
 
 #	if defined(F4SEAPI)
+#		define IS_NG REL::Module::IsNG()
+#		define IS_F4 REL::Module::IsF4()
+#		define IS_VR REL::Module::IsVR()
 #		define LOG_PATH "My Games\\Fallout4\\F4SE"sv
+#		define LOG_PATH_VR "My Games\\Fallout4VR\\F4SE"sv
 #	elif defined(SFSEAPI)
 #		define LOG_PATH "My Games\\Starfield\\SFSE\\Logs"sv
 #	elif defined(SKSEAPI)
@@ -180,7 +184,7 @@ namespace DKUtil::Logger
 		std::filesystem::path path{};
 #if defined(F4SEAPI)
 		path = detail::docs_directory();
-		path /= LOG_PATH;
+		path /= IS_VR ? LOG_PATH_VR : LOG_PATH;
 #elif defined(SKSEAPI)
 		path = detail::docs_directory();
 		path /= IS_VR ? LOG_PATH_VR : LOG_PATH;
@@ -218,7 +222,7 @@ namespace DKUtil::Logger
 		set_default_logger(std::move(log));
 
 #if defined(F4SEAPI)
-#	define MODE "Fallout 4"
+#	define MODE IS_VR ? "Fallout 4 VR" : "Fallout 4"
 #elif defined(SKSEAPI)
 #	define MODE IS_VR ? "Skyrim VR" : "Skyrim Special Edition"
 #elif defined(SFSEAPI)
