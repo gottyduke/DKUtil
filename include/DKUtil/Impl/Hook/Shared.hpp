@@ -13,7 +13,7 @@
 
 #define ASM_MINIMUM_SKIP 2
 #define CAVE_MINIMUM_BYTES 0x5
-#ifndef CAVE_BUF_SIZE 1 << 7
+#ifndef CAVE_BUF_SIZE
 #	define CAVE_BUF_SIZE 1 << 7
 #endif
 
