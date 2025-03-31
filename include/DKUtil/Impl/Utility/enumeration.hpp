@@ -222,7 +222,7 @@ namespace DKUtil::model
 		template <enum_type E>
 		constexpr const char* cache() const noexcept
 		{
-			static std::regex r("::cache<(.*?)>");
+			std::regex r("::cache<(.*?)>");
 			std::cmatch       m;
 			std::regex_search(__FUNCSIG__, m, r);
 
