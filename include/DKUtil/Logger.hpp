@@ -87,9 +87,10 @@
 #		define IS_AE REL::Module::IsAE()
 #		define IS_SE REL::Module::IsSE()
 #		define IS_VR REL::Module::IsVR()
+#		define IS_GOG !IS_VR && !std::filesystem::exists("steam_api64.dll")
 #		define LOG_PATH "My Games\\Skyrim Special Edition\\SKSE"sv
-#		define LOG_PATH_VR "My Games\\Skyrim VR\\SKSE"sv
 #		define LOG_PATH_GOG "My Games\\Skyrim Special Edition GOG\\SKSE"sv
+#		define LOG_PATH_VR "My Games\\Skyrim VR\\SKSE"sv
 #	else
 #		define LOG_PATH ""
 #		define PLUGIN_MODE
@@ -188,7 +189,7 @@ namespace DKUtil::Logger
 		path /= IS_VR ? LOG_PATH_VR : LOG_PATH;
 #elif defined(SKSEAPI)
 		path = detail::docs_directory();
-		path /= IS_VR ? LOG_PATH_VR : (std::filesystem::exists("steam_api64.dll") ? LOG_PATH : LOG_PATH_GOG);
+		path /= IS_VR ? LOG_PATH_VR : (IS_GOG ? LOG_PATH_GOG : LOG_PATH);
 #elif defined(SFSEAPI)
 		path = detail::docs_directory();
 		path /= LOG_PATH;
@@ -225,7 +226,7 @@ namespace DKUtil::Logger
 #if defined(F4SEAPI)
 #	define MODE IS_VR ? "Fallout 4 VR" : "Fallout 4"
 #elif defined(SKSEAPI)
-#	define MODE IS_VR ? "Skyrim VR" : (std::filesystem::exists("steam_api64.dll") ? "Skyrim Special Edition" : "Skyrim Special Edition GOG")
+#	define MODE IS_VR ? "Skyrim VR" : (IS_GOG ? "Skyrim Special Edition GOG" : "Skyrim Special Edition")
 #elif defined(SFSEAPI)
 #	define MODE "Starfield"
 #else
