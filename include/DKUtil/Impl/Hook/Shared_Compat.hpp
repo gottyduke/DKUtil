@@ -146,7 +146,8 @@ namespace database
 {
 	enum : std::uint32_t
 	{
-		kDatabaseVersion = 2
+		kDatabaseVersion2 = 2,
+		kDatabaseVersion5 = 5,
 	};
 
 	struct mapping_t
@@ -350,7 +351,6 @@ namespace database
 
 	inline bool LoadAddressLibrary()
 	{
-		char name[20]{};
 		auto filename = AddresslibFilename();
 
 		try {
@@ -358,26 +358,36 @@ namespace database
 			std::uint32_t    format{};
 			in.readin(format);
 
-			dku_assert(format == kDatabaseVersion,
+			dku_assert(format == kDatabaseVersion2 || format == kDatabaseVersion5,
 				"DKU_H: Unsupported address library format: {}\n"
-				"Compiled IDDatabase version: {}\n"
+				"Compiled IDDatabase versions: {}, {}\n"
 				"This means this script extender plugin is incompatible with the address "
 				"library available for this version of the game, and thus does not support it."sv,
-				format, std::to_underlying(kDatabaseVersion));
+				format, std::to_underlying(kDatabaseVersion2), std::to_underlying(kDatabaseVersion5));
 
 			std::uint32_t version[4]{};
-			std::uint32_t nameLen{};
 			in.readin(version);
-			in.readin(nameLen);
+
+			char          name[64]{};
+			std::uint32_t nameLen{};
+			if (format == kDatabaseVersion2) {
+				in.readin(nameLen);
+			} else if (format == kDatabaseVersion5) {
+				nameLen = 64;
+			}
 
 			for (std::uint32_t i = 0; i < nameLen; ++i) {
 				in.readin(name[i]);
 			}
-			name[nameLen] = '\0';
+			name[std::size(name) - 1] = '\0';
 
 			std::uint32_t pointerSize{};
+			std::uint32_t dataFormat{};
 			std::uint32_t addressCount{};
 			in.readin(pointerSize);
+			if (format == kDatabaseVersion5) {
+				in.readin(dataFormat);
+			}
 			in.readin(addressCount);
 
 			dku_assert(std::ranges::equal(version, Module::get().version()),
@@ -389,7 +399,7 @@ namespace database
 			auto mapname = fmt::format(
 				// kDatabaseVersion, runtimeVersion, runtimePlatform
 				"CommonLibSF-Offsets-v{}-{}-{}",
-				std::to_underlying(kDatabaseVersion),
+				format,
 				Module::get().version_string(),
 				std::to_underlying(CurrentPlatform));
 
@@ -399,86 +409,92 @@ namespace database
 			} else if (Mmap.create(mapname, byteSize)) {
 				Id2offset = { static_cast<mapping_t*>(Mmap.data()), addressCount };
 
-				std::uint8_t  type = 0;
-				std::uint64_t id = 0;
-				std::uint64_t offset = 0;
-				std::uint64_t prevID = 0;
-				std::uint64_t prevOffset = 0;
-				for (auto& mapping : Id2offset) {
-					in.readin(type);
-					const auto lo = static_cast<std::uint8_t>(type & 0xF);
-					const auto hi = static_cast<std::uint8_t>(type >> 4);
+				if (format == kDatabaseVersion2) {
+					std::uint8_t  type = 0;
+					std::uint64_t id = 0;
+					std::uint64_t offset = 0;
+					std::uint64_t prevID = 0;
+					std::uint64_t prevOffset = 0;
+					for (auto& mapping : Id2offset) {
+						in.readin(type);
+						const auto lo = static_cast<std::uint8_t>(type & 0xF);
+						const auto hi = static_cast<std::uint8_t>(type >> 4);
 
-					switch (lo) {
-					case 0:
-						in.readin(id);
-						break;
-					case 1:
-						id = prevID + 1;
-						break;
-					case 2:
-						id = prevID + in.readout<std::uint8_t>();
-						break;
-					case 3:
-						id = prevID - in.readout<std::uint8_t>();
-						break;
-					case 4:
-						id = prevID + in.readout<std::uint16_t>();
-						break;
-					case 5:
-						id = prevID - in.readout<std::uint16_t>();
-						break;
-					case 6:
-						id = in.readout<std::uint16_t>();
-						break;
-					case 7:
-						id = in.readout<std::uint32_t>();
-						break;
-					default:
-						FATAL("unhandled type"sv);
-						break;
+						switch (lo) {
+						case 0:
+							in.readin(id);
+							break;
+						case 1:
+							id = prevID + 1;
+							break;
+						case 2:
+							id = prevID + in.readout<std::uint8_t>();
+							break;
+						case 3:
+							id = prevID - in.readout<std::uint8_t>();
+							break;
+						case 4:
+							id = prevID + in.readout<std::uint16_t>();
+							break;
+						case 5:
+							id = prevID - in.readout<std::uint16_t>();
+							break;
+						case 6:
+							id = in.readout<std::uint16_t>();
+							break;
+						case 7:
+							id = in.readout<std::uint32_t>();
+							break;
+						default:
+							FATAL("unhandled type"sv);
+							break;
+						}
+
+						const std::uint64_t tmp = (hi & 8) != 0 ? (prevOffset / pointerSize) : prevOffset;
+
+						switch (hi & 7) {
+						case 0:
+							in.readin(offset);
+							break;
+						case 1:
+							offset = tmp + 1;
+							break;
+						case 2:
+							offset = tmp + in.readout<std::uint8_t>();
+							break;
+						case 3:
+							offset = tmp - in.readout<std::uint8_t>();
+							break;
+						case 4:
+							offset = tmp + in.readout<std::uint16_t>();
+							break;
+						case 5:
+							offset = tmp - in.readout<std::uint16_t>();
+							break;
+						case 6:
+							offset = in.readout<std::uint16_t>();
+							break;
+						case 7:
+							offset = in.readout<std::uint32_t>();
+							break;
+						default:
+							FATAL("unhandled type"sv);
+							break;
+						}
+
+						if ((hi & 8) != 0) {
+							offset *= pointerSize;
+						}
+
+						mapping = { id, offset };
+
+						prevOffset = offset;
+						prevID = id;
 					}
-
-					const std::uint64_t tmp = (hi & 8) != 0 ? (prevOffset / pointerSize) : prevOffset;
-
-					switch (hi & 7) {
-					case 0:
-						in.readin(offset);
-						break;
-					case 1:
-						offset = tmp + 1;
-						break;
-					case 2:
-						offset = tmp + in.readout<std::uint8_t>();
-						break;
-					case 3:
-						offset = tmp - in.readout<std::uint8_t>();
-						break;
-					case 4:
-						offset = tmp + in.readout<std::uint16_t>();
-						break;
-					case 5:
-						offset = tmp - in.readout<std::uint16_t>();
-						break;
-					case 6:
-						offset = in.readout<std::uint16_t>();
-						break;
-					case 7:
-						offset = in.readout<std::uint32_t>();
-						break;
-					default:
-						FATAL("unhandled type"sv);
-						break;
+				} else if (format == kDatabaseVersion5) {
+					for (std::uint32_t i = 0; i < addressCount; i++) {
+						Id2offset[i] = { i, in.readout<std::uint32_t>() };
 					}
-
-					if ((hi & 8) != 0) {
-						offset *= pointerSize;
-					}
-
-					mapping = { id, offset };
-
-					prevOffset = offset;
-					prevID = id;
 				}
 
 				std::ranges::sort(
@@ -524,10 +540,10 @@ inline std::uintptr_t IDToRva(std::uint64_t a_id) noexcept
 
 	dku_assert(it != database::Id2offset.end(),
 		"DKU_H: Failed to find the id within the address library: {}\n"
-		"Compiled IDDatabase version: {}\n"
+		"Compiled IDDatabase versions: {}, {}\n"
 		"This means this script extender plugin is incompatible with the address "
 		"library for this version of the game, and thus does not support it."sv,
-		a_id, std::to_underlying(database::kDatabaseVersion));
+		a_id, std::to_underlying(database::kDatabaseVersion2), std::to_underlying(database::kDatabaseVersion5));
 
 	return static_cast<std::uintptr_t>(it->offset);
 }
