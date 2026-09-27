@@ -198,14 +198,15 @@ namespace DKUtil::model
 				ERROR("Range iterator mandates different elements AND operable step value to construct a valid range!\nStep value provided: {}", a_step);
 			}
 
-			if ((a_end < a_begin) && a_step > 0) {
+			const auto begin = static_cast<std::int64_t>(std::to_underlying(a_begin));
+			const auto end = static_cast<std::int64_t>(std::to_underlying(a_end));
+
+			if ((end < begin) == (a_step > 0)) {
 				a_step *= -1;
 			}
 
-			return std::views::iota(
-					   std::to_underlying(a_begin),
-					   (std::to_underlying(a_end) - std::to_underlying(a_begin) + a_step) / a_step) |
-			       std::views::transform([=](auto e) { return std::bit_cast<enum_type>(static_cast<underlying_type>(e * a_step + std::to_underlying(a_begin))); });
+			return std::views::iota(std::int64_t{ 0 }, (end - begin) / a_step + 1) |
+			       std::views::transform([=](auto i) { return static_cast<enum_type>(begin + i * a_step); });
 		}
 
 		// bitflag enum, base 2 shift, l->m
