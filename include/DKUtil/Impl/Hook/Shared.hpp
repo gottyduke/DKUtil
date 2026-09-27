@@ -381,15 +381,26 @@ namespace DKUtil
 				_ntHeader = adjust_pointer<::IMAGE_NT_HEADERS64>(_dosHeader, _dosHeader->e_lfanew);
 				_sectionHeader = IMAGE_FIRST_SECTION(_ntHeader);
 
-				const auto total = std::min<std::size_t>(_ntHeader->FileHeader.NumberOfSections, std::to_underlying(Section::total));
-				for (auto idx = 0; idx < total; ++idx) {
-					const auto section = _sectionHeader[idx];
-					auto&      sectionNameTbl = dku::static_enum<Section>();
-					for (Section name : sectionNameTbl.value_range(Section::textx, Section::gfids)) {
-						const auto len = (std::min)(dku::print_enum(name).size(), std::extent_v<decltype(section.Name)>);
-						if (std::memcmp(dku::print_enum(name).data(), section.Name + 1, len - 1) == 0) {
-							_sections[std::to_underlying(name)] = std::make_tuple(name, _base + section.VirtualAddress,
-								section.Misc.VirtualSize);
+				constexpr std::array<std::pair<std::string_view, ::DWORD>, std::to_underlying(Section::total)> sectionTbl{ {
+					{ ".text"sv, IMAGE_SCN_MEM_EXECUTE },
+					{ ".idata"sv, 0 },
+					{ ".rdata"sv, 0 },
+					{ ".data"sv, 0 },
+					{ ".pdata"sv, 0 },
+					{ ".tls"sv, 0 },
+					{ ".text"sv, IMAGE_SCN_MEM_WRITE },
+					{ ".gfids"sv, 0 },
+				} };
+
+				for (auto idx = 0; idx < _ntHeader->FileHeader.NumberOfSections; ++idx) {
+					const auto&      section = _sectionHeader[idx];
+					std::string_view secName{ reinterpret_cast<const char*>(section.Name), std::extent_v<decltype(section.Name)> };
+					secName = secName.substr(0, secName.find('\0'));
+
+					for (std::size_t i = 0; i < sectionTbl.size(); ++i) {
+						const auto& [name, flags] = sectionTbl[i];
+						if (!std::get<1>(_sections[i]) && secName == name && (section.Characteristics & flags) == flags) {
+							_sections[i] = std::make_tuple(static_cast<Section>(i), _base + section.VirtualAddress, section.Misc.VirtualSize);
 						}
 					}
 				}
@@ -452,7 +463,7 @@ namespace DKUtil
 			::IMAGE_DOS_HEADER*                                               _dosHeader;
 			::IMAGE_NT_HEADERS64*                                             _ntHeader;
 			::IMAGE_SECTION_HEADER*                                           _sectionHeader;
-			std::array<SectionDescriptor, std::to_underlying(Section::total)> _sections;
+			std::array<SectionDescriptor, std::to_underlying(Section::total)> _sections{};
 			std::vector<std::uint32_t>                                        _version;
 		};
 
