@@ -388,7 +388,8 @@ namespace DKUtil
 					for (Section name : sectionNameTbl.value_range(Section::textx, Section::gfids)) {
 						const auto len = (std::min)(dku::print_enum(name).size(), std::extent_v<decltype(section.Name)>);
 						if (std::memcmp(dku::print_enum(name).data(), section.Name + 1, len - 1) == 0) {
-							_sections[idx] = std::make_tuple(name, _base + section.VirtualAddress, section.Misc.VirtualSize);
+							_sections[std::to_underlying(name)] = std::make_tuple(name, _base + section.VirtualAddress,
+								section.Misc.VirtualSize);
 						}
 					}
 				}
