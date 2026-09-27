@@ -30,9 +30,10 @@ namespace DKUtil::Config::detail
 							continue;
 						}
 
-						auto raw = table.as_table()->find(key.first.data());
-						if (table.as_table()->begin() != table.as_table()->end() &&
-							raw == table.as_table()->end()) {
+						auto* section_table = table.as_table();
+						auto  raw = section_table->find(key.first.data());
+
+						if (raw == section_table->end()) {
 							continue;
 						}
 
