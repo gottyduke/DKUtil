@@ -26,7 +26,8 @@ namespace DKUtil::Config::detail
 					continue;
 				} else {
 					for (auto& [key, data] : _manager) {
-						if (section != key.second) {
+						if (section != key.second &&
+							(key.second != "Global" || _toml["Global"][key.first])) {
 							continue;
 						}
 
