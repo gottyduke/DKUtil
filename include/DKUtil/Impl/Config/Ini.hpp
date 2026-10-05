@@ -32,10 +32,15 @@ namespace DKUtil::Config::detail
 						continue;
 					}
 
-					if (_manager.contains(std::make_pair(key.pItem, section.pItem))) {
+					auto it = _manager.find(std::make_pair(key.pItem, section.pItem));
+					if (it == _manager.end() && !_ini.GetValue("Global", key.pItem)) {
+						it = _manager.find(std::make_pair(key.pItem, "Global"));
+					}
+
+					if (it != _manager.end()) {
 						std::string raw{ value };
 
-						auto& data = _manager.at(std::make_pair(key.pItem, section.pItem));
+						auto& data = it->second;
 						switch (data->get_type()) {
 						case DataType::kBoolean:
 							{
