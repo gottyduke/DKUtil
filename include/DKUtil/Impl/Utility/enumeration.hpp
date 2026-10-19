@@ -8,22 +8,16 @@ namespace DKUtil::model
 #ifndef DKU_MAX_REFLECTION_ENUM
 #	define DKU_MAX_REFLECTION_ENUM 64
 #endif
-#define __cache_suffix ">(void) noexcept const"
-#define DKU_BUILD_STEP_CACHE(N)                             \
-	info.erase(info.length() - sizeof(__cache_suffix) + 1); \
-	if (!string::icontains(info, "(enum")) {                \
-		_reflection.nameTbl.try_emplace(N - 1, info);       \
-	}                                                       \
-	info = cache<static_cast<enum_type>(N)>();
-#define DKU_BUILD_FLAG_CACHE(B)                                                \
-	if constexpr (B <= std::numeric_limits<underlying_type>::digits) {         \
-		info.erase(info.length() - sizeof(__cache_suffix) + 1);                \
-		if (!string::icontains(info, "(enum")) {                               \
-			_reflection.nameTbl.try_emplace(B - 1, info);                      \
-		}                                                                      \
-		if constexpr (B < std::numeric_limits<underlying_type>::digits) {      \
-			info = cache<static_cast<enum_type>(underlying_type{ 1 } << B)>(); \
-		}                                                                      \
+#define DKU_BUILD_STEP_CACHE(N)                                                                  \
+	if constexpr (constexpr auto name = cache<static_cast<enum_type>(N - 1)>(); !name.empty()) { \
+		_reflection.nameTbl.try_emplace(N - 1, name);                                            \
+	}
+#define DKU_BUILD_FLAG_CACHE(B)                                                         \
+	if constexpr (B <= std::numeric_limits<underlying_type>::digits) {                  \
+		constexpr auto value = static_cast<enum_type>(underlying_type{ 1 } << (B - 1)); \
+		if constexpr (constexpr auto name = cache<value>(); !name.empty()) {            \
+			_reflection.nameTbl.try_emplace(B - 1, name);                               \
+		}                                                                               \
 	}
 
 	// clang-format off
@@ -225,13 +219,30 @@ namespace DKUtil::model
 
 	private:
 		template <enum_type E>
-		constexpr const char* cache() const noexcept
+		static consteval std::string_view parse_name() noexcept
 		{
-			std::regex  r("::cache<(.*?)>");
-			std::cmatch m;
-			std::regex_search(__FUNCSIG__, m, r);
+			constexpr std::string_view prefix = "::parse_name<";
+			constexpr std::string_view suffix = ">(void)";
 
-			return m[1].first;
+			std::string_view sig = __FUNCSIG__;
+			const auto       begin = sig.find(prefix) + prefix.size();
+			const auto       name = sig.substr(begin, sig.rfind(suffix) - begin);
+
+			return name.find("(enum") == std::string_view::npos ? name : std::string_view{};
+		}
+
+		template <enum_type E>
+		static constexpr auto name_storage = [] {
+			constexpr auto                name = parse_name<E>();
+			std::array<char, name.size()> buf{};
+			std::ranges::copy(name, buf.begin());
+			return buf;
+		}();
+
+		template <enum_type E>
+		static constexpr std::string_view cache() noexcept
+		{
+			return { name_storage<E>.data(), name_storage<E>.size() };
 		}
 
 		constexpr void build_cache() noexcept
@@ -242,7 +253,6 @@ namespace DKUtil::model
 				return;
 			}
 
-			std::string info = cache<static_cast<enum_type>(0)>();
 			DKU_FOR_EACH_ENUM(DKU_BUILD_STEP_CACHE);
 
 			if (_reflection.nameTbl.size() <= 1) {
@@ -269,7 +279,6 @@ namespace DKUtil::model
 			if (_reflection.isFlag) {
 				_reflection.nameTbl.clear();
 
-				std::string info = cache<static_cast<enum_type>(1 << 0)>();
 				DKU_FOR_EACH_ENUM(DKU_BUILD_FLAG_CACHE);
 			}
 
