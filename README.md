@@ -7,7 +7,7 @@ See [wiki here!](https://gottyduke.github.io/DKUtil/)
 
 # Implementations
 ![Config](https://img.shields.io/badge/Config-1.2.0-R.svg)
-![Hook](https://img.shields.io/badge/Hook-2.6.6-R.svg)
+![Hook](https://img.shields.io/badge/Hook-2.7.0-R.svg)
 ![Logger](https://img.shields.io/badge/Logger-1.2.5-R.svg)
 ![Utility](https://img.shields.io/badge/Utility-1.0.1-R.svg)
 ![Extra(For SKSE)](https://img.shields.io/badge/Extra-1.0.0-R.svg)
@@ -26,6 +26,7 @@ See [wiki here!](https://gottyduke.github.io/DKUtil/)
     - virtual method table swap
     - import address table swap
     - simple function hook (write_call/write_branch)
+    - function entry detour (write_detour)
     - non-volatile call (LTO enabled hooks)
     - various usefully gathered utils
 + Logge

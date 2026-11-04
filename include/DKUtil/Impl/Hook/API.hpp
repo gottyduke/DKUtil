@@ -163,6 +163,24 @@ namespace DKUtil::Hook
 		return std::move(*handle.get());
 	}
 
+	/** \brief Detour a function at its entry with target hook function
+	 * \brief This API mirrors write_call for function heads, hook enabled by default
+	 * \param <N> : Length of stolen prologue, at least 5, must end on an instruction boundary
+	 * \param a_src : Address of the first instruction of target function
+	 * \param a_dst : Destination function
+	 * \return Transitive DetourHookHandle that can be converted to F, the original function
+	 */
+	template <std::size_t N, typename F>
+		requires(dku_memory<F>)
+	inline auto write_detour(
+		const std::uintptr_t a_src,
+		F                    a_dst) noexcept
+	{
+		auto handle = AddDetourHook<N>(a_src, unrestricted_cast<std::uintptr_t>(a_dst));
+		handle->Enable();
+		return std::move(*handle.get());
+	}
+
 	/** \brief Relocate a callsite with target hook function
 	 * \brief This API preserves regular and sse registers across non-volatile call boundaries
 	 * \param <N> : Length of source instruction

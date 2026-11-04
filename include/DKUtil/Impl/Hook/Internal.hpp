@@ -52,6 +52,7 @@ namespace DKUtil::Hook
 
 #include "Internal/ASMPatch.hpp"
 #include "Internal/CaveHook.hpp"
+#include "Internal/DetourHook.hpp"
 #include "Internal/IATHook.hpp"
 #include "Internal/RelHook.hpp"
 #include "Internal/VMTHook.hpp"

@@ -167,6 +167,7 @@ function makeSidebarHooks(): DefaultTheme.SidebarItem[] {
             collapsed: false,
             items: [
                 { text: 'Relocation', link: 'relocation' },
+                { text: 'Function Detour', link: 'detour' },
                 { text: 'ASM Patch', link: 'asm-patch' },
                 { text: 'Cave Hook', link: 'cave-hook' },
                 { text: 'VTable Swap', link: 'vtable-swap' },

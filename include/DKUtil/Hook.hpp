@@ -1,6 +1,9 @@
 #pragma once
 
 /** 
+ * 2.7.0
+ * Added function entry detour hook, AddDetourHook & write_detour;
+ * 
  * 2.6.6
  * Added KMP version of search_pattern.
  * 
@@ -109,8 +112,8 @@
  */
 
 #define DKU_H_VERSION_MAJOR 2
-#define DKU_H_VERSION_MINOR 6
-#define DKU_H_VERSION_REVISION 4
+#define DKU_H_VERSION_MINOR 7
+#define DKU_H_VERSION_REVISION 0
 
 #pragma warning(push)
 #pragma warning(disable: 4244)
@@ -131,6 +134,7 @@ namespace DKUtil::Alias
 	using Patch = DKUtil::Hook::Patch;
 	using HookHandle = std::unique_ptr<DKUtil::Hook::HookHandle>;
 	using CaveHandle = DKUtil::Hook::CaveHookHandle;
+	using DetourHandle = DKUtil::Hook::DetourHookHandle;
 	using VMTHandle = DKUtil::Hook::VMTHookHandle;
 	using IATHandle = DKUtil::Hook::IATHookHandle;
 
