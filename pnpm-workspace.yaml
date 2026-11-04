@@ -1,29 +1,7 @@
 allowBuilds:
   esbuild: true
-minimumReleaseAgeExclude:
-  - '@oxc-minify/binding-android-arm-eabi@0.134.0'
-  - '@oxc-minify/binding-android-arm64@0.134.0'
-  - '@oxc-minify/binding-darwin-arm64@0.134.0'
-  - '@oxc-minify/binding-darwin-x64@0.134.0'
-  - '@oxc-minify/binding-freebsd-x64@0.134.0'
-  - '@oxc-minify/binding-linux-arm-gnueabihf@0.134.0'
-  - '@oxc-minify/binding-linux-arm-musleabihf@0.134.0'
-  - '@oxc-minify/binding-linux-arm64-gnu@0.134.0'
-  - '@oxc-minify/binding-linux-arm64-musl@0.134.0'
-  - '@oxc-minify/binding-linux-ppc64-gnu@0.134.0'
-  - '@oxc-minify/binding-linux-riscv64-gnu@0.134.0'
-  - '@oxc-minify/binding-linux-riscv64-musl@0.134.0'
-  - '@oxc-minify/binding-linux-s390x-gnu@0.134.0'
-  - '@oxc-minify/binding-linux-x64-gnu@0.134.0'
-  - '@oxc-minify/binding-linux-x64-musl@0.134.0'
-  - '@oxc-minify/binding-openharmony-arm64@0.134.0'
-  - '@oxc-minify/binding-wasm32-wasi@0.134.0'
-  - '@oxc-minify/binding-win32-arm64-msvc@0.134.0'
-  - '@oxc-minify/binding-win32-ia32-msvc@0.134.0'
-  - '@oxc-minify/binding-win32-x64-msvc@0.134.0'
-  - oxc-minify@0.134.0
 overrides:
-  vite: 8.0.11
+  vite: 8.3.5
 peerDependencyRules:
   allowAny:
     - "*"

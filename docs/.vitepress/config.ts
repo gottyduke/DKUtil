@@ -1,7 +1,15 @@
 import { defineConfig, type DefaultTheme } from 'vitepress'
 
-const commit = await (await fetch("https://api.github.com/repos/gottyduke/dkutil/commits/master")).json()
-const lastUpdate = new Date(commit.commit.author.date).toISOString().slice(0, 10)
+let commitDate: Date
+try {
+  const commit = await (await fetch("https://api.github.com/repos/gottyduke/dkutil/commits/master")).json()
+  const dateStr = commit?.commit?.author?.date
+  commitDate = dateStr ? new Date(dateStr) : new Date()
+} catch (e) {
+  commitDate = new Date()
+}
+
+const lastUpdate = commitDate.toISOString().slice(0, 10)
 
 export default defineConfig({
   base: "/DKUtil/",
