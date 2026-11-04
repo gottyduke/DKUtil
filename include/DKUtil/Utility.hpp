@@ -59,7 +59,6 @@ namespace DKUtil
 	template <class Enum>
 	inline constexpr std::string print_enum(Enum a_enum) noexcept
 	{
-		auto& tbl = static_enum<Enum>();
-		return tbl.to_string(a_enum);
+		return model::enumeration<Enum>::to_string(a_enum);
 	}
 }  // namespace DKUtil::Alias

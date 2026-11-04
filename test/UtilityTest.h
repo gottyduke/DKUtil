@@ -158,7 +158,18 @@ namespace Test::Utility
 			INFO("String {} -> Enum {}", nameStr2, std::to_underlying(nameEnum2.value()));
 			INFO("String {} -> Enum {}", nameStr3, std::to_underlying(nameEnum3.value()));
 			ContiguousValue Enum1 = nameEnum1.value();
+
+			const auto composite = static_cast<ContiguousFlag>(std::to_underlying(ContiguousFlag::RAX) | std::to_underlying(ContiguousFlag::RDX));
+			INFO("Composite flag {} -> {}", std::to_underlying(composite), cFlags.to_string(composite));
+			INFO("String RAX|rdx -> Enum {}", std::to_underlying(cFlags.from_string("RAX|rdx").value_or(ContiguousFlag::NONE)));
 		}
+
+		static_assert(!dku::enumeration<ContiguousValue UNDERLYING>::is_flag());
+		static_assert(!dku::enumeration<SparseValue UNDERLYING>::is_flag());
+		static_assert(dku::enumeration<ContiguousFlag UNDERLYING>::is_flag());
+		static_assert(dku::enumeration<SparseFlag UNDERLYING>::is_flag());
+		static_assert(dku::enumeration<ContiguousValue UNDERLYING>::enum_name() == "Test::Utility::Enum::ContiguousValue");
+		static_assert(std::is_trivially_copyable_v<dku::enumeration<ContiguousFlag UNDERLYING>>);
 
 		void TestEnumBitwidth() noexcept
 		{

@@ -2,27 +2,162 @@
 
 #include "string.hpp"
 
-namespace DKUtil::model
-{
-	// 64 by default, nums(64) or bits(1<<64)
+// 64 by default, nums(64) or bits(1<<64)
 #ifndef DKU_MAX_REFLECTION_ENUM
 #	define DKU_MAX_REFLECTION_ENUM 64
 #endif
-#define DKU_BUILD_STEP_CACHE(N)                                                                  \
-	if constexpr (constexpr auto name = cache<static_cast<enum_type>(N - 1)>(); !name.empty()) { \
-		_reflection.nameTbl.try_emplace(N - 1, name);                                            \
-	}
-#define DKU_BUILD_FLAG_CACHE(B)                                                         \
-	if constexpr (B <= std::numeric_limits<underlying_type>::digits) {                  \
-		constexpr auto value = static_cast<enum_type>(underlying_type{ 1 } << (B - 1)); \
-		if constexpr (constexpr auto name = cache<value>(); !name.empty()) {            \
-			_reflection.nameTbl.try_emplace(B - 1, name);                               \
-		}                                                                               \
-	}
 
-	// clang-format off
-#define DKU_FOR_EACH_ENUM(B) { { B(1) B(2) B(3) B(4) B(5) B(6) B(7) B(8) B(9) B(10) B(11) B(12) B(13) B(14) B(15) B(16) B(17) }	if constexpr (DKU_MAX_REFLECTION_ENUM > 16) { B(18) B(19) B(20)	B(21) B(22) B(23) B(24) B(25) B(26) B(27) B(28) B(29) B(30) B(31) B(32) B(33) }	if constexpr (DKU_MAX_REFLECTION_ENUM > 32) { B(34) B(35) B(36) B(37) B(38)	B(39) B(40) B(41) B(42) B(43) B(44) B(45) B(46) B(47) B(48) B(49) B(50) B(51) B(52)	B(53) B(54) B(55) B(56) B(57) B(58) B(59) B(60) B(61) B(62) B(63) B(64) B(65) }	if constexpr (DKU_MAX_REFLECTION_ENUM > 64) { B(66) B(67) B(68) B(69) B(70) B(71) B(72) B(73) B(74) B(75) B(76) B(77) B(78) B(79) B(80) B(81) B(82) B(83) B(84) B(85) B(86) B(87) B(88) B(89) B(90) B(91) B(92) B(93) B(94) B(95) B(96)	B(97) B(98) B(99) B(100) B(101) B(102) B(103) B(104) B(105) B(106) B(107) B(108) B(109) B(110) B(111) B(112) B(113) B(114) B(115) B(116) B(117) B(118) B(119) B(120) B(121) B(122) B(123) B(124) B(125) B(126) B(127) B(128) } }
-	// clang-format on
+namespace DKUtil::model
+{
+	namespace detail
+	{
+		template <class Enum>
+		struct enum_meta
+		{
+			static_assert(DKU_MAX_REFLECTION_ENUM > 0);
+
+			using raw_type = std::underlying_type_t<Enum>;
+			using bits_type = std::make_unsigned_t<raw_type>;
+
+			static constexpr std::size_t bit_digits = std::numeric_limits<bits_type>::digits;
+
+			static constexpr std::uint64_t linear_last = (std::min)(static_cast<std::uint64_t>(DKU_MAX_REFLECTION_ENUM),
+				static_cast<std::uint64_t>((std::numeric_limits<raw_type>::max)()));
+			static constexpr std::size_t   linear_count = static_cast<std::size_t>(linear_last) + 1;
+
+			static constexpr std::size_t bit_first = static_cast<std::size_t>(std::bit_width(linear_last));
+			static constexpr std::size_t bit_last = (std::min)(bit_digits, static_cast<std::size_t>(DKU_MAX_REFLECTION_ENUM) + 1);
+			static constexpr std::size_t bit_count = bit_last > bit_first ? bit_last - bit_first : 0;
+
+			static constexpr std::size_t sample_count = linear_count + bit_count;
+
+			struct entry
+			{
+				bits_type        value;
+				std::string_view name;
+				std::string_view shortName;
+			};
+
+			template <Enum E>
+			static consteval std::string_view parse_name() noexcept
+			{
+				constexpr std::string_view prefix = "::parse_name<";
+				constexpr std::string_view suffix = ">(void)";
+
+				std::string_view sig = __FUNCSIG__;
+				const auto       begin = sig.find(prefix) + prefix.size();
+				const auto       name = sig.substr(begin, sig.rfind(suffix) - begin);
+
+				return name.find("(enum") == std::string_view::npos ? name : std::string_view{};
+			}
+
+			template <Enum E>
+			static constexpr auto name_storage = [] {
+				constexpr auto                name = parse_name<E>();
+				std::array<char, name.size()> buf{};
+				std::ranges::copy(name, buf.begin());
+				return buf;
+			}();
+
+			template <std::size_t I>
+			static consteval bits_type sample() noexcept
+			{
+				if constexpr (I < linear_count) {
+					return static_cast<bits_type>(I);
+				} else {
+					return static_cast<bits_type>(bits_type{ 1 } << (bit_first + (I - linear_count)));
+				}
+			}
+
+			template <std::size_t I>
+			static consteval entry make_entry() noexcept
+			{
+				constexpr bits_type        value = sample<I>();
+				constexpr auto&            storage = name_storage<static_cast<Enum>(value)>;
+				constexpr std::string_view name{ storage.data(), storage.size() };
+				constexpr auto             sep = name.rfind("::");
+
+				return { value, name, sep == std::string_view::npos ? name : name.substr(sep + 2) };
+			}
+
+			template <std::size_t... I>
+			static consteval auto scan(std::index_sequence<I...>) noexcept
+			{
+				return std::array<entry, sizeof...(I)>{ make_entry<I>()... };
+			}
+
+			static consteval auto scan_all() noexcept
+			{
+				return scan(std::make_index_sequence<sample_count>{});
+			}
+
+			static consteval std::size_t count_valid() noexcept
+			{
+				std::size_t count = 0;
+				for (const auto& e : scan_all()) {
+					count += !e.name.empty();
+				}
+				return count;
+			}
+		};
+
+		template <class Enum>
+		inline constexpr auto enum_entries = [] {
+			using meta = enum_meta<Enum>;
+
+			std::array<typename meta::entry, meta::count_valid()> result{};
+			std::size_t                                           i = 0;
+			for (const auto& e : meta::scan_all()) {
+				if (!e.name.empty()) {
+					result[i++] = e;
+				}
+			}
+			return result;
+		}();
+
+		template <class Enum>
+		inline constexpr std::string_view enum_type_name = [] {
+			if constexpr (enum_entries<Enum>.empty()) {
+				return std::string_view{};
+			} else {
+				constexpr auto name = enum_entries<Enum>[0].name;
+				constexpr auto sep = name.rfind("::");
+				return sep == std::string_view::npos ? std::string_view{} : name.substr(0, sep);
+			}
+		}();
+
+		template <class Enum>
+		inline constexpr bool enum_is_flag = [] {
+			constexpr auto& entries = enum_entries<Enum>;
+
+			std::size_t nonZero = 0;
+			for (const auto& e : entries) {
+				if (e.value == 0) {
+					continue;
+				}
+				if (!std::has_single_bit(e.value)) {
+					return false;
+				}
+				++nonZero;
+			}
+
+			if (nonZero < 2) {
+				return false;
+			}
+
+			const auto span = static_cast<std::uint64_t>(entries.back().value - entries.front().value);
+			return span != entries.size() - 1;
+		}();
+
+		template <class Enum>
+		[[nodiscard]] constexpr const typename enum_meta<Enum>::entry* find_entry(typename enum_meta<Enum>::bits_type a_value) noexcept
+		{
+			constexpr auto& entries = enum_entries<Enum>;
+
+			const auto it = std::ranges::lower_bound(entries, a_value, {}, &enum_meta<Enum>::entry::value);
+			return it != entries.end() && it->value == a_value ? std::to_address(it) : nullptr;
+		}
+	}  // namespace detail
 
 	// taken from CommonLib, added reflection + range adaptors
 	template <class Enum,
@@ -38,18 +173,8 @@ namespace DKUtil::model
 		static_assert(std::is_enum_v<enum_type>, "enum_type must be a scoped enum");
 		static_assert(std::is_integral_v<underlying_type>, "underlying_type must be an integral");
 
-		struct Reflection
-		{
-			bool                                         isCached;
-			bool                                         isFlag;
-			std::string                                  type;
-			std::map<underlying_type, const std::string> nameTbl;
-		};
-
 		constexpr enumeration() noexcept = default;
-		constexpr enumeration(const enumeration& a_rhs) noexcept :
-			_impl(a_rhs._impl)
-		{}
+		constexpr enumeration(const enumeration&) noexcept = default;
 		constexpr enumeration(enumeration&&) noexcept = default;
 
 		template <class U2>
@@ -72,6 +197,7 @@ namespace DKUtil::model
 		constexpr enumeration& operator=(enumeration<enum_type, U2> a_rhs) noexcept
 		{
 			_impl = static_cast<underlying_type>(a_rhs.get());
+			return *this;
 		}
 
 		constexpr enumeration& operator=(enum_type a_value) noexcept
@@ -89,7 +215,6 @@ namespace DKUtil::model
 		[[nodiscard]] constexpr auto            operator!=(const enumeration<enum_type, underlying_type>& a_rhs) const noexcept { return _impl != a_rhs._impl; }
 		[[nodiscard]] constexpr enum_type       get() const noexcept { return static_cast<enum_type>(_impl); }
 		[[nodiscard]] constexpr underlying_type underlying() const noexcept { return _impl; }
-		[[nodiscard]] constexpr bool            is_flag() const noexcept { return _reflection.isFlag; }
 
 		constexpr enumeration& set(const std::same_as<enum_type> auto... a_args) noexcept
 		{
@@ -118,73 +243,119 @@ namespace DKUtil::model
 			return (_impl & (static_cast<underlying_type>(a_args) | ...)) == static_cast<underlying_type>(0);
 		}
 
+		[[nodiscard]] static constexpr bool is_flag() noexcept { return detail::enum_is_flag<enum_type>; }
+
 		// static reflection
-		[[nodiscard]] constexpr std::string to_string(enum_type a_enum, bool a_full = false) noexcept
+		[[nodiscard]] static constexpr std::string to_string(enum_type a_enum, bool a_full = false) noexcept
 		{
-			build_cache();
-			return to_string(is_flag() ? (std::bit_width<underlying_type>(std::to_underlying(a_enum)) - 1) : std::to_underlying(a_enum), a_full);
+			const auto bits = static_cast<bits_type>(std::to_underlying(a_enum));
+
+			if (const auto* entry = detail::find_entry<enum_type>(bits)) {
+				return std::string{ a_full ? entry->name : entry->shortName };
+			}
+
+			if constexpr (is_flag()) {
+				return compose_flags(bits, a_full);
+			} else {
+				return {};
+			}
 		}
 
 		// underlying adaptor
-		[[nodiscard]] constexpr std::string to_string(const std::convertible_to<underlying_type> auto a_value, bool a_full = false) noexcept
+		[[nodiscard]] static constexpr std::string to_string(const std::convertible_to<underlying_type> auto a_value, bool a_full = false) noexcept
 		{
-			build_cache();
+			using value_type = std::remove_cvref_t<decltype(a_value)>;
 
-			underlying_type idx = a_value >= DKU_MAX_REFLECTION_ENUM ? DKU_MAX_REFLECTION_ENUM : a_value;
-
-			if (!_reflection.nameTbl.contains(idx)) {
-				return {};
-			}
-
-			if (!a_full) {
-				return _reflection.nameTbl[idx].substr(_reflection.type.length() + 2, _reflection.nameTbl[idx].length() - _reflection.type.length());
-			}
-
-			return _reflection.nameTbl[idx];
-		}
-
-		// string cast
-		[[nodiscard]] std::optional<enum_type> from_string(std::string_view a_enumString, bool a_caseSensitive = false) noexcept
-		{
-			if (a_enumString.empty()) {
-				return {};
-			}
-
-			build_cache();
-
-			for (auto& [idx, name] : _reflection.nameTbl) {
-				std::string shortName = name.substr(_reflection.type.length() + 2, name.length() - _reflection.type.length());
-				if ((a_caseSensitive && shortName.compare(a_enumString) == 0) ||
-					(!a_caseSensitive && string::iequals(shortName, a_enumString))) {
-					return is_flag() ? static_cast<enum_type>(1 << idx) : static_cast<enum_type>(idx);
-				} else {
-					continue;
+			if constexpr (std::is_signed_v<value_type>) {
+				if (a_value < 0) {
+					return {};
 				}
 			}
 
-			return {};
+			std::uint64_t value;
+			if constexpr (std::is_integral_v<value_type>) {
+				value = static_cast<std::uint64_t>(a_value);
+			} else {
+				value = static_cast<std::uint64_t>(static_cast<underlying_type>(a_value));
+			}
+
+			bits_type bits;
+			if constexpr (is_flag()) {
+				if (value >= detail::enum_meta<enum_type>::bit_digits) {
+					return {};
+				}
+				bits = static_cast<bits_type>(bits_type{ 1 } << value);
+			} else {
+				if (value > (std::numeric_limits<bits_type>::max)()) {
+					return {};
+				}
+				bits = static_cast<bits_type>(value);
+			}
+
+			const auto* entry = detail::find_entry<enum_type>(bits);
+			return entry ? std::string{ a_full ? entry->name : entry->shortName } : std::string{};
+		}
+
+		// string cast
+		[[nodiscard]] static constexpr std::optional<enum_type> from_string(std::string_view a_enumString, bool a_caseSensitive = false) noexcept
+		{
+			const auto match = [a_caseSensitive](std::string_view a_token) -> std::optional<bits_type> {
+				constexpr std::string_view whitespace = " \t\r\n";
+
+				const auto first = a_token.find_first_not_of(whitespace);
+				if (first == std::string_view::npos) {
+					return std::nullopt;
+				}
+				a_token = a_token.substr(first, a_token.find_last_not_of(whitespace) - first + 1);
+
+				for (const auto& entry : detail::enum_entries<enum_type>) {
+					if (a_caseSensitive ? entry.shortName == a_token : string::iequals(entry.shortName, a_token)) {
+						return entry.value;
+					}
+				}
+
+				return std::nullopt;
+			};
+
+			if constexpr (is_flag()) {
+				if (a_enumString.contains('|')) {
+					bits_type result{ 0 };
+					for (const auto part : a_enumString | std::views::split('|')) {
+						const auto bits = match(std::string_view{ part.begin(), part.end() });
+						if (!bits) {
+							return std::nullopt;
+						}
+						result = static_cast<bits_type>(result | *bits);
+					}
+					return static_cast<enum_type>(result);
+				}
+			}
+
+			if (const auto bits = match(a_enumString)) {
+				return static_cast<enum_type>(*bits);
+			}
+
+			return std::nullopt;
 		}
 
 		// enum name
-		[[nodiscard]] constexpr std::string_view enum_name() noexcept
+		[[nodiscard]] static constexpr std::string_view enum_name() noexcept
 		{
 #ifndef DKU_SLIM
-			build_cache();
-			return _reflection.type;
+			return detail::enum_type_name<enum_type>;
 #else
 			return type_name();
 #endif
 		}
 
 		// type name
-		[[nodiscard]] constexpr std::string_view type_name() const noexcept { return typeid(underlying_type).name(); }
+		[[nodiscard]] static constexpr std::string_view type_name() noexcept { return typeid(underlying_type).name(); }
 
 		// contiguous enum, linear transitive
-		[[nodiscard]] constexpr auto value_range(enum_type a_begin, enum_type a_end, std::int32_t a_step = 1) noexcept
+		[[nodiscard]] static constexpr auto value_range(enum_type a_begin, enum_type a_end, std::int32_t a_step = 1) noexcept
 		{
 #ifndef DKU_SLIM
-			build_cache();
-			if (is_flag()) {
+			if constexpr (is_flag()) {
 				ERROR("value_range iterator called but enum is flag_type!\nEnum name: {}\nEnum type: {}", enum_name(), type_name());
 			}
 #endif
@@ -204,89 +375,55 @@ namespace DKUtil::model
 		}
 
 		// bitflag enum, base 2 shift, l->m
-		[[nodiscard]] constexpr auto flag_range(enum_type a_begin, enum_type a_end) noexcept
+		[[nodiscard]] static constexpr auto flag_range(enum_type a_begin, enum_type a_end) noexcept
 		{
 			dku_assert(a_begin != a_end,
 				"Range iterator mandates different elements AND operable step value to construct a valid range!");
 
-			return std::views::iota(
-					   std::bit_width<underlying_type>(std::to_underlying(a_begin)),
-					   std::bit_width<underlying_type>(std::to_underlying(a_end)) + 1) |
-			       std::views::transform([a_begin](auto i) { return std::bit_cast<enum_type>(static_cast<underlying_type>(1 << (i - 1))); });
+			auto lo = static_cast<bits_type>(std::to_underlying(a_begin));
+			auto hi = static_cast<bits_type>(std::to_underlying(a_end));
+			if (lo > hi) {
+				std::swap(lo, hi);
+			}
+
+			const int first = lo ? std::bit_width(lo) - 1 : 0;
+			const int last = std::bit_width(hi) - 1;
+
+			return std::views::iota(first, last + 1) |
+			       std::views::transform([](int i) { return static_cast<enum_type>(static_cast<bits_type>(bits_type{ 1 } << i)); });
 		}
 
-		[[nodiscard]] constexpr underlying_type index_of(enum_type a_enum) const noexcept { return std::bit_width<underlying_type>(std::to_underlying(a_enum)); }
+		[[nodiscard]] static constexpr underlying_type index_of(enum_type a_enum) noexcept
+		{
+			return static_cast<underlying_type>(std::bit_width(static_cast<underlying_type>(std::to_underlying(a_enum))));
+		}
 
 	private:
-		template <enum_type E>
-		static consteval std::string_view parse_name() noexcept
+		using bits_type = typename detail::enum_meta<enum_type>::bits_type;
+
+		static constexpr std::string compose_flags(bits_type a_bits, bool a_full) noexcept
 		{
-			constexpr std::string_view prefix = "::parse_name<";
-			constexpr std::string_view suffix = ">(void)";
+			std::string result;
 
-			std::string_view sig = __FUNCSIG__;
-			const auto       begin = sig.find(prefix) + prefix.size();
-			const auto       name = sig.substr(begin, sig.rfind(suffix) - begin);
-
-			return name.find("(enum") == std::string_view::npos ? name : std::string_view{};
-		}
-
-		template <enum_type E>
-		static constexpr auto name_storage = [] {
-			constexpr auto                name = parse_name<E>();
-			std::array<char, name.size()> buf{};
-			std::ranges::copy(name, buf.begin());
-			return buf;
-		}();
-
-		template <enum_type E>
-		static constexpr std::string_view cache() noexcept
-		{
-			return { name_storage<E>.data(), name_storage<E>.size() };
-		}
-
-		constexpr void build_cache() noexcept
-		{
-			static_assert(DKU_MAX_REFLECTION_ENUM > 0);
-
-			if (_reflection.isCached) {
-				return;
-			}
-
-			DKU_FOR_EACH_ENUM(DKU_BUILD_STEP_CACHE);
-
-			if (_reflection.nameTbl.size() <= 1) {
-				_reflection.isFlag = false;
-				return;
-			}
-
-			// test for flag trait, samples affected by DKU_MAX_REFLECTION_ENUM
-			auto contiguity = std::unordered_set<underlying_type>();
-			for (const auto valid : std::views::keys(_reflection.nameTbl)) {
-				if (contiguity.contains(std::bit_width<underlying_type>(valid))) {
-					_reflection.isFlag = false;
-					break;
-				} else {
-					contiguity.emplace(std::bit_width<underlying_type>(valid));
+			while (a_bits) {
+				const auto  bit = static_cast<bits_type>(bits_type{ 1 } << std::countr_zero(a_bits));
+				const auto* entry = detail::find_entry<enum_type>(bit);
+				if (!entry) {
+					return {};
 				}
 
-				if (_reflection.type.empty()) {
-					auto ns = string::split(_reflection.nameTbl[valid], "::");
-					_reflection.type = _reflection.nameTbl[valid].substr(0, _reflection.nameTbl[valid].length() - ns[ns.size() - 1].length() - 2);
+				if (!result.empty()) {
+					result += '|';
 				}
+				result += a_full ? entry->name : entry->shortName;
+
+				a_bits = static_cast<bits_type>(a_bits & (a_bits - 1));
 			}
 
-			if (_reflection.isFlag) {
-				_reflection.nameTbl.clear();
-
-				DKU_FOR_EACH_ENUM(DKU_BUILD_FLAG_CACHE);
-			}
-
-			_reflection.isCached = true;
+			return result;
 		}
 
-		inline static Reflection _reflection{ false, true };
-		underlying_type          _impl{ 0 };
+		underlying_type _impl{ 0 };
 	};
 
 	// deduction
@@ -296,7 +433,3 @@ namespace DKUtil::model
 		std::underlying_type_t<
 			std::common_type_t<Args...>>>;
 }  // namespace DKUtil::model
-
-#undef DKU_BUILD_STEP_CACHE
-#undef DKU_BUILD_FLAG_CACHE
-#undef DKU_FOR_EACH_ENUM
