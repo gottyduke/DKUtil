@@ -95,7 +95,7 @@ namespace DKUtil::Hook
 		const FuncInfo              a_funcInfo,
 		const Xbyak::CodeGenerator* a_xbyak) noexcept
 	{
-		return AddVMTHook(a_vtbl, a_index, a_funcInfo, std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()));
+		return AddVMTHook(a_vtbl, a_index, a_funcInfo, a_xbyak ? std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()) : std::make_pair(nullptr, 0));
 	}
 
 	inline auto AddVMTHook(
@@ -104,7 +104,7 @@ namespace DKUtil::Hook
 		const FuncInfo      a_funcInfo,
 		const Patch*        a_patch) noexcept
 	{
-		return AddVMTHook(a_vtbl, a_index, a_funcInfo, std::make_pair(a_patch->Data, a_patch->Size));
+		return AddVMTHook(a_vtbl, a_index, a_funcInfo, a_patch ? std::make_pair(a_patch->Data, a_patch->Size) : std::make_pair(nullptr, 0));
 	}
 
 	inline auto AddIATHook(
@@ -114,7 +114,7 @@ namespace DKUtil::Hook
 		const FuncInfo              a_funcInfo,
 		const Xbyak::CodeGenerator* a_xbyak) noexcept
 	{
-		return AddIATHook(a_moduleName, a_libraryName, a_importName, a_funcInfo, std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()));
+		return AddIATHook(a_moduleName, a_libraryName, a_importName, a_funcInfo, a_xbyak ? std::make_pair(a_xbyak->getCode(), a_xbyak->getSize()) : std::make_pair(nullptr, 0));
 	}
 
 	inline auto AddIATHook(
@@ -124,7 +124,7 @@ namespace DKUtil::Hook
 		const FuncInfo   a_funcInfo,
 		const Patch*     a_patch) noexcept
 	{
-		return AddIATHook(a_moduleName, a_libraryName, a_importName, a_funcInfo, std::make_pair(a_patch->Data, a_patch->Size));
+		return AddIATHook(a_moduleName, a_libraryName, a_importName, a_funcInfo, a_patch ? std::make_pair(a_patch->Data, a_patch->Size) : std::make_pair(nullptr, 0));
 	}
 
 	/** \brief Relocate a jmpsite with target hook function

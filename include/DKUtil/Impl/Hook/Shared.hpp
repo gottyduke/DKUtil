@@ -409,7 +409,7 @@ namespace DKUtil
 			}
 			explicit Module(std::string_view a_filePath)
 			{
-				const auto base = AsAddress(::GetModuleHandleA(a_filePath.data())) & ~3;
+				const auto base = AsAddress(::GetModuleHandleA(a_filePath.empty() ? nullptr : std::string{ a_filePath }.c_str())) & ~3;
 				dku_assert(base, "DKU_H: Failed to initializing module info with file {}", a_filePath);
 
 				*this = Module(base);
@@ -454,7 +454,8 @@ namespace DKUtil
 
 			[[nodiscard]] static Module& get(std::string_view a_filePath = {}) noexcept
 			{
-				const auto base = AsAddress(::GetModuleHandleA(a_filePath.empty() ? GetModulePath().data() : a_filePath.data()));
+				const auto path = a_filePath.empty() ? GetModulePath() : std::string{ a_filePath };
+				const auto base = AsAddress(::GetModuleHandleA(path.c_str()));
 				return get(base);
 			}
 
@@ -566,16 +567,21 @@ namespace DKUtil
 
 			auto&       module = Module::get(a_moduleName);
 			const auto* dosHeader = module.dosHeader();
-			const auto* importTbl = adjust_pointer<const ::IMAGE_IMPORT_DESCRIPTOR>(dosHeader, module.ntHeader()->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
+			const auto  importRva = module.ntHeader()->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+			if (!importRva) {
+				return nullptr;
+			}
 
-			for (void(0); importTbl->Characteristics; ++importTbl) {
+			const auto* importTbl = adjust_pointer<const ::IMAGE_IMPORT_DESCRIPTOR>(dosHeader, importRva);
+
+			for (void(0); importTbl->Name && importTbl->FirstThunk; ++importTbl) {
 				const char* libraryName = adjust_pointer<const char>(dosHeader, importTbl->Name);
 				if (!string::iequals(a_libraryName, libraryName)) {
 					continue;
 				}
 
-				if (!importTbl->FirstThunk || !importTbl->OriginalFirstThunk) {
-					break;
+				if (!importTbl->OriginalFirstThunk) {
+					continue;
 				}
 
 				const auto* iat = adjust_pointer<const ::IMAGE_THUNK_DATA>(dosHeader, importTbl->FirstThunk);

@@ -27,17 +27,44 @@ namespace DKUtil::Hook
 
 		void Enable() noexcept override
 		{
+			const auto current = *dku::Hook::unrestricted_cast<std::uintptr_t*>(Address);
+
+			if (!_enabled && current != TramEntry) {
+				OldAddress = current;
+			}
+
 			WriteImm(Address, TramEntry, false);
+			_enabled = true;
 			__DEBUG("DKU_H: Enabled IAT hook");
 		}
 
 		void Disable() noexcept override
 		{
+			if (!_enabled) {
+				return;
+			}
+
+			const auto current = *dku::Hook::unrestricted_cast<std::uintptr_t*>(Address);
+
+			if (current == OldAddress) {
+				_enabled = false;
+				return;
+			}
+
+			if (current != TramEntry) {
+				WARN("DKU_H: IAT slot @ {:X} was swapped after this hook, disable the later hook first", Address);
+				return;
+			}
+
 			WriteImm(Address, OldAddress, false);
+			_enabled = false;
 			__DEBUG("DKU_H: Disabled IAT hook");
 		}
 
-		const std::uintptr_t OldAddress;
+		std::uintptr_t OldAddress;
+
+	private:
+		bool _enabled{ false };
 	};
 
 	/** Swaps a import address table method with target function
@@ -54,12 +81,15 @@ namespace DKUtil::Hook
 		const FuncInfo      a_funcInfo,
 		const unpacked_data a_patch = std::make_pair(nullptr, 0)) noexcept
 	{
+		dku_assert(a_funcInfo.address(), "DKU_H: IAT hook must have a valid function pointer");
+
 		const auto iat = AsAddress(GetImportAddress(a_moduleName, a_libraryName, a_importName));
+		dku_assert(iat, "DKU_H: IAT reached the end of table\n\nMethod {} not found", a_importName);
 
 		if (a_patch.first && a_patch.second) {
 			auto tramPtr = TRAM_ALLOC(0);
 
-			CallRip asmBranch;
+			JmpRip asmBranch;
 
 			WriteImm(tramPtr, a_funcInfo.address(), true);
 			tramPtr += sizeof(a_funcInfo.address());
@@ -76,9 +106,8 @@ namespace DKUtil::Hook
 			return std::move(handle);
 		} else {
 			auto handle = std::make_unique<IATHookHandle>(iat, a_funcInfo.address(), a_importName, a_funcInfo.name().data());
+			handle->TramPtr = 0;
 			return std::move(handle);
 		}
-
-		FATAL("DKU_H: IAT reached the end of table\n\nMethod {} not found", a_importName);
 	}
 }  // namespace DKUtil::Hook

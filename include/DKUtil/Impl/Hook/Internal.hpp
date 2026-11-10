@@ -27,12 +27,22 @@ namespace DKUtil::Hook
 			requires(!std::is_pointer_v<T>)
 		void Write(T a_in) noexcept
 		{
-			WriteData(TramPtr, std::addressof(a_in), sizeof(a_in), true);
-			TramPtr += sizeof(a_in);
+			Write(std::addressof(a_in), sizeof(a_in));
 		}
 
 		void Write(const void* a_src, std::size_t a_size) noexcept
 		{
+			const auto next = TRAM_ALLOC(0);
+
+			if (!TramPtr) {
+				TramPtr = next;
+			}
+
+			dku_assert(TramPtr == next,
+				"DKU_H: HookHandle can only write at the end of the used trampoline memory\n"
+				"handle : {:X}\nnext   : {:X}",
+				TramPtr, next);
+
 			WriteData(TramPtr, a_src, a_size, true);
 			TramPtr += a_size;
 		}

@@ -38,7 +38,7 @@ For related information, see each API's own section.
 
 ## Internal Trampoline
 
-You can write data directly to `HookHandle` internal `TramPtr`, this normally points to next available memory address in trampoline. However, unless you know what you are doing, you shouldn't be doing it.
+You can write data directly to `HookHandle` internal `TramPtr`, this normally points to next available memory address in trampoline. However, unless you know what you are doing, you shouldn't be doing it. `Write` is a fatal error if `TramPtr` is not the next free address in the trampoline.
 
 ```cpp
 HookHandle handle = SomeDKUtilHookAPI();

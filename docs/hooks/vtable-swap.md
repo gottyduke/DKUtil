@@ -15,10 +15,10 @@ VMTHookHandle AddVMTHook(
 
 ## Parameter
 
-+ `vtbl` : pointer to virtual method table (a.k.a pointer to class object).
++ `vtbl` : pointer to class object, not the table itself.
 + `index` : **index** of the virtual function in the virtual method table.
 + `funcInfo` : FUNC_INFO macro wrapper of hook function.
-+ `patch` : **optional**, prolog patch before detouring to hook function.
++ `patch` : **optional**, stack neutral prolog patch before detouring to hook function.
 
 ## HookHandle
 
@@ -33,6 +33,8 @@ class VMTHookHandle
     std::uintptr_t OldAddress;
 };
 ```
+
+`OldAddress` is refreshed on `Enable`. `Disable` only restores it while the entry still points to this hook.
 
 ## Example
 
